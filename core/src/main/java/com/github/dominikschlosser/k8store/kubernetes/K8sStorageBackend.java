@@ -519,7 +519,9 @@ public final class K8sStorageBackend implements AutoCloseable {
             try {
                 state.reconcile();
             } catch (RuntimeException e) {
-                LOG.debugv(e, "k8store mirror reconciliation for {0} failed; next run in {1}s",
+                // a failing reconcile is operationally significant (the mirror can drift from the
+                // cluster until it recovers), so warn rather than hide it at debug
+                LOG.warnv(e, "k8store mirror reconciliation for {0} failed; next run in {1}s",
                         state.specClass.getSimpleName(), config.getReconcileIntervalSeconds());
             }
         }
