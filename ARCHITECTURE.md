@@ -584,6 +584,14 @@ version → migrate CRs → flip storage version → retire old version); the CL
 Test coverage uses the **official Keycloak test framework**
 (`org.keycloak.testframework`, version-locked to Keycloak nightly) at three levels:
 
+Module split: `core/src/test` holds fast unit tests (backend against a mock API server, no
+Keycloak boot); the separate `tests/` module holds the integration tests because they boot a
+full embedded Keycloak and deploy the packaged core artifact into it - that needs core built
+first and pulls the whole server onto the test classpath, which must not leak into core.
+`tests/src/main` contains only test-only providers that have to run inside the server under
+test (the embedded server deploys a module's main output, never test-scope classes); that jar
+is never shipped.
+
 1. **Embedded integration tests** (`tests/` module, default `KC_TEST_SERVER=embedded`):
    Keycloak runs in the test JVM with the extension deployed from the local Maven repository,
    `--features=stateless`, `--spi-datastore--provider=k8store`. The Kubernetes API is a **real
