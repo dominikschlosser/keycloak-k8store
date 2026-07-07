@@ -536,6 +536,40 @@ class K8sStorageBackendTest {
     }
 
     @Test
+    void detectVersionDriftReportsExactlyTheCrsStampedByAnotherVersion() {
+        // one CR stamped with the running version (not drifted) and two with an older stamp
+        client.resource(stampedRealmCr("current", Version.VERSION)).create();
+        client.resource(stampedRealmCr("old-a", "9.9.9")).create();
+        client.resource(stampedRealmCr("old-b", "8.8.8")).create();
+        // a hand-authored CR without any version stamp is not drift
+        RealmSpec unstamped = new RealmSpec();
+        unstamped.setRealm("unstamped");
+        client.resource(realmCr("unstamped", unstamped)).create();
+
+        K8sStorageBackend backend = start(true);
+
+        List<String> drifted = backend.detectVersionDrift();
+        assertEquals(2, drifted.size(), "only the two differently-stamped CRs are drift: " + drifted);
+        assertTrue(drifted.stream().anyMatch(d -> d.contains("old-a") && d.contains("9.9.9")), drifted.toString());
+        assertTrue(drifted.stream().anyMatch(d -> d.contains("old-b") && d.contains("8.8.8")), drifted.toString());
+        assertFalse(drifted.stream().anyMatch(d -> d.contains("current")), "the running-version CR is not drift");
+        assertFalse(drifted.stream().anyMatch(d -> d.contains("unstamped")), "an unstamped CR is not drift");
+    }
+
+    private KeycloakRealmCr stampedRealmCr(String name, String versionStamp) {
+        RealmSpec spec = new RealmSpec();
+        spec.setRealm(name);
+        KeycloakRealmCr cr = new KeycloakRealmCr();
+        cr.setMetadata(new ObjectMetaBuilder()
+                .withName(name)
+                .withNamespace("test")
+                .addToLabels(K8sStorageBackend.VERSION_LABEL, versionStamp)
+                .build());
+        cr.setSpec(spec);
+        return cr;
+    }
+
+    @Test
     void rollbackDiscardsBufferedWritesAndRepairsTheMirror() {
         RealmSpec existing = new RealmSpec();
         existing.setRealm("keep");
