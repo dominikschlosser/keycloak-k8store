@@ -513,6 +513,11 @@ public final class K8sStorageBackend implements AutoCloseable {
         }
     }
 
+    /** Test hook: runs one reconcile pass synchronously. */
+    void reconcileNow() {
+        reconcileAll();
+    }
+
     @Override
     public void close() {
         if (reconciler != null) {
@@ -799,10 +804,12 @@ public final class K8sStorageBackend implements AutoCloseable {
         }
 
         <S> void recordUpdate(KindState<S, ?> state, String realmId, String id, S spec) {
+            state.pendingWriteKeys.add(key(realmId, id));
             pending.put(bufferKey(state, realmId, id), new PendingWrite<>(state, realmId, id, spec));
         }
 
         void recordDelete(KindState<?, ?> state, String realmId, String id) {
+            state.pendingWriteKeys.add(key(realmId, id));
             pending.put(bufferKey(state, realmId, id), new PendingWrite<>(state, realmId, id, null));
         }
 
@@ -816,6 +823,7 @@ public final class K8sStorageBackend implements AutoCloseable {
             }
             // reached only when every write applied; on a partial flush the buffer stays
             // intact so the rollback hook can repair all affected mirror entries
+            pending.values().forEach(PendingWrite::clearPending);
             pending.clear();
             flushed = true;
         }
@@ -830,6 +838,7 @@ public final class K8sStorageBackend implements AutoCloseable {
                             + " may be stale until the next reconciliation", write.describe());
                 }
             }
+            pending.values().forEach(PendingWrite::clearPending);
             pending.clear();
         }
 
@@ -897,6 +906,11 @@ public final class K8sStorageBackend implements AutoCloseable {
             state.refreshFromServer(realmId, id);
         }
 
+        /** Releases the reconcile guard once this write has been flushed or repaired. */
+        void clearPending() {
+            state.pendingWriteKeys.remove(key(realmId, id));
+        }
+
         String describe() {
             return state.specClass.getSimpleName() + " " + realmId + "/" + id;
         }
@@ -929,6 +943,13 @@ public final class K8sStorageBackend implements AutoCloseable {
 
         /** realmId + \0 + id -> CR metadata (name/namespace) backing that entry. */
         private final Map<String, CrRef> refs = new ConcurrentHashMap<>();
+
+        /**
+         * Keys with an unflushed buffered transaction write. Their mirror entries exist locally
+         * but not yet on the API server, so the periodic reconcile must not remove them just
+         * because a server LIST does not see them.
+         */
+        private final Set<String> pendingWriteKeys = ConcurrentHashMap.newKeySet();
 
         KindState(Class<C> crClass, Supplier<C> crFactory, Class<S> specClass,
                   Function<S, String> idFn, BiConsumer<S, String> idSetter,
@@ -1059,9 +1080,6 @@ public final class K8sStorageBackend implements AutoCloseable {
             Map<String, S> realm = byRealm.get(realmId);
             if (realm != null) {
                 realm.remove(id);
-                if (realm.isEmpty()) {
-                    byRealm.remove(realmId, realm);
-                }
             }
             refs.remove(key(realmId, id));
         }
@@ -1078,12 +1096,12 @@ public final class K8sStorageBackend implements AutoCloseable {
         }
 
         void mirrorRemove(String realmId, String id) {
+            // The empty per-realm map is intentionally not pruned: pruning races with a
+            // concurrent mirrorPut that already holds a reference to the map and would lose that
+            // write. The maps are bounded by the number of realms, so leaving them is harmless.
             Map<String, S> realm = byRealm.get(realmId);
             if (realm != null) {
                 realm.remove(id);
-                if (realm.isEmpty()) {
-                    byRealm.remove(realmId, realm);
-                }
             }
         }
 
@@ -1272,7 +1290,9 @@ public final class K8sStorageBackend implements AutoCloseable {
             for (Map.Entry<String, Map<String, S>> realmEntry : byRealm.entrySet()) {
                 for (String id : new ArrayList<>(realmEntry.getValue().keySet())) {
                     String key = key(realmEntry.getKey(), id);
-                    if (!liveKeys.contains(key)) {
+                    // Keep entries with an unflushed buffered write: their CR is not on the
+                    // server LIST yet, so liveKeys would wrongly drop them mid-transaction.
+                    if (!liveKeys.contains(key) && !pendingWriteKeys.contains(key)) {
                         realmEntry.getValue().remove(id);
                         refs.remove(key);
                     }
