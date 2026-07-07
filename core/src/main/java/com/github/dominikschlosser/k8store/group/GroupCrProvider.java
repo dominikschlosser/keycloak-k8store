@@ -233,16 +233,17 @@ public class GroupCrProvider implements GroupProvider {
                             + " already exists for requested parent");
                 });
 
-        String groupId = id == null ? name : id;
-        if (GroupCrStore.exists(realm.getId(), groupId)) {
-            // organization-scoped subgroup names are only unique per organization ("admins" in
-            // every organization), so a taken natural id falls back to a generated one - the
-            // realm-group convention (id = name, globally unique) stays strict as before
-            if (id == null && effectiveType == GroupModel.Type.ORGANIZATION) {
-                groupId = KeycloakModelUtils.generateId();
-            } else {
-                throw new ModelDuplicateException("Group exists: " + groupId);
-            }
+        String groupId = id;
+        if (groupId == null) {
+            // No explicit id: prefer the name as a readable id, but fall back to a generated one
+            // when that id is already taken. This happens for organization subgroups (the same
+            // name recurs across organizations) and, crucially, when a group was renamed away
+            // from this name - a rename keeps the id, so the old name's id stays occupied and a
+            // new group of that name would otherwise be blocked forever. Name uniqueness within
+            // the parent was already checked above.
+            groupId = GroupCrStore.exists(realm.getId(), name) ? KeycloakModelUtils.generateId() : name;
+        } else if (GroupCrStore.exists(realm.getId(), groupId)) {
+            throw new ModelDuplicateException("Group exists: " + groupId);
         }
 
         GroupSpec spec = new GroupSpec();
