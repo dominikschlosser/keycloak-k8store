@@ -374,7 +374,6 @@ mkdir -p "${RESULTS}"
 for variant in ${VARIANTS}; do
   deploy_variant "${variant}"
   if [ "${variant}" = "vanilla-default" ]; then
-    mkdir -p "${RESULTS}"
     record_cluster_view "${RESULTS}/vanilla-default-cluster-view.txt"
   fi
   start_pf

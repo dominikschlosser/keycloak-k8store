@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright 2026 Dominik Schlosser
+# SPDX-License-Identifier: Apache-2.0
+#
 # Regenerates the CRDs from the current Keycloak entity model and syncs them into crds/.
 #
 # Run this after bumping keycloak.version. Combine with scripts/crd-tools.sh to see whether the

@@ -30,8 +30,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# Cancel superseded runs of the same ref/event (a new push cancels the previous
-# in-flight run; scheduled runs don't cancel push runs and vice versa).
+# Cancel superseded runs of the same workflow, event and ref: a new push cancels
+# the previous in-flight run for that branch, while push and pull_request runs on
+# the same ref stay in separate groups (keyed by event_name) and do not cancel
+# each other. Triggers are push, pull_request and manual dispatch - no schedule.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
