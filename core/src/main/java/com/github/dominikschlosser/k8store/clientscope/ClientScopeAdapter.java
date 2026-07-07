@@ -88,6 +88,9 @@ public class ClientScopeAdapter implements ClientScopeModel {
         // rewrite name-keyed references (client assignment lists, user consents) before the CR
         // moves, so the handlers still resolve the old name
         session.invalidate(CLIENT_SCOPE_RENAMED, realm, current, normalized);
+        // the realm CR holds its default lists by name; rewrite them on the CR-backed realm.
+        // A JPA-backed realm keeps id-based references that need no rewrite, and this
+        // extension disables the realm cache, so the realm is never a cache wrapper here.
         if (realm instanceof RealmAdapter ra) {
             ra.renameDefaultClientScope(current, normalized);
         }
