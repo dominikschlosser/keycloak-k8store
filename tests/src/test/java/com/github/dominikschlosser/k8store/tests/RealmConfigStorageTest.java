@@ -22,6 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRealmCr;
 import com.github.dominikschlosser.k8store.tests.config.K8StoreServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Order;
@@ -42,12 +46,18 @@ import org.keycloak.testframework.realm.ManagedRealm;
 @KeycloakIntegrationTest(config = K8StoreServerConfig.class)
 public class RealmConfigStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     @InjectRealm(lifecycle = LifeCycle.CLASS)
     ManagedRealm realm;
 
     private KeycloakRealmCr realmCr() {
-        return TestKube.client().resources(KeycloakRealmCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems().stream()
+        return kube.client().resources(KeycloakRealmCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(cr -> realm.getName().equals(cr.getSpec().getRealm()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakRealm CR for " + realm.getName()));

@@ -15,7 +15,6 @@
  */
 package com.github.dominikschlosser.k8store.tests.config;
 
-import com.github.dominikschlosser.k8store.tests.TestKube;
 import org.keycloak.testframework.server.KeycloakServerConfig;
 import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
 
@@ -28,7 +27,6 @@ public class PartialAreasServerConfig implements KeycloakServerConfig {
 
     @Override
     public KeycloakServerConfigBuilder configure(KeycloakServerConfigBuilder config) {
-        TestKube.ensureAvailable();
         return K8StoreServerConfig.commonOptions(config)
                 .option("spi-datastore--k8store--read-only", "false")
                 .option("spi-datastore--k8store--areas", "realm,client,client-scope,role,identity-provider");

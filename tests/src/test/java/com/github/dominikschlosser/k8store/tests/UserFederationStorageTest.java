@@ -23,6 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserCr;
 import com.github.dominikschlosser.k8store.tests.config.DynamicAreasServerConfig;
 import com.github.dominikschlosser.k8store.tests.federation.TestFederationUserStorage;
+import com.github.dominikschlosser.k8store.tests.framework.Await;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespaces;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -62,6 +68,12 @@ import org.keycloak.testframework.server.KeycloakUrls;
 @KeycloakIntegrationTest(config = DynamicAreasServerConfig.class)
 public class UserFederationStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace(ref = TestNamespaces.DYNAMIC_REF)
+    TestNamespace namespace;
+
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
     @InjectRealm(lifecycle = LifeCycle.CLASS)
@@ -82,8 +94,8 @@ public class UserFederationStorageTest {
     }
 
     private List<KeycloakUserCr> userCrs() {
-        return TestKube.client().resources(KeycloakUserCr.class)
-                .inNamespace(TestKube.dynamicNamespace()).list().getItems();
+        return kube.client().resources(KeycloakUserCr.class)
+                .inNamespace(namespace.name()).list().getItems();
     }
 
     private int passwordGrant(String username, String password) throws Exception {
@@ -165,7 +177,7 @@ public class UserFederationStorageTest {
 
             // remove-imported-users deletes the linked shadow CRs
             realm.admin().userStorage().removeImportedUsers(componentId);
-            TestKube.await("imported user CR to be removed with remove-imported-users",
+            Await.await("imported user CR to be removed with remove-imported-users",
                     () -> userCr(TestFederationUserStorage.USERNAME) == null);
         } finally {
             realm.admin().components().component(componentId).remove();

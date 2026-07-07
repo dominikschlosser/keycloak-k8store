@@ -25,6 +25,11 @@ import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakGroupCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakOrganizationCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRealmCr;
 import com.github.dominikschlosser.k8store.tests.config.OrganizationAreasServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.Await;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import io.fabric8.kubernetes.client.CustomResource;
 import jakarta.ws.rs.core.Response;
 import java.util.HashMap;
@@ -61,6 +66,12 @@ import org.keycloak.testframework.realm.ManagedRealm;
 @KeycloakIntegrationTest(config = OrganizationAreasServerConfig.class)
 public class OrganizationAreaStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     @InjectRealm(lifecycle = LifeCycle.CLASS)
     ManagedRealm realm;
 
@@ -76,7 +87,7 @@ public class OrganizationAreaStorageTest {
     // ------------------------------------------------------------------ CR helpers
 
     private <T extends CustomResource<?, ?>> List<T> crs(Class<T> type) {
-        return TestKube.client().resources(type).inNamespace(TestKube.namespace()).list().getItems();
+        return kube.client().resources(type).inNamespace(namespace.name()).list().getItems();
     }
 
     private Optional<KeycloakOrganizationCr> organizationCr(String orgId) {
@@ -242,7 +253,7 @@ public class OrganizationAreaStorageTest {
         assertEquals(orgId, linked.get(0).getOrganizationId());
 
         // and persisted where the model keeps it: on the identity provider in the realm CR
-        TestKube.await("realm CR to carry the organization linkage on the identity provider",
+        Await.await("realm CR to carry the organization linkage on the identity provider",
                 () -> realmCr().getSpec().getIdentityProviders() != null
                         && realmCr().getSpec().getIdentityProviders().stream()
                                 .anyMatch(rep -> "org-broker".equals(rep.getAlias())
@@ -291,8 +302,8 @@ public class OrganizationAreaStorageTest {
             assertEquals(204, response.getStatus());
         }
 
-        TestKube.await("organization CR to be deleted", () -> organizationCr(orgId).isEmpty());
-        TestKube.await("backing group CR to be deleted with the organization",
+        Await.await("organization CR to be deleted", () -> organizationCr(orgId).isEmpty());
+        Await.await("backing group CR to be deleted with the organization",
                 () -> groupCr(groupId).isEmpty());
         assertNotNull(realm.admin().users().get(userId).toRepresentation(),
                 "unmanaged members survive the organization removal");

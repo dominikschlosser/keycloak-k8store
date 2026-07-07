@@ -15,7 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.tests.config;
 
-import com.github.dominikschlosser.k8store.tests.TestKube;
+import com.github.dominikschlosser.k8store.tests.framework.KindClusterSupplier;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespaces;
 import org.keycloak.common.Profile;
 import org.keycloak.testframework.infinispan.CacheType;
 import org.keycloak.testframework.server.KeycloakServerConfig;
@@ -23,14 +24,16 @@ import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
 
 /**
  * Keycloak under test with the k8store datastore in write mode (read-only=false), backed by a
- * real kind cluster (see {@link TestKube}). Write mode is what admin-API-driven tests need; the
- * read-only production pattern is covered by {@link ReadOnlyK8StoreServerConfig}.
+ * real kind cluster. The cluster (kubeconfig context, reachability, CRDs) and the test
+ * namespace are provided by the test-framework extension suppliers before the server boots;
+ * {@link KindClusterSupplier} injects the context option as a server-config interceptor and
+ * the namespace name comes from {@link TestNamespaces}. Write mode is what admin-API-driven
+ * tests need; the read-only production pattern is covered by {@link ReadOnlyK8StoreServerConfig}.
  */
 public class K8StoreServerConfig implements KeycloakServerConfig {
 
     @Override
     public KeycloakServerConfigBuilder configure(KeycloakServerConfigBuilder config) {
-        TestKube.ensureAvailable();
         return commonOptions(config).option("spi-datastore--k8store--read-only", "false");
     }
 
@@ -46,9 +49,6 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
      * it disabled otherwise.
      */
     static KeycloakServerConfigBuilder commonOptions(KeycloakServerConfigBuilder config, boolean organizations) {
-        if (!TestKube.isRemote()) {
-            config.option("spi-datastore--k8store--context", TestKube.contextName());
-        }
         // The authorization feature stays enabled (upstream default): without the authorization
         // area it is served by JPA, with the area by the CR store. Fine-grained admin
         // permissions v2 stays disabled - preview upstream, and it writes policies at runtime
@@ -70,7 +70,7 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
                 .cache(CacheType.LOCAL)
                 .dependency("com.github.dominikschlosser", "keycloak-k8store")
                 .option("spi-datastore--provider", "k8store")
-                .option("spi-datastore--k8store--namespace", TestKube.namespace())
+                .option("spi-datastore--k8store--namespace", TestNamespaces.defaultName())
                 .spiOption("realm", "jpa", "enabled", "false")
                 .spiOption("realm-cache", "default", "enabled", "false")
                 // like the realm cache: the informer mirror is the cache when the authorization

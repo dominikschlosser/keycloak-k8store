@@ -21,6 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserCr;
 import com.github.dominikschlosser.k8store.tests.config.DynamicAreasServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespaces;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import org.junit.jupiter.api.Order;
@@ -47,6 +52,12 @@ import org.keycloak.testframework.remote.runonserver.RunOnServerClient;
 @Order(1)
 @KeycloakIntegrationTest(config = DynamicAreasServerConfig.class)
 public class ConsentParametersStorageTest {
+
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace(ref = TestNamespaces.DYNAMIC_REF)
+    TestNamespace namespace;
 
     private static final String PARAMETERIZED_SCOPE = "tenant";
     private static final String PLAIN_SCOPE = "plain-consent-scope";
@@ -118,8 +129,8 @@ public class ConsentParametersStorageTest {
         assertTrue(granted.contains("scopes=2"), granted);
 
         // the CR carries the parameters in the consent entry
-        KeycloakUserCr cr = TestKube.client().resources(KeycloakUserCr.class)
-                .inNamespace(TestKube.dynamicNamespace()).list().getItems().stream()
+        KeycloakUserCr cr = kube.client().resources(KeycloakUserCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(candidate -> USERNAME.equals(candidate.getSpec().getUsername())
                         && realmName.equals(candidate.getSpec().getRealm()))
                 .findFirst().orElseThrow();
@@ -170,8 +181,8 @@ public class ConsentParametersStorageTest {
         });
         assertEquals("updated", updated.replace("\"", ""));
 
-        var updatedConsent = TestKube.client().resources(KeycloakUserCr.class)
-                .inNamespace(TestKube.dynamicNamespace()).list().getItems().stream()
+        var updatedConsent = kube.client().resources(KeycloakUserCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(candidate -> USERNAME.equals(candidate.getSpec().getUsername())
                         && realmName.equals(candidate.getSpec().getRealm()))
                 .findFirst().orElseThrow()

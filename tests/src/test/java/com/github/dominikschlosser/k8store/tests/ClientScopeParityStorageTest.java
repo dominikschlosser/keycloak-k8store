@@ -22,6 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakClientCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakClientScopeCr;
 import com.github.dominikschlosser.k8store.tests.config.K8StoreServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import jakarta.ws.rs.core.Response;
 import java.util.HashMap;
 import java.util.List;
@@ -47,12 +51,18 @@ import org.keycloak.testframework.realm.ManagedRealm;
 @KeycloakIntegrationTest(config = K8StoreServerConfig.class)
 public class ClientScopeParityStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     @InjectRealm(lifecycle = LifeCycle.CLASS)
     ManagedRealm realm;
 
     private KeycloakClientCr clientCr(String clientId) {
-        return TestKube.client().resources(KeycloakClientCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems().stream()
+        return kube.client().resources(KeycloakClientCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(cr -> clientId.equals(cr.getSpec().getClientId())
                         && realm.getName().equals(cr.getSpec().getRealm()))
                 .findFirst()
@@ -60,8 +70,8 @@ public class ClientScopeParityStorageTest {
     }
 
     private KeycloakClientScopeCr scopeCr(String name) {
-        return TestKube.client().resources(KeycloakClientScopeCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems().stream()
+        return kube.client().resources(KeycloakClientScopeCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(cr -> name.equals(cr.getSpec().getName())
                         && realm.getName().equals(cr.getSpec().getRealm()))
                 .findFirst()
