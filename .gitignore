@@ -8,3 +8,5 @@ target/
 .DS_Store
 dependency-reduced-pom.xml
 .env.test
+.benchmark-cache/
+benchmark-results/
