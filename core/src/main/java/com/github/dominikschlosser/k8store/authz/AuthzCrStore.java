@@ -15,12 +15,12 @@
  */
 package com.github.dominikschlosser.k8store.authz;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.AuthzPolicySpec;
 import com.github.dominikschlosser.k8store.crd.AuthzResourceSpec;
 import com.github.dominikschlosser.k8store.crd.AuthzScopeSpec;
 import com.github.dominikschlosser.k8store.crd.PermissionTicketSpec;
 import com.github.dominikschlosser.k8store.crd.ResourceServerSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
@@ -34,115 +34,126 @@ import java.util.List;
  */
 final class AuthzCrStore {
 
+    private static final CrStore<ResourceServerSpec> RESOURCE_SERVERS =
+            new CrStore<>(ResourceServerSpec.class, ResourceServerSpec::getRealm, ResourceServerSpec::getClientId);
+    private static final CrStore<AuthzResourceSpec> RESOURCES =
+            new CrStore<>(AuthzResourceSpec.class, AuthzResourceSpec::getRealm, AuthzResourceSpec::getId);
+    private static final CrStore<AuthzScopeSpec> SCOPES =
+            new CrStore<>(AuthzScopeSpec.class, AuthzScopeSpec::getRealm, AuthzScopeSpec::getId);
+    private static final CrStore<AuthzPolicySpec> POLICIES =
+            new CrStore<>(AuthzPolicySpec.class, AuthzPolicySpec::getRealm, AuthzPolicySpec::getId);
+    private static final CrStore<PermissionTicketSpec> TICKETS =
+            new CrStore<>(PermissionTicketSpec.class, PermissionTicketSpec::getRealm, PermissionTicketSpec::getId);
+
     private AuthzCrStore() {}
 
     // ------------------------------------------------------------------ resource servers
 
     static ResourceServerSpec resourceServer(String realmId, String clientId) {
-        return K8sStorageBackend.get().read(ResourceServerSpec.class, realmId, clientId);
+        return RESOURCE_SERVERS.read(realmId, clientId);
     }
 
     static List<ResourceServerSpec> resourceServers(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(ResourceServerSpec.class, realmId);
+        return RESOURCE_SERVERS.allInRealm(realmId);
     }
 
     static List<ResourceServerSpec> resourceServersAnywhere() {
-        return K8sStorageBackend.get().readAll(ResourceServerSpec.class);
+        return RESOURCE_SERVERS.readAll();
     }
 
     static ResourceServerSpec save(ResourceServerSpec spec) {
-        return K8sStorageBackend.update(ResourceServerSpec.class, spec.getRealm(), spec.getClientId(), spec);
+        return RESOURCE_SERVERS.save(spec);
     }
 
     static void deleteResourceServer(String realmId, String clientId) {
-        K8sStorageBackend.delete(ResourceServerSpec.class, realmId, clientId);
+        RESOURCE_SERVERS.delete(realmId, clientId);
     }
 
     // ------------------------------------------------------------------ resources
 
     static AuthzResourceSpec resource(String realmId, String id) {
-        return K8sStorageBackend.get().read(AuthzResourceSpec.class, realmId, id);
+        return RESOURCES.read(realmId, id);
     }
 
     static List<AuthzResourceSpec> resources(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(AuthzResourceSpec.class, realmId);
+        return RESOURCES.allInRealm(realmId);
     }
 
     static List<AuthzResourceSpec> resourcesAnywhere() {
-        return K8sStorageBackend.get().readAll(AuthzResourceSpec.class);
+        return RESOURCES.readAll();
     }
 
     static AuthzResourceSpec save(AuthzResourceSpec spec) {
-        return K8sStorageBackend.update(AuthzResourceSpec.class, spec.getRealm(), spec.getId(), spec);
+        return RESOURCES.save(spec);
     }
 
     static void deleteResource(String realmId, String id) {
-        K8sStorageBackend.delete(AuthzResourceSpec.class, realmId, id);
+        RESOURCES.delete(realmId, id);
     }
 
     // ------------------------------------------------------------------ authorization scopes
 
     static AuthzScopeSpec scope(String realmId, String id) {
-        return K8sStorageBackend.get().read(AuthzScopeSpec.class, realmId, id);
+        return SCOPES.read(realmId, id);
     }
 
     static List<AuthzScopeSpec> scopes(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(AuthzScopeSpec.class, realmId);
+        return SCOPES.allInRealm(realmId);
     }
 
     static List<AuthzScopeSpec> scopesAnywhere() {
-        return K8sStorageBackend.get().readAll(AuthzScopeSpec.class);
+        return SCOPES.readAll();
     }
 
     static AuthzScopeSpec save(AuthzScopeSpec spec) {
-        return K8sStorageBackend.update(AuthzScopeSpec.class, spec.getRealm(), spec.getId(), spec);
+        return SCOPES.save(spec);
     }
 
     static void deleteScope(String realmId, String id) {
-        K8sStorageBackend.delete(AuthzScopeSpec.class, realmId, id);
+        SCOPES.delete(realmId, id);
     }
 
     // ------------------------------------------------------------------ policies
 
     static AuthzPolicySpec policy(String realmId, String id) {
-        return K8sStorageBackend.get().read(AuthzPolicySpec.class, realmId, id);
+        return POLICIES.read(realmId, id);
     }
 
     static List<AuthzPolicySpec> policies(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(AuthzPolicySpec.class, realmId);
+        return POLICIES.allInRealm(realmId);
     }
 
     static List<AuthzPolicySpec> policiesAnywhere() {
-        return K8sStorageBackend.get().readAll(AuthzPolicySpec.class);
+        return POLICIES.readAll();
     }
 
     static AuthzPolicySpec save(AuthzPolicySpec spec) {
-        return K8sStorageBackend.update(AuthzPolicySpec.class, spec.getRealm(), spec.getId(), spec);
+        return POLICIES.save(spec);
     }
 
     static void deletePolicy(String realmId, String id) {
-        K8sStorageBackend.delete(AuthzPolicySpec.class, realmId, id);
+        POLICIES.delete(realmId, id);
     }
 
     // ------------------------------------------------------------------ permission tickets
 
     static PermissionTicketSpec ticket(String realmId, String id) {
-        return K8sStorageBackend.get().read(PermissionTicketSpec.class, realmId, id);
+        return TICKETS.read(realmId, id);
     }
 
     static List<PermissionTicketSpec> tickets(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(PermissionTicketSpec.class, realmId);
+        return TICKETS.allInRealm(realmId);
     }
 
     static List<PermissionTicketSpec> ticketsAnywhere() {
-        return K8sStorageBackend.get().readAll(PermissionTicketSpec.class);
+        return TICKETS.readAll();
     }
 
     static PermissionTicketSpec save(PermissionTicketSpec spec) {
-        return K8sStorageBackend.update(PermissionTicketSpec.class, spec.getRealm(), spec.getId(), spec);
+        return TICKETS.save(spec);
     }
 
     static void deleteTicket(String realmId, String id) {
-        K8sStorageBackend.delete(PermissionTicketSpec.class, realmId, id);
+        TICKETS.delete(realmId, id);
     }
 }

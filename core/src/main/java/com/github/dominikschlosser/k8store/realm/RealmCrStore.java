@@ -15,8 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.realm;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,32 +37,36 @@ public final class RealmCrStore {
 
     private static final Logger LOG = Logger.getLogger(RealmCrStore.class);
 
+    // the realm name is both the realm id and the store id (both live in spec.realm).
+    private static final CrStore<RealmSpec> STORE =
+            new CrStore<>(RealmSpec.class, RealmSpec::getRealm, RealmSpec::getRealm);
+
     /** Realms already warned about embedded collections, to avoid log spam on hot-path reads. */
     private static final Set<String> WARNED_REALMS = ConcurrentHashMap.newKeySet();
 
     private RealmCrStore() {}
 
     public static RealmSpec read(String realmId) {
-        return checked(K8sStorageBackend.get().read(RealmSpec.class, realmId, realmId));
+        return checked(STORE.read(realmId, realmId));
     }
 
     public static boolean exists(String realmId) {
-        return realmId != null && K8sStorageBackend.get().exists(RealmSpec.class, realmId, realmId);
+        return realmId != null && STORE.exists(realmId, realmId);
     }
 
     public static List<RealmSpec> readAll() {
-        List<RealmSpec> all = K8sStorageBackend.get().readAll(RealmSpec.class);
+        List<RealmSpec> all = STORE.readAll();
         all.forEach(RealmCrStore::checked);
         return all;
     }
 
     public static RealmSpec save(RealmSpec spec) {
-        return K8sStorageBackend.update(RealmSpec.class, spec.getRealm(), spec.getRealm(), spec);
+        return STORE.save(spec);
     }
 
     public static void delete(String realmId) {
         if (realmId != null) {
-            K8sStorageBackend.delete(RealmSpec.class, realmId, realmId);
+            STORE.delete(realmId, realmId);
             WARNED_REALMS.remove(realmId);
         }
     }

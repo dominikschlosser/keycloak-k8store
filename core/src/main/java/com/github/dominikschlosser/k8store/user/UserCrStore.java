@@ -15,8 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.user;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.UserSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
@@ -28,27 +28,28 @@ import java.util.List;
  */
 public final class UserCrStore {
 
+    private static final CrStore<UserSpec> STORE =
+            new CrStore<>(UserSpec.class, UserSpec::getRealm, UserSpec::getId);
+
     private UserCrStore() {}
 
     public static UserSpec read(String realmId, String id) {
-        return K8sStorageBackend.get().read(UserSpec.class, realmId, id);
+        return STORE.read(realmId, id);
     }
 
     public static boolean exists(String realmId, String id) {
-        return K8sStorageBackend.get().exists(UserSpec.class, realmId, id);
+        return STORE.exists(realmId, id);
     }
 
     public static List<UserSpec> allInRealm(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(UserSpec.class, realmId);
+        return STORE.allInRealm(realmId);
     }
 
     public static UserSpec save(UserSpec spec) {
-        return K8sStorageBackend.update(UserSpec.class, spec.getRealm(), spec.getId(), spec);
+        return STORE.save(spec);
     }
 
     public static void delete(String realmId, String id) {
-        if (realmId != null && id != null) {
-            K8sStorageBackend.delete(UserSpec.class, realmId, id);
-        }
+        STORE.delete(realmId, id);
     }
 }
