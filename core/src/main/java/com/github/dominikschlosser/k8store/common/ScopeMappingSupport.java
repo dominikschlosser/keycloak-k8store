@@ -138,22 +138,11 @@ public final class ScopeMappingSupport {
         if (renamed.isClientRole()) {
             Map<String, List<String>> byClient = spec.getClientScopeMappings();
             List<String> names = byClient == null ? null : byClient.get(renamed.getContainerId());
-            return replaceInList(names, oldName, newName);
+            return ListRewrites.replaceInList(names, oldName, newName);
         }
-        return replaceInList(spec.getRealmScopeMappings(), oldName, newName);
+        return ListRewrites.replaceInList(spec.getRealmScopeMappings(), oldName, newName);
     }
 
-    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
-        if (names == null) {
-            return false;
-        }
-        int index = names.indexOf(oldValue);
-        if (index < 0) {
-            return false;
-        }
-        names.set(index, newValue);
-        return true;
-    }
 
     /** Scope-mapping client keys are client ids (= clientIds in this store); resolve either way. */
     private static ClientModel resolveClient(KeycloakSession session, RealmModel realm, String clientKey) {

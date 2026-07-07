@@ -15,6 +15,7 @@
  */
 package com.github.dominikschlosser.k8store.user;
 
+import com.github.dominikschlosser.k8store.common.ListRewrites;
 import static org.keycloak.utils.StreamsUtil.paginatedStream;
 
 import com.github.dominikschlosser.k8store.common.LikePatterns;
@@ -729,12 +730,14 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     // ------------------------------------------------------------------ credential storage (spec.credentials)
 
     /**
-     * Keycloak's standard credential manager over this provider's {@link UserCredentialStore}
-     * (it resolves the store through the datastore's {@code userLocalStorage()}). Return type
-     * spelled out because the interface and this store's implementation share a simple name.
+     * Keycloak's standard credential manager over this provider's {@link UserCredentialStore} (it
+     * resolves the store through the datastore's {@code userLocalStorage()}). The concrete
+     * {@code credential.UserCredentialManager} is a subtype of the SPI's
+     * {@code models.UserCredentialManager} return type, so a covariant return keeps the simple
+     * name imported instead of spelling out either fully qualified.
      */
     @Override
-    public org.keycloak.models.UserCredentialManager getUserCredentialManager(UserModel user) {
+    public UserCredentialManager getUserCredentialManager(UserModel user) {
         return new UserCredentialManager(session, session.getContext().getRealm(), user);
     }
 
@@ -1230,9 +1233,9 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
             if (renamed.isClientRole()) {
                 Map<String, List<String>> byClient = spec.getClientRoles();
                 List<String> names = byClient == null ? null : byClient.get(renamed.getContainerId());
-                changed = replaceInList(names, oldName, newName);
+                changed = ListRewrites.replaceInList(names, oldName, newName);
             } else {
-                changed = replaceInList(spec.getRealmRoles(), oldName, newName);
+                changed = ListRewrites.replaceInList(spec.getRealmRoles(), oldName, newName);
             }
             if (changed) {
                 LOG.tracef("Rewriting renamed role %s to %s in grants of user %s",
@@ -1242,17 +1245,6 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         });
     }
 
-    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
-        if (names == null) {
-            return false;
-        }
-        int index = names.indexOf(oldValue);
-        if (index < 0) {
-            return false;
-        }
-        names.set(index, newValue);
-        return true;
-    }
 
     /** Group removal cascade: purge the removed group from every user's membership. */
     void groupRemoved(RealmModel realm, GroupModel removed) {
