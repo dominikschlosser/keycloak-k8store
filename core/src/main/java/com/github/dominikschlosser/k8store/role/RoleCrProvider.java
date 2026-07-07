@@ -42,8 +42,9 @@ import org.keycloak.representations.idm.RoleRepresentation.Composites;
  * {@link RoleProvider} serving roles from {@code KeycloakRole} custom resources.
  *
  * <p>Identity convention (human-readable, GitOps-friendly): realm role id = role name, client
- * role id = {@code <clientId>:<name>}. These ids surface in admin URLs and token claims, so they
- * are fixed at creation and survive renames.
+ * role id = {@code <clientId>:<name>}. These ids surface in admin URLs and token claims. Renaming
+ * a role moves its CR to the new id and cascades the new name into every name-keyed reference
+ * (composites, grants, scope mappings, the realm default role).
  */
 public class RoleCrProvider implements RoleProvider {
 
@@ -323,6 +324,51 @@ public class RoleCrProvider implements RoleProvider {
                 RoleCrStore.save(spec);
             }
         });
+    }
+
+    /**
+     * Role rename cascade: swap the old role name for the new one in every other role's composites.
+     * Client-role composites are keyed by the role's container id (unchanged by a rename); the
+     * client-section list keeps its position on swap. Realm composites are a set, so the swap is a
+     * remove-then-add and does not preserve order.
+     */
+    void roleRenamed(RealmModel realm, RoleModel renamed, String newName) {
+        String oldName = renamed.getName();
+        specs(realm).forEach(spec -> {
+            Composites composites = spec.getComposites();
+            if (composites == null) {
+                return;
+            }
+            boolean changed;
+            if (renamed.isClientRole()) {
+                Map<String, List<String>> byClient = composites.getClient();
+                List<String> names = byClient == null ? null : byClient.get(renamed.getContainerId());
+                changed = replaceInList(names, oldName, newName);
+            } else {
+                Set<String> names = composites.getRealm();
+                changed = names != null && names.remove(oldName);
+                if (changed) {
+                    names.add(newName);
+                }
+            }
+            if (changed) {
+                LOG.tracef("Rewriting renamed role %s to %s in composites of %s",
+                        oldName, newName, spec.getId());
+                RoleCrStore.save(spec);
+            }
+        });
+    }
+
+    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
+        if (names == null) {
+            return false;
+        }
+        int index = names.indexOf(oldValue);
+        if (index < 0) {
+            return false;
+        }
+        names.set(index, newValue);
+        return true;
     }
 
     @Override

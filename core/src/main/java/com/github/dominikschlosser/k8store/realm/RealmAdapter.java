@@ -1159,6 +1159,21 @@ public class RealmAdapter implements StorageProviderRealmModel {
         persist();
     }
 
+    /**
+     * Role rename cascade: rewrite the realm default-role reference when it points at the renamed
+     * role. Realm roles are stored by name and their id equals the name, so both fields move to
+     * the new name.
+     */
+    public void renameDefaultRole(String oldName, String newName) {
+        RoleRepresentation defaultRole = spec.getDefaultRole();
+        if (defaultRole == null || !oldName.equals(defaultRole.getName())) {
+            return;
+        }
+        defaultRole.setId(newName);
+        defaultRole.setName(newName);
+        persist();
+    }
+
     @Override
     public Stream<GroupModel> getDefaultGroupsStream() {
         List<String> paths = spec.getDefaultGroups();

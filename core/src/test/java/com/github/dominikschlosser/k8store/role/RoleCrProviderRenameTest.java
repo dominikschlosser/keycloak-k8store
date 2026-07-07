@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.dominikschlosser.k8store.user;
+package com.github.dominikschlosser.k8store.role;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -21,28 +21,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
-import com.github.dominikschlosser.k8store.crd.UserConsentSpec;
-import com.github.dominikschlosser.k8store.crd.UserSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
 import com.github.dominikschlosser.k8store.realm.RealmAdapter;
-import com.github.dominikschlosser.k8store.role.RoleAdapter;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
+import org.keycloak.representations.idm.RoleRepresentation.Composites;
 import org.keycloak.utils.KeycloakSessionUtil;
 
 @EnableKubernetesMockClient(crud = true)
-class UserCrProviderRenameTest {
+class RoleCrProviderRenameTest {
 
     KubernetesClient client;
 
@@ -84,59 +83,48 @@ class UserCrProviderRenameTest {
     }
 
     @Test
-    void roleRenameRewritesUserGrantsInPlace() {
+    void realmRoleRenameRewritesRealmComposites() {
         start();
         RealmModel realm = realm("master");
 
-        UserSpec user = new UserSpec();
-        user.setId("bob");
-        user.setUsername("bob");
-        user.setRealm("master");
-        user.setRealmRoles(new ArrayList<>(List.of("viewer", "admin", "editor")));
-        Map<String, List<String>> byClient = new HashMap<>();
-        byClient.put("web-internal", new ArrayList<>(List.of("create", "view", "delete")));
-        user.setClientRoles(byClient);
-        UserCrStore.save(user);
+        RoleSpec parent = new RoleSpec();
+        parent.setId("parent");
+        parent.setName("parent");
+        parent.setRealm("master");
+        parent.setContainerId("master");
+        Composites composites = new Composites();
+        composites.setRealm(new LinkedHashSet<>(List.of("viewer", "admin", "editor")));
+        parent.setComposites(composites);
+        RoleCrStore.save(parent);
 
-        new UserCrProvider(null).roleRenamed(realm, realmRole(realm, "admin"), "administrator");
-        new UserCrProvider(null).roleRenamed(realm, clientRole(realm, "web-internal", "view"), "read");
+        new RoleCrProvider(null).roleRenamed(realm, realmRole(realm, "admin"), "administrator");
 
-        UserSpec read = UserCrStore.read("master", "bob");
-        assertEquals(List.of("viewer", "administrator", "editor"), read.getRealmRoles(),
-                "realm grant keeps position and swaps the renamed role");
-        assertEquals(List.of("create", "read", "delete"), read.getClientRoles().get("web-internal"),
-                "client grant keeps position and swaps the renamed role, key unchanged");
+        Composites read = RoleCrStore.read("master", "parent").getComposites();
+        assertTrue(read.getRealm().contains("administrator"), "renamed role is present under the new name");
+        assertFalse(read.getRealm().contains("admin"), "the old role name is gone from composites");
     }
 
     @Test
-    void clientScopeRenameRewritesConsentGrantsAndParameterKeys() {
+    void clientRoleRenameRewritesClientCompositesInPlace() {
         start();
+        RealmModel realm = realm("master");
 
-        UserConsentSpec consent = new UserConsentSpec();
-        consent.setClientId("web");
-        consent.setGrantedClientScopes(new ArrayList<>(List.of("profile", "email", "roles")));
-        Map<String, List<String>> parameters = new HashMap<>();
-        parameters.put("email", new ArrayList<>(List.of("primary")));
-        consent.setGrantedScopeParameters(parameters);
+        RoleSpec parent = new RoleSpec();
+        parent.setId("parent");
+        parent.setName("parent");
+        parent.setRealm("master");
+        parent.setContainerId("master");
+        Composites composites = new Composites();
+        Map<String, List<String>> byClient = new HashMap<>();
+        byClient.put("web-internal", new ArrayList<>(List.of("create", "view", "delete")));
+        composites.setClient(byClient);
+        parent.setComposites(composites);
+        RoleCrStore.save(parent);
 
-        UserSpec user = new UserSpec();
-        user.setId("alice");
-        user.setUsername("alice");
-        user.setRealm("master");
-        user.setConsents(new ArrayList<>(List.of(consent)));
-        UserCrStore.save(user);
+        new RoleCrProvider(null).roleRenamed(realm, clientRole(realm, "web-internal", "view"), "read");
 
-        new UserCrProvider(null).clientScopeRenamed(realm("master"), "email", "mail");
-
-        UserSpec read = UserCrStore.read("master", "alice");
-        UserConsentSpec readConsent = read.getConsents().get(0);
-        assertEquals(List.of("profile", "mail", "roles"), readConsent.getGrantedClientScopes(),
-                "granted-scope list keeps position and swaps the renamed scope");
-        assertTrue(readConsent.getGrantedScopeParameters().containsKey("mail"),
-                "the scope-parameters map is rekeyed to the new name");
-        assertFalse(readConsent.getGrantedScopeParameters().containsKey("email"),
-                "the old scope-parameters key is gone");
-        assertEquals(List.of("primary"), readConsent.getGrantedScopeParameters().get("mail"),
-                "the scope-parameters value is preserved under the new key");
+        Composites read = RoleCrStore.read("master", "parent").getComposites();
+        assertEquals(List.of("create", "read", "delete"), read.getClient().get("web-internal"),
+                "client composite keeps position and swaps the renamed role, key unchanged");
     }
 }

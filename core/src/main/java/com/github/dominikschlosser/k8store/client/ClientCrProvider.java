@@ -212,6 +212,17 @@ public class ClientCrProvider implements ClientProvider {
         });
     }
 
+    /** Role rename cascade: rewrite the renamed role in every client's scope mappings. */
+    void roleRenamed(RealmModel realm, RoleModel renamed, String newName) {
+        specs(realm).forEach(spec -> {
+            if (ScopeMappingSupport.renameRole(spec, renamed, newName)) {
+                LOG.tracef("Rewriting renamed role %s to %s in scope mappings of client %s",
+                        renamed.getName(), newName, spec.getClientId());
+                ClientCrStore.save(spec);
+            }
+        });
+    }
+
     /** Client-scope removal cascade: purge the scope from every client's assignment lists. */
     void clientScopeRemoved(RealmModel realm, ClientScopeModel scope) {
         specs(realm).forEach(spec -> {

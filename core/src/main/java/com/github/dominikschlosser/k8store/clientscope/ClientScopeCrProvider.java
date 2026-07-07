@@ -171,6 +171,17 @@ public class ClientScopeCrProvider implements ClientScopeProvider {
         });
     }
 
+    /** Role rename cascade: rewrite the renamed role in every scope's scope mappings. */
+    void roleRenamed(RealmModel realm, RoleModel renamed, String newName) {
+        specs(realm).forEach(spec -> {
+            if (ScopeMappingSupport.renameRole(spec, renamed, newName)) {
+                LOG.tracef("Rewriting renamed role %s to %s in scope mappings of client scope %s",
+                        renamed.getName(), newName, spec.getName());
+                ClientScopeCrStore.save(spec);
+            }
+        });
+    }
+
     @Override
     public void close() {
         // stateless facade over the informer-backed store

@@ -44,6 +44,7 @@ public enum StoreInvalidation implements InvalidableObjectType {
     CLIENT_SCOPE_RENAMED,
     ROLE_BEFORE_REMOVE,
     ROLE_AFTER_REMOVE,
+    ROLE_RENAMED,
     GROUP_BEFORE_REMOVE,
     GROUP_AFTER_REMOVE
 }

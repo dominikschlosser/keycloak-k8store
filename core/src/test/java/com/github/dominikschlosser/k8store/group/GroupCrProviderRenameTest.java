@@ -13,16 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.dominikschlosser.k8store.user;
+package com.github.dominikschlosser.k8store.group;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.dominikschlosser.k8store.crd.GroupSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
-import com.github.dominikschlosser.k8store.crd.UserConsentSpec;
-import com.github.dominikschlosser.k8store.crd.UserSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
@@ -42,7 +39,7 @@ import org.keycloak.models.RoleModel;
 import org.keycloak.utils.KeycloakSessionUtil;
 
 @EnableKubernetesMockClient(crud = true)
-class UserCrProviderRenameTest {
+class GroupCrProviderRenameTest {
 
     KubernetesClient client;
 
@@ -84,59 +81,27 @@ class UserCrProviderRenameTest {
     }
 
     @Test
-    void roleRenameRewritesUserGrantsInPlace() {
+    void roleRenameRewritesRealmAndClientGrantsInPlace() {
         start();
         RealmModel realm = realm("master");
 
-        UserSpec user = new UserSpec();
-        user.setId("bob");
-        user.setUsername("bob");
-        user.setRealm("master");
-        user.setRealmRoles(new ArrayList<>(List.of("viewer", "admin", "editor")));
+        GroupSpec group = new GroupSpec();
+        group.setId("team");
+        group.setName("team");
+        group.setRealm("master");
+        group.setRealmRoles(new ArrayList<>(List.of("viewer", "admin", "editor")));
         Map<String, List<String>> byClient = new HashMap<>();
         byClient.put("web-internal", new ArrayList<>(List.of("create", "view", "delete")));
-        user.setClientRoles(byClient);
-        UserCrStore.save(user);
+        group.setClientRoles(byClient);
+        GroupCrStore.save(group);
 
-        new UserCrProvider(null).roleRenamed(realm, realmRole(realm, "admin"), "administrator");
-        new UserCrProvider(null).roleRenamed(realm, clientRole(realm, "web-internal", "view"), "read");
+        new GroupCrProvider(null).roleRenamed(realm, realmRole(realm, "admin"), "administrator");
+        new GroupCrProvider(null).roleRenamed(realm, clientRole(realm, "web-internal", "view"), "read");
 
-        UserSpec read = UserCrStore.read("master", "bob");
+        GroupSpec read = GroupCrStore.read("master", "team");
         assertEquals(List.of("viewer", "administrator", "editor"), read.getRealmRoles(),
                 "realm grant keeps position and swaps the renamed role");
         assertEquals(List.of("create", "read", "delete"), read.getClientRoles().get("web-internal"),
                 "client grant keeps position and swaps the renamed role, key unchanged");
-    }
-
-    @Test
-    void clientScopeRenameRewritesConsentGrantsAndParameterKeys() {
-        start();
-
-        UserConsentSpec consent = new UserConsentSpec();
-        consent.setClientId("web");
-        consent.setGrantedClientScopes(new ArrayList<>(List.of("profile", "email", "roles")));
-        Map<String, List<String>> parameters = new HashMap<>();
-        parameters.put("email", new ArrayList<>(List.of("primary")));
-        consent.setGrantedScopeParameters(parameters);
-
-        UserSpec user = new UserSpec();
-        user.setId("alice");
-        user.setUsername("alice");
-        user.setRealm("master");
-        user.setConsents(new ArrayList<>(List.of(consent)));
-        UserCrStore.save(user);
-
-        new UserCrProvider(null).clientScopeRenamed(realm("master"), "email", "mail");
-
-        UserSpec read = UserCrStore.read("master", "alice");
-        UserConsentSpec readConsent = read.getConsents().get(0);
-        assertEquals(List.of("profile", "mail", "roles"), readConsent.getGrantedClientScopes(),
-                "granted-scope list keeps position and swaps the renamed scope");
-        assertTrue(readConsent.getGrantedScopeParameters().containsKey("mail"),
-                "the scope-parameters map is rekeyed to the new name");
-        assertFalse(readConsent.getGrantedScopeParameters().containsKey("email"),
-                "the old scope-parameters key is gone");
-        assertEquals(List.of("primary"), readConsent.getGrantedScopeParameters().get("mail"),
-                "the scope-parameters value is preserved under the new key");
     }
 }
