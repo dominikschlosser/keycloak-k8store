@@ -44,14 +44,15 @@ public class UserSessionCrProviderFactory extends AbstractCrProviderFactory<User
 
     /**
      * A removed user's sessions must not survive as CRs until they expire - upstream's session
-     * providers listen for the user removal the same way.
+     * providers listen for the user removal the same way. Both online and offline sessions are
+     * removed.
      */
     @Override
     public void postInit(KeycloakSessionFactory factory) {
         factory.register(event -> {
             if (event instanceof UserModel.UserRemovedEvent userRemoved) {
                 create(userRemoved.getKeycloakSession())
-                        .removeUserSessions(userRemoved.getRealm(), userRemoved.getUser());
+                        .onUserRemoved(userRemoved.getRealm(), userRemoved.getUser());
             }
         });
     }
