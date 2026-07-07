@@ -194,7 +194,7 @@ stop_pf() {
   PF_PID=""
 }
 
-mint_admin_token() {
+fetch_admin_token() {
   curl -sf -d client_id=admin-cli -d username=admin -d password=admin -d grant_type=password \
     "${PF_URL}/realms/master/protocol/openid-connect/token" \
     | python3 -c 'import sys, json; print(json.load(sys.stdin)["access_token"])'
@@ -208,7 +208,7 @@ post_json() { # <token> <url> <json>  -> prints http status
 seed() {
   echo "Seeding realm 'benchmark': client-0 + ${USERS} users ..."
   local token code i
-  token=$(mint_admin_token)
+  token=$(fetch_admin_token)
   code=$(post_json "${token}" "${PF_URL}/admin/realms" '{"realm":"benchmark","enabled":true}')
   [ "${code}" = "201" ] || { echo "ERROR: realm creation returned HTTP ${code}" >&2; return 1; }
   # Confidential client used by both scenarios; naming matches kcb's defaults
@@ -226,8 +226,8 @@ seed() {
   }')
   [ "${code}" = "201" ] || { echo "ERROR: client creation returned HTTP ${code}" >&2; return 1; }
   for i in $(seq 0 $((USERS - 1))); do
-    # the bootstrap admin token only lives 60s — re-mint while iterating
-    [ $((i % 25)) -eq 0 ] && token=$(mint_admin_token)
+    # the bootstrap admin token only lives 60s — refresh it while iterating
+    [ $((i % 25)) -eq 0 ] && token=$(fetch_admin_token)
     code=$(post_json "${token}" "${PF_URL}/admin/realms/benchmark/users" '{
       "username": "user-'"${i}"'",
       "enabled": true,

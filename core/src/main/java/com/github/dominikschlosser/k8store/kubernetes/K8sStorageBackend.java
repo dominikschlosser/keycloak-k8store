@@ -498,7 +498,7 @@ public final class K8sStorageBackend implements AutoCloseable {
     }
 
     /**
-     * Belt-and-braces against silently wedged watch connections (observed with kind: a watch
+     * Safety net against watch connections that silently stop delivering events (observed with kind: a watch
      * stays established but stops delivering events for minutes): periodically list every kind
      * and reconcile the mirror. With healthy watches this is a no-op diff.
      */
@@ -579,7 +579,7 @@ public final class K8sStorageBackend implements AutoCloseable {
     /**
      * Defensive copy of a mirror entry. Handing out the live instance would let a request
      * thread mutate what every other session on this node reads — including mutations that the
-     * API server (or read-only mode) later rejects, silently poisoning the mirror.
+     * API server (or read-only mode) later rejects, silently corrupting the mirror.
      */
     private static <S> S copyOf(Class<S> specClass, S spec) {
         if (spec == null) {

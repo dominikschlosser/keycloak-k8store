@@ -111,9 +111,8 @@ Datastore options (`--spi-datastore--k8store--<option>`, or env
 | `areas` | `config` | `config`, `all`, or a comma list (see below) |
 | `namespace` | pod namespace | Namespace to watch |
 | `all-namespaces` | `false` | Watch cluster-wide |
-| `context` | in-cluster | Kubeconfig context override (used by the tests) |
 | `sync-timeout-seconds` | `120` | Max informer sync wait at boot |
-| `reconcile-interval-seconds` | `60` | Staleness bound if a watch wedges (`0` = off) |
+| `reconcile-interval-seconds` | `60` | Upper bound on staleness if a watch connection silently stops delivering events (`0` = off) |
 | `expiration-sweep-seconds` | `300` | Reaper for expired session/dynamic CRs |
 
 ### Areas
@@ -146,10 +145,26 @@ On Keycloak version bumps: `scripts/update-crds.sh` regenerates the schemas,
 server-side without downtime; CRs are stamped with the writing Keycloak version and drift is
 warned at boot.
 
+## Keycloak version upgrades
+
+Two things happen on a Keycloak version bump, and only one of them is automatic:
+
+- **Schema**: `scripts/update-crds.sh` regenerates the CRD schemas from the new Keycloak;
+  `scripts/crd-tools.sh` classifies the changes and applies them without downtime. Database
+  (Liquibase) migrations for DB-stored data run normally.
+- **Content**: Keycloak's built-in *model migrations* — boot-time rewrites of stored config,
+  e.g. "add the new built-in `basic` client scope to every realm" (Keycloak 25) — are
+  **deliberately skipped for CR data**. In a GitOps store, a hidden boot-time write would fight
+  your manifests (the next `kubectl apply` reverts it) and read-only mode forbids it anyway.
+  So on upgrades: read the upstream migration guide, and if a config-level change applies,
+  express it in your CR manifests yourself. A practical shortcut: bootstrap the new version in
+  write mode against a scratch namespace and diff its CRs against yours. Every CR is stamped
+  with the Keycloak version that wrote it, and the server warns at boot about CRs stamped by an
+  older version — that's your prompt to check the notes.
+
 ## Known limitations
 
-Keycloak model migrations are a no-op for CR data (check upstream migration notes on version
-bumps); fine-grained admin permissions v2 needs write mode; switching an area on existing data
+Fine-grained admin permissions v2 needs write mode; switching an area on existing data
 is an unassisted migration event; realm renames don't rewrite child CRs; OID4VC and
 parameterized scopes are experimental upstream. Details in [ARCHITECTURE.md](ARCHITECTURE.md).
 

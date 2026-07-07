@@ -95,7 +95,7 @@ sequenceDiagram
     end
     R->>A: request on either pod
     A-->>R: new config served from the mirror,<br/>milliseconds after the apply
-    Note over K,B: Wedge protection: each pod also re-LISTs periodically<br/>reconcile-interval-seconds, default 60s, so a silently<br/>dead watch bounds staleness instead of freezing the mirror
+    Note over K,B: Safety net: each pod also re-LISTs periodically<br/>reconcile-interval-seconds, default 60s, so a silently<br/>failed watch bounds staleness instead of freezing the mirror
 ```
 
 There is no invalidation protocol to get wrong: every pod observes the change independently
@@ -272,10 +272,10 @@ Three deliberate properties of that design:
   `providers/` conflict with nothing — no shading, no relocation. The Vert.x client would
   collide with Keycloak's own Vert.x, and the JDK client buffers sparse watch streams for
   minutes). A periodic list-based **mirror reconciliation** (`reconcile-interval-seconds`,
-  default 60s) bounds staleness if a watch connection ever wedges silently.
+  default 60s) bounds staleness if a watch connection ever stops delivering events silently.
 * Backend reads hand out **defensive copies** of the mirrored entities — request threads never
   mutate what other sessions read, and a write rejected by read-only mode or the API server
-  cannot poison the node's mirror.
+  cannot corrupt the node's mirror.
 * **Write path (transaction-buffered)**: a model mutation updates the local mirror immediately
   (read-your-write within the transaction, before any watch event) but does **not** call the
   API server; the write is recorded in a per-`KeycloakSession` buffer that keeps the last state
@@ -676,10 +676,20 @@ scripts/e2e.sh             port-forward + run test suite in remote mode
   applied, or a flush failing halfway, leaves the applied CRs ahead of the rolled-back
   database (logged loudly; another reason read-only is the production pattern).
 * **Model migrations are skipped** when realms are CR-backed (`CrMigrationManager` is a
-  no-op): Keycloak's `MigrateTo*` steps neither touch the CRs nor
-  the JPA-backed data. When bumping the Keycloak version with existing data,
-  check the upstream migration notes manually; the CRD schema diff (`scripts/crd-tools.sh`)
-  covers the *shape* side only. Content-level migration tooling is future work.
+  no-op). Background: on version upgrades Keycloak normally runs two mechanisms — Liquibase
+  *schema* migrations (still run, for whatever lives in the database) and `MigrateTo*` *model*
+  migrations, boot-time rewrites of stored config content (e.g. Keycloak 25 created the new
+  built-in `basic` client scope in every realm and attached it to clients). The model
+  migrations are skipped here on purpose: they are imperative store rewrites, which conflicts
+  with a declaratively owned GitOps store — a hidden boot-time write would be reverted by the
+  next `kubectl apply`, is forbidden in read-only mode, and would race across replicas during
+  rolling upgrades. Note the no-op skips *all* `MigrateTo*` steps, including the rare ones
+  that touch database-stored data. Operational playbook on version bumps: read the upstream
+  migration guide and express applicable config changes in the CR manifests (shortcut:
+  bootstrap the new version in write mode in a scratch namespace and diff its CRs against
+  yours); the version-stamp label + boot warning flag CRs written by an older version; the
+  CRD schema diff (`scripts/crd-tools.sh`) covers the *shape* side. Content-level migration
+  tooling (a diff-and-patch helper for manifests) is future work.
 * JPA referential integrity when mixing stores (e.g. `USER_GROUP_MEMBERSHIP` → CRD group ids)
   is verified by tests; if the schema enforces FKs for a mapping table, that mapping area must
   live on the same side as its target.
