@@ -701,11 +701,6 @@ scripts/e2e.sh             port-forward + run test suite in remote mode
   admin could edit it.
 * Fine-grained admin permissions v2 (`admin-permissions`, preview) writes policies at runtime -
   it requires write mode; with read-only mode its permission writes answer 4xx.
-* Renaming or removing a role does not rewrite role references stored inside **authorization
-  role-policy configuration** (the `authorization` area). Config-entity grants (user/group role
-  grants, composites, scope mappings) are cascaded, but a role id embedded in a role policy's
-  config JSON is left untouched, so a role-based authorization policy stops matching until it is
-  re-pointed at the renamed role. Re-point affected policies manually after such a change.
 * Admin/auth **events** for CRD-backed areas follow the default event store; the extension does
   not replace it.
 * In write mode there is no cross-node write coordination beyond Kubernetes optimistic

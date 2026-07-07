@@ -15,11 +15,18 @@
  */
 package com.github.dominikschlosser.k8store.authz;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dominikschlosser.k8store.crd.AuthzPolicySpec;
 import com.github.dominikschlosser.k8store.crd.AuthzResourceSpec;
 import com.github.dominikschlosser.k8store.crd.AuthzScopeSpec;
 import com.github.dominikschlosser.k8store.crd.PermissionTicketSpec;
 import com.github.dominikschlosser.k8store.crd.ResourceServerSpec;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import org.jboss.logging.Logger;
 import org.keycloak.authorization.model.ResourceServer;
 import org.keycloak.authorization.store.PermissionTicketStore;
 import org.keycloak.authorization.store.PolicyStore;
@@ -30,6 +37,7 @@ import org.keycloak.authorization.store.StoreFactory;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
 
 /**
  * The {@code authorizationPersister} provider of the k8store datastore: Authorization Services
@@ -45,6 +53,10 @@ import org.keycloak.models.RealmModel;
  * clientIds and only unique per realm - the context realm wins for those).
  */
 public class CrStoreFactory implements StoreFactory {
+
+    private static final Logger LOG = Logger.getLogger(CrStoreFactory.class);
+    private static final ObjectMapper POLICY_JSON = new ObjectMapper();
+    private static final TypeReference<List<Map<String, Object>>> ROLE_ENTRIES = new TypeReference<>() {};
 
     private final KeycloakSession session;
     private final CrResourceServerStore resourceServerStore;
@@ -288,6 +300,74 @@ public class CrStoreFactory implements StoreFactory {
         resourceServer.setClientId(newClientId);
         AuthzCrStore.deleteResourceServer(realmId, oldClientId);
         AuthzCrStore.save(resourceServer);
+    }
+
+    /**
+     * Role-rename cascade (k8store {@code ROLE_RENAMED}): role policies store role ids in their
+     * {@code roles} config JSON, and this store's role ids encode the name (realm role id = name,
+     * client role id = clientId:name), so a rename changes them. Rewrite the old role id to the
+     * new one in every role policy of the realm.
+     */
+    void roleRenamed(RealmModel realm, RoleModel role, String newName) {
+        String newRoleId = role.isClientRole() ? role.getContainerId() + ":" + newName : newName;
+        rewriteRoleInPolicies(realm.getId(), role.getId(), newRoleId);
+    }
+
+    /**
+     * Role-removal cascade (k8store {@code ROLE_BEFORE_REMOVE}): drop the removed role's id from
+     * every role policy's {@code roles} config, so no policy is left referencing a role that no
+     * longer exists.
+     */
+    void roleRemoved(RealmModel realm, RoleModel role) {
+        rewriteRoleInPolicies(realm.getId(), role.getId(), null);
+    }
+
+    /**
+     * Rewrites a role id inside every role policy's {@code roles} config array in the realm, or
+     * removes the entry when {@code newRoleId} is null.
+     */
+    private void rewriteRoleInPolicies(String realmId, String oldRoleId, String newRoleId) {
+        if (realmId == null || oldRoleId == null) {
+            return;
+        }
+        for (AuthzPolicySpec policy : AuthzCrStore.policies(realmId)) {
+            Map<String, String> config = policy.getConfig();
+            String rolesJson = config == null ? null : config.get("roles");
+            if (rolesJson == null || rolesJson.isBlank()) {
+                continue;
+            }
+            List<Map<String, Object>> roles;
+            try {
+                roles = POLICY_JSON.readValue(rolesJson, ROLE_ENTRIES);
+            } catch (IOException e) {
+                LOG.warnv(e, "k8store: could not parse the roles config of authorization policy {0};"
+                        + " skipping its role-rename rewrite", policy.getId());
+                continue;
+            }
+            boolean changed = false;
+            for (Iterator<Map<String, Object>> it = roles.iterator(); it.hasNext();) {
+                Map<String, Object> entry = it.next();
+                if (oldRoleId.equals(entry.get("id"))) {
+                    if (newRoleId == null) {
+                        it.remove();
+                    } else {
+                        entry.put("id", newRoleId);
+                    }
+                    changed = true;
+                }
+            }
+            if (!changed) {
+                continue;
+            }
+            try {
+                config.put("roles", POLICY_JSON.writeValueAsString(roles));
+            } catch (IOException e) {
+                LOG.warnv(e, "k8store: could not re-serialize the roles config of authorization policy {0}",
+                        policy.getId());
+                continue;
+            }
+            AuthzCrStore.save(policy);
+        }
     }
 
     /** Realm removal cascade (k8store {@code REALM_BEFORE_REMOVE}): drop every authz CR. */

@@ -18,6 +18,8 @@ package com.github.dominikschlosser.k8store.authz;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_BEFORE_REMOVE;
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_RENAMED;
 
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.spi.AbstractCrProviderFactory;
@@ -28,6 +30,7 @@ import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
 import org.keycloak.provider.InvalidationHandler;
 import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
 
@@ -44,7 +47,9 @@ import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
  *   <li>k8store invalidation events: {@code CLIENT_BEFORE_REMOVE} deletes the removed client's
  *       whole authorization graph (tickets, policies, resources, scopes, resource server),
  *       {@code CLIENT_RENAMED} rewrites that same graph onto the new clientId (the resource
- *       server and its back-references are keyed by the clientId), and
+ *       server and its back-references are keyed by the clientId), {@code ROLE_RENAMED} and
+ *       {@code ROLE_BEFORE_REMOVE} rewrite or drop the role id inside every role policy's
+ *       {@code roles} config (role ids encode the role name in this store), and
  *       {@code REALM_BEFORE_REMOVE} bulk-deletes every authorization CR of the realm - the
  *       realm path matters because the k8store realm removal deletes client CRs in bulk without
  *       per-client events, so upstream's realm synchronizer would find no clients left to
@@ -100,6 +105,11 @@ public class AuthzCrStoreProviderFactory extends AbstractCrProviderFactory<Store
         } else if (type == CLIENT_RENAMED) {
             ((CrStoreFactory) create(session)).clientRenamed(
                     (RealmModel) params[0], (ClientModel) params[1], (String) params[2]);
+        } else if (type == ROLE_RENAMED) {
+            ((CrStoreFactory) create(session)).roleRenamed(
+                    (RealmModel) params[0], (RoleModel) params[1], (String) params[2]);
+        } else if (type == ROLE_BEFORE_REMOVE) {
+            ((CrStoreFactory) create(session)).roleRemoved((RealmModel) params[0], (RoleModel) params[1]);
         } else if (type == REALM_BEFORE_REMOVE) {
             ((CrStoreFactory) create(session)).realmRemoved((RealmModel) params[0]);
         }
