@@ -1232,29 +1232,34 @@ public final class K8sStorageBackend implements AutoCloseable {
     // ------------------------------------------------------------------ naming
 
     /**
-     * Deterministic DNS-1123 name for a CR written by Keycloak. Realm CRs keep a plain readable
-     * name when possible; scoped CRs are always suffixed with a hash over the exact
-     * {@code (realmId, id)} pair - the readable prefix is lossy (dots and other characters are
-     * folded), so only the hash guarantees distinct pairs never collide on one CR name.
+     * Deterministic DNS-1123 name for a CR written by Keycloak. A realm CR keeps its plain
+     * readable name when the realm id is already a valid label; otherwise, and for every scoped
+     * CR, a hash over the exact {@code (realmId, id)} pair is appended, because {@link #dnsLabel}
+     * is lossy (arbitrary ids fold to DNS characters) and only the hash guarantees distinct
+     * entities never collide on one name. Scoped CRs are named {@code <realm>.<id>-<hash>}, two
+     * dot-separated DNS-1123 labels.
      */
     static String crName(Class<?> crClass, String realmId, String id) {
         if (crClass == KeycloakRealmCr.class) {
-            String sanitized = nameComponent(id);
-            return sanitized.equals(id) ? sanitized : sanitized + "-" + shortHash(id);
+            String label = dnsLabel(id);
+            return label.equals(id) ? label : label + "-" + shortHash(id);
         }
-        return nameComponent(realmId) + "." + nameComponent(id) + "-" + shortHash(realmId + "\u0000" + id);
+        return dnsLabel(realmId) + "." + dnsLabel(id) + "-" + shortHash(key(realmId, id));
     }
 
-    /** Single dot-free DNS-1123 label component; lossy, so callers pair it with a hash. */
-    private static String nameComponent(String raw) {
-        String sanitized = raw.toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9-]", "-")
-                .replaceAll("-{2,}", "-")
+    /**
+     * One DNS-1123 label from an arbitrary string: lowercase, runs of non-alphanumeric characters
+     * become a single hyphen, edges trimmed, capped short enough to leave room for a
+     * {@code "-<hash>"} suffix within the 63-character label limit.
+     */
+    private static String dnsLabel(String raw) {
+        String label = raw.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", "-")
                 .replaceAll("^-+|-+$", "");
-        if (sanitized.isEmpty()) {
-            sanitized = "x";
+        if (label.length() > 54) {
+            label = label.substring(0, 54).replaceAll("-+$", "");
         }
-        return sanitized.length() > 100 ? sanitized.substring(0, 100) : sanitized;
+        return label.isEmpty() ? "x" : label;
     }
 
     private static String sanitizeLabel(String value) {
