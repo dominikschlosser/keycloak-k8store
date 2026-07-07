@@ -15,6 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.authz;
 
+import static org.keycloak.utils.StreamsUtil.paginatedStream;
+
 import com.github.dominikschlosser.k8store.common.LikePatterns;
 import com.github.dominikschlosser.k8store.crd.AuthzPolicySpec;
 import java.util.Arrays;
@@ -134,7 +136,7 @@ class CrPolicyStore implements PolicyStore {
             // JPA parity: without an owner filter only server-managed policies are returned
             matches = matches.filter(spec -> spec.getOwner() == null);
         }
-        return Pagination.paginate(matches.sorted(Comparator.comparing(AuthzPolicySpec::getName,
+        return paginatedStream(matches.sorted(Comparator.comparing(AuthzPolicySpec::getName,
                         Comparator.nullsFirst(Comparator.naturalOrder()))), firstResult, maxResults)
                 .map(factory::wrap)
                 .map(Policy.class::cast)

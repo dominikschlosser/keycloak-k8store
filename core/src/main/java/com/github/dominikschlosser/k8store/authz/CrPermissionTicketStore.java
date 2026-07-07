@@ -15,6 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.authz;
 
+import static org.keycloak.utils.StreamsUtil.paginatedStream;
+
 import com.github.dominikschlosser.k8store.common.LikePatterns;
 import com.github.dominikschlosser.k8store.crd.PermissionTicketSpec;
 import java.util.Comparator;
@@ -126,7 +128,7 @@ class CrPermissionTicketStore implements PermissionTicketStore {
                                        Integer firstResult, Integer maxResults) {
         Stream<PermissionTicketSpec> matches = filtered(resourceServer, attributes)
                 .sorted(Comparator.comparing(PermissionTicketSpec::getId));
-        return Pagination.paginate(matches, firstResult, maxResults)
+        return paginatedStream(matches, firstResult, maxResults)
                 .map(factory::wrap)
                 .map(PermissionTicket.class::cast)
                 .toList();
@@ -235,7 +237,7 @@ class CrPermissionTicketStore implements PermissionTicketStore {
             resources = resources.filter(resource ->
                     LikePatterns.insensitiveLike(resource.getName(), "%" + name.toLowerCase() + "%"));
         }
-        return Pagination.paginate(resources, firstResult, maxResults).toList();
+        return paginatedStream(resources, firstResult, maxResults).toList();
     }
 
     @Override
@@ -249,6 +251,6 @@ class CrPermissionTicketStore implements PermissionTicketStore {
                 .map(id -> factory.resourceById(factory.contextRealmId(), id))
                 .filter(Objects::nonNull)
                 .map(Resource.class::cast);
-        return Pagination.paginate(resources, firstResult, maxResults).toList();
+        return paginatedStream(resources, firstResult, maxResults).toList();
     }
 }

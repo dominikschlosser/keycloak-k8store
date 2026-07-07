@@ -15,6 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.authz;
 
+import static org.keycloak.utils.StreamsUtil.paginatedStream;
+
 import com.github.dominikschlosser.k8store.common.LikePatterns;
 import com.github.dominikschlosser.k8store.crd.AuthzResourceSpec;
 import java.util.Arrays;
@@ -114,7 +116,7 @@ class CrResourceStore implements ResourceStore {
                 .filter(spec -> matchesFilters(spec, attributes))
                 .sorted(Comparator.comparing(AuthzResourceSpec::getName,
                         Comparator.nullsFirst(Comparator.naturalOrder())));
-        return Pagination.paginate(matches, firstResult, maxResults)
+        return paginatedStream(matches, firstResult, maxResults)
                 .map(factory::wrap)
                 .map(Resource.class::cast)
                 .toList();
