@@ -128,7 +128,7 @@ public final class K8sStorageBackend implements AutoCloseable {
     private static final Logger LOG = Logger.getLogger(K8sStorageBackend.class);
 
     /** Informational label put on CRs written by Keycloak; not used for reads. */
-    public static final String REALM_LABEL = "keycloak.k8store.io/realm";
+    public static final String REALM_LABEL = "k8store.dominikschlosser.github.io/realm";
 
     /**
      * Label stamped on every CR written by Keycloak with the writing server's version. At boot
@@ -136,7 +136,7 @@ public final class K8sStorageBackend implements AutoCloseable {
      * predating a Keycloak upgrade is visible instead of silently served (model migrations do
      * not run against CR-backed areas).
      */
-    public static final String VERSION_LABEL = "keycloak.k8store.io/keycloak-version";
+    public static final String VERSION_LABEL = "k8store.dominikschlosser.github.io/keycloak-version";
 
     public static final String FIELD_MANAGER = "keycloak-k8store";
 
@@ -302,7 +302,7 @@ public final class K8sStorageBackend implements AutoCloseable {
 
     /**
      * Null-safe feature check: at server runtime the profile is always initialized before the
-     * datastore boots (the factory checks the cacheless feature first); in unit tests without a
+     * datastore boots (the factory checks the stateless feature first); in unit tests without a
      * profile the feature counts as disabled — matching its experimental default.
      */
     private static boolean oid4vcFeatureEnabled() {

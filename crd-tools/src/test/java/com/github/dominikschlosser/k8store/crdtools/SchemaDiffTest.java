@@ -273,9 +273,9 @@ class SchemaDiffTest {
                 apiVersion: apiextensions.k8s.io/v1
                 kind: CustomResourceDefinition
                 metadata:
-                  name: keycloaktests.keycloak.k8store.io
+                  name: keycloaktests.k8store.dominikschlosser.github.io
                 spec:
-                  group: keycloak.k8store.io
+                  group: k8store.dominikschlosser.github.io
                   versions:
                 """ + versionsYaml.indent(4));
     }
@@ -304,7 +304,7 @@ class SchemaDiffTest {
                     openAPIV3Schema:
                       type: object
                 """);
-        List<Change> changes = diff.diffCrd("keycloaktests.keycloak.k8store.io", oldCrd, newCrd);
+        List<Change> changes = diff.diffCrd("keycloaktests.k8store.dominikschlosser.github.io", oldCrd, newCrd);
         assertEquals(1, changes.size());
         assertEquals(Severity.BREAKING, changes.get(0).severity());
         assertEquals("spec.versions[v1beta1]", changes.get(0).path());
@@ -335,7 +335,7 @@ class SchemaDiffTest {
                     openAPIV3Schema:
                       type: object
                 """);
-        List<Change> changes = diff.diffCrd("keycloaktests.keycloak.k8store.io", oldCrd, newCrd);
+        List<Change> changes = diff.diffCrd("keycloaktests.k8store.dominikschlosser.github.io", oldCrd, newCrd);
         assertEquals(1, changes.size());
         assertEquals(Severity.COMPATIBLE, changes.get(0).severity());
         assertEquals("spec.versions[v1alpha2]", changes.get(0).path());
@@ -352,12 +352,12 @@ class SchemaDiffTest {
                     openAPIV3Schema:
                       type: object
                 """);
-        List<Change> added = diff.diff(Map.of(), Map.of("keycloaktests.keycloak.k8store.io", crd));
+        List<Change> added = diff.diff(Map.of(), Map.of("keycloaktests.k8store.dominikschlosser.github.io", crd));
         assertEquals(1, added.size());
         assertEquals(Severity.COMPATIBLE, added.get(0).severity());
         assertEquals("new CRD added", added.get(0).message());
 
-        List<Change> removed = diff.diff(Map.of("keycloaktests.keycloak.k8store.io", crd), Map.of());
+        List<Change> removed = diff.diff(Map.of("keycloaktests.k8store.dominikschlosser.github.io", crd), Map.of());
         assertEquals(1, removed.size());
         assertEquals(Severity.BREAKING, removed.get(0).severity());
         assertEquals("CRD removed", removed.get(0).message());

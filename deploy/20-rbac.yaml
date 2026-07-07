@@ -10,7 +10,7 @@ metadata:
   name: keycloak-k8store
   namespace: keycloak
 rules:
-  - apiGroups: ["keycloak.k8store.io"]
+  - apiGroups: ["k8store.dominikschlosser.github.io"]
     resources: ["*"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
