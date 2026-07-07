@@ -317,6 +317,29 @@ public class UserSessionCrProvider implements UserSessionProvider {
         }
     }
 
+    /**
+     * Rekeys embedded client sessions when a client's clientId changes. Client sessions are keyed
+     * by clientId (this store's client id), so a rename would otherwise orphan them - the next
+     * read cannot resolve the old key to a client and silently drops the entry. Client removal has
+     * the {@code onClientRemoved} SPI hook; a clientId rename has no upstream hook (Keycloak keys
+     * client sessions by a stable internal id), so this store drives it off the k8store
+     * {@code CLIENT_RENAMED} event, mirroring the removal cleanup above.
+     */
+    public void onClientRenamed(RealmModel realm, String oldClientId, String newClientId) {
+        if (oldClientId == null || newClientId == null || oldClientId.equals(newClientId)) {
+            return;
+        }
+        for (UserSessionSpec spec : UserSessionCrStore.allInRealm(realm.getId())) {
+            Map<String, ClientSessionSpec> clientSessions = spec.getClientSessions();
+            ClientSessionSpec clientSession = clientSessions == null ? null : clientSessions.remove(oldClientId);
+            if (clientSession != null) {
+                clientSession.setClientId(newClientId);
+                clientSessions.put(newClientId, clientSession);
+                UserSessionCrStore.save(spec);
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ offline sessions
 
     @Override

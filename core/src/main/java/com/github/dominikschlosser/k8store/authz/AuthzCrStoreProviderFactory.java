@@ -47,7 +47,9 @@ import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
  *   <li>k8store invalidation events: {@code CLIENT_BEFORE_REMOVE} deletes the removed client's
  *       whole authorization graph (tickets, policies, resources, scopes, resource server),
  *       {@code CLIENT_RENAMED} rewrites that same graph onto the new clientId (the resource
- *       server and its back-references are keyed by the clientId), {@code ROLE_RENAMED} and
+ *       server and its back-references are keyed by the clientId) and the clientId/client-role-id
+ *       references embedded in policy config JSON (client policies' {@code clients} arrays and
+ *       role policies' {@code roles} arrays), {@code ROLE_RENAMED} and
  *       {@code ROLE_BEFORE_REMOVE} rewrite or drop the role id inside every role policy's
  *       {@code roles} config (role ids encode the role name in this store), and
  *       {@code REALM_BEFORE_REMOVE} bulk-deletes every authorization CR of the realm - the

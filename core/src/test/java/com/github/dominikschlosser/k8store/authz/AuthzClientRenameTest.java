@@ -16,8 +16,10 @@
 package com.github.dominikschlosser.k8store.authz;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.dominikschlosser.k8store.client.ClientAdapter;
 import com.github.dominikschlosser.k8store.crd.AuthzPolicySpec;
@@ -34,6 +36,8 @@ import com.github.dominikschlosser.k8store.realm.RealmAdapter;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -131,5 +135,45 @@ class AuthzClientRenameTest {
 
         assertNull(AuthzCrStore.resourceServer("master", "portal"),
                 "a client without an authorization graph produces no resource server");
+    }
+
+    @Test
+    void clientRenameRewritesClientIdInClientPolicyConfig() {
+        start();
+        RealmModel realm = realm("master");
+        // a client policy of some other resource server references "web" in its clients array;
+        // the renamed client need not own an authorization graph itself
+        savePolicyConfig("client-policy", "clients", "[\"web\",\"other\"]");
+
+        new CrStoreFactory(null).clientRenamed(realm, client(realm, "web"), "portal");
+
+        String clients = AuthzCrStore.policy("master", "client-policy").getConfig().get("clients");
+        assertEquals("[\"portal\",\"other\"]", clients);
+    }
+
+    @Test
+    void clientRenameRewritesClientRoleIdsInRolePolicyConfig() {
+        start();
+        RealmModel realm = realm("master");
+        // role ids are <clientId>:<name> for client roles; the client rename changes them
+        savePolicyConfig("role-policy", "roles",
+                "[{\"id\":\"web:view\",\"required\":false},{\"id\":\"realm-admin\",\"required\":true}]");
+
+        new CrStoreFactory(null).clientRenamed(realm, client(realm, "web"), "portal");
+
+        String roles = AuthzCrStore.policy("master", "role-policy").getConfig().get("roles");
+        assertTrue(roles.contains("\"portal:view\""), roles);
+        assertFalse(roles.contains("\"web:view\""), roles);
+        assertTrue(roles.contains("\"realm-admin\""), "a realm role id is left untouched: " + roles);
+    }
+
+    private void savePolicyConfig(String id, String key, String jsonValue) {
+        AuthzPolicySpec policy = new AuthzPolicySpec();
+        policy.setId(id);
+        policy.setRealm("master");
+        Map<String, String> config = new HashMap<>();
+        config.put(key, jsonValue);
+        policy.setConfig(config);
+        AuthzCrStore.save(policy);
     }
 }

@@ -57,6 +57,7 @@ public class CrStoreFactory implements StoreFactory {
     private static final Logger LOG = Logger.getLogger(CrStoreFactory.class);
     private static final ObjectMapper POLICY_JSON = new ObjectMapper();
     private static final TypeReference<List<Map<String, Object>>> ROLE_ENTRIES = new TypeReference<>() {};
+    private static final TypeReference<List<String>> CLIENT_ENTRIES = new TypeReference<>() {};
 
     private final KeycloakSession session;
     private final CrResourceServerStore resourceServerStore;
@@ -258,10 +259,18 @@ public class CrStoreFactory implements StoreFactory {
     }
 
     /**
-     * Client-rename cascade (k8store {@code CLIENT_RENAMED}): the resource server is keyed by the
-     * clientId and its whole graph back-references that clientId through {@code resourceServer}.
-     * Rewrite the back-references, then move the resource-server CR to the new clientId - the
-     * rewrite mirror of {@link #deleteResourceServerGraph}.
+     * Client-rename cascade (k8store {@code CLIENT_RENAMED}). Two kinds of reference break when a
+     * clientId changes (client id = clientId in this store):
+     *
+     * <ul>
+     *   <li>policy config JSON - client policies list client ids in their {@code clients} array,
+     *       and role policies list this client's role ids ({@code <clientId>:<name>}) in their
+     *       {@code roles} array; both are rewritten across every policy in the realm (any client
+     *       can be referenced, not only one that is itself a resource server);</li>
+     *   <li>the resource server keyed by this clientId and its graph's {@code resourceServer}
+     *       back-references - rewritten and moved to the new clientId, the rewrite mirror of
+     *       {@link #deleteResourceServerGraph}.</li>
+     * </ul>
      */
     void clientRenamed(RealmModel realm, ClientModel client, String newClientId) {
         String realmId = realm.getId();
@@ -269,6 +278,7 @@ public class CrStoreFactory implements StoreFactory {
         if (realmId == null || oldClientId == null || newClientId == null) {
             return;
         }
+        rewriteClientInPolicies(realmId, oldClientId, newClientId);
         ResourceServerSpec resourceServer = AuthzCrStore.resourceServer(realmId, oldClientId);
         if (resourceServer == null) {
             return;
@@ -332,16 +342,8 @@ public class CrStoreFactory implements StoreFactory {
         }
         for (AuthzPolicySpec policy : AuthzCrStore.policies(realmId)) {
             Map<String, String> config = policy.getConfig();
-            String rolesJson = config == null ? null : config.get("roles");
-            if (rolesJson == null || rolesJson.isBlank()) {
-                continue;
-            }
-            List<Map<String, Object>> roles;
-            try {
-                roles = POLICY_JSON.readValue(rolesJson, ROLE_ENTRIES);
-            } catch (IOException e) {
-                LOG.warnv(e, "k8store: could not parse the roles config of authorization policy {0};"
-                        + " skipping its role-rename rewrite", policy.getId());
+            List<Map<String, Object>> roles = parseConfigList(config, "roles", ROLE_ENTRIES, policy.getId());
+            if (roles == null) {
                 continue;
             }
             boolean changed = false;
@@ -356,17 +358,77 @@ public class CrStoreFactory implements StoreFactory {
                     changed = true;
                 }
             }
-            if (!changed) {
-                continue;
+            if (changed && writeConfigList(config, "roles", roles, policy.getId())) {
+                AuthzCrStore.save(policy);
             }
-            try {
-                config.put("roles", POLICY_JSON.writeValueAsString(roles));
-            } catch (IOException e) {
-                LOG.warnv(e, "k8store: could not re-serialize the roles config of authorization policy {0}",
-                        policy.getId());
-                continue;
+        }
+    }
+
+    /**
+     * Rewrites client-id references inside every policy's config in the realm: the {@code clients}
+     * array of client policies (a client id equals the clientId here) and, for the renamed
+     * client's own roles, the {@code <clientId>:<name>} ids in role policies' {@code roles} array.
+     */
+    private void rewriteClientInPolicies(String realmId, String oldClientId, String newClientId) {
+        String oldRolePrefix = oldClientId + ":";
+        for (AuthzPolicySpec policy : AuthzCrStore.policies(realmId)) {
+            Map<String, String> config = policy.getConfig();
+            boolean changed = false;
+
+            List<String> clients = parseConfigList(config, "clients", CLIENT_ENTRIES, policy.getId());
+            if (clients != null) {
+                boolean rewritten = false;
+                for (int i = 0; i < clients.size(); i++) {
+                    if (oldClientId.equals(clients.get(i))) {
+                        clients.set(i, newClientId);
+                        rewritten = true;
+                    }
+                }
+                changed |= rewritten && writeConfigList(config, "clients", clients, policy.getId());
             }
-            AuthzCrStore.save(policy);
+
+            List<Map<String, Object>> roles = parseConfigList(config, "roles", ROLE_ENTRIES, policy.getId());
+            if (roles != null) {
+                boolean rewritten = false;
+                for (Map<String, Object> entry : roles) {
+                    if (entry.get("id") instanceof String id && id.startsWith(oldRolePrefix)) {
+                        entry.put("id", newClientId + ":" + id.substring(oldRolePrefix.length()));
+                        rewritten = true;
+                    }
+                }
+                changed |= rewritten && writeConfigList(config, "roles", roles, policy.getId());
+            }
+
+            if (changed) {
+                AuthzCrStore.save(policy);
+            }
+        }
+    }
+
+    /** Parses a JSON-array policy config value, or null when absent, blank or unparseable. */
+    private <T> T parseConfigList(Map<String, String> config, String key, TypeReference<T> type, String policyId) {
+        String json = config == null ? null : config.get(key);
+        if (json == null || json.isBlank()) {
+            return null;
+        }
+        try {
+            return POLICY_JSON.readValue(json, type);
+        } catch (IOException e) {
+            LOG.warnv(e, "k8store: could not parse the {0} config of authorization policy {1}; skipping its"
+                    + " rename rewrite", key, policyId);
+            return null;
+        }
+    }
+
+    /** Serializes a rewritten policy config value back into the config map; false on failure. */
+    private boolean writeConfigList(Map<String, String> config, String key, Object value, String policyId) {
+        try {
+            config.put(key, POLICY_JSON.writeValueAsString(value));
+            return true;
+        } catch (IOException e) {
+            LOG.warnv(e, "k8store: could not re-serialize the {0} config of authorization policy {1}",
+                    key, policyId);
+            return false;
         }
     }
 
