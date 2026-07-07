@@ -39,7 +39,7 @@ import org.keycloak.storage.datastore.DefaultDatastoreProvider;
 
 /**
  * Datastore that serves the configured {@link Area areas} from Kubernetes custom resources and
- * delegates everything else (users, export/import, …) to Keycloak's default storage by
+ * delegates everything else (users, export/import, ...) to Keycloak's default storage by
  * inheriting from {@link DefaultDatastoreProvider}. The dynamic areas (user sessions, auth
  * sessions, login failures, single-use objects, revoked tokens) delegate the same way and only
  * resolve the CR-backed providers when their area is explicitly enabled - by default they stay
