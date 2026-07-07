@@ -15,9 +15,9 @@
  */
 package com.github.dominikschlosser.k8store.user;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.IssuedVerifiableCredentialSpec;
 import com.github.dominikschlosser.k8store.crd.UserVerifiableCredentialSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
@@ -32,65 +32,68 @@ import java.util.List;
  */
 public final class VerifiableCredentialCrStore {
 
+    private static final CrStore<UserVerifiableCredentialSpec> CREDENTIALS = new CrStore<>(
+            UserVerifiableCredentialSpec.class,
+            UserVerifiableCredentialSpec::getRealm, UserVerifiableCredentialSpec::getId);
+    private static final CrStore<IssuedVerifiableCredentialSpec> ISSUED = new CrStore<>(
+            IssuedVerifiableCredentialSpec.class,
+            IssuedVerifiableCredentialSpec::getRealm, IssuedVerifiableCredentialSpec::getId);
+
     private VerifiableCredentialCrStore() {}
 
     // ------------------------------------------------------------------ user verifiable credentials
 
     public static UserVerifiableCredentialSpec readCredential(String realmId, String id) {
-        return K8sStorageBackend.get().read(UserVerifiableCredentialSpec.class, realmId, id);
+        return CREDENTIALS.read(realmId, id);
     }
 
     /** Cross-realm by-id lookup (the SPI passes no realm; generated ids are unambiguous). */
     public static UserVerifiableCredentialSpec findCredentialById(String id) {
-        return K8sStorageBackend.get().readAll(UserVerifiableCredentialSpec.class).stream()
+        return CREDENTIALS.readAll().stream()
                 .filter(spec -> id.equals(spec.getId()))
                 .findFirst()
                 .orElse(null);
     }
 
     public static List<UserVerifiableCredentialSpec> credentialsInRealm(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(UserVerifiableCredentialSpec.class, realmId);
+        return CREDENTIALS.allInRealm(realmId);
     }
 
     public static List<UserVerifiableCredentialSpec> allCredentials() {
-        return K8sStorageBackend.get().readAll(UserVerifiableCredentialSpec.class);
+        return CREDENTIALS.readAll();
     }
 
     public static UserVerifiableCredentialSpec saveCredential(UserVerifiableCredentialSpec spec) {
-        return K8sStorageBackend.update(UserVerifiableCredentialSpec.class, spec.getRealm(), spec.getId(), spec);
+        return CREDENTIALS.save(spec);
     }
 
     public static void deleteCredential(String realmId, String id) {
-        if (realmId != null && id != null) {
-            K8sStorageBackend.delete(UserVerifiableCredentialSpec.class, realmId, id);
-        }
+        CREDENTIALS.delete(realmId, id);
     }
 
     // ------------------------------------------------------------------ issued verifiable credentials
 
     /** Cross-realm by-id lookup (the SPI passes no realm; generated ids are unambiguous). */
     public static IssuedVerifiableCredentialSpec findIssuedById(String id) {
-        return K8sStorageBackend.get().readAll(IssuedVerifiableCredentialSpec.class).stream()
+        return ISSUED.readAll().stream()
                 .filter(spec -> id.equals(spec.getId()))
                 .findFirst()
                 .orElse(null);
     }
 
     public static List<IssuedVerifiableCredentialSpec> issuedInRealm(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(IssuedVerifiableCredentialSpec.class, realmId);
+        return ISSUED.allInRealm(realmId);
     }
 
     public static List<IssuedVerifiableCredentialSpec> allIssued() {
-        return K8sStorageBackend.get().readAll(IssuedVerifiableCredentialSpec.class);
+        return ISSUED.readAll();
     }
 
     public static IssuedVerifiableCredentialSpec saveIssued(IssuedVerifiableCredentialSpec spec) {
-        return K8sStorageBackend.update(IssuedVerifiableCredentialSpec.class, spec.getRealm(), spec.getId(), spec);
+        return ISSUED.save(spec);
     }
 
     public static void deleteIssued(String realmId, String id) {
-        if (realmId != null && id != null) {
-            K8sStorageBackend.delete(IssuedVerifiableCredentialSpec.class, realmId, id);
-        }
+        ISSUED.delete(realmId, id);
     }
 }

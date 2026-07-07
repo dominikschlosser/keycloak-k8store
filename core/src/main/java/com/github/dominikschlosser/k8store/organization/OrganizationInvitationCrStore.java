@@ -15,8 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.organization;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.OrganizationInvitationSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
@@ -26,23 +26,24 @@ import java.util.List;
  */
 public final class OrganizationInvitationCrStore {
 
+    private static final CrStore<OrganizationInvitationSpec> STORE = new CrStore<>(
+            OrganizationInvitationSpec.class, OrganizationInvitationSpec::getRealm, OrganizationInvitationSpec::getId);
+
     private OrganizationInvitationCrStore() {}
 
     public static OrganizationInvitationSpec read(String realmId, String id) {
-        return K8sStorageBackend.get().read(OrganizationInvitationSpec.class, realmId, id);
+        return STORE.read(realmId, id);
     }
 
     public static List<OrganizationInvitationSpec> allInRealm(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(OrganizationInvitationSpec.class, realmId);
+        return STORE.allInRealm(realmId);
     }
 
     public static OrganizationInvitationSpec save(OrganizationInvitationSpec spec) {
-        return K8sStorageBackend.update(OrganizationInvitationSpec.class, spec.getRealm(), spec.getId(), spec);
+        return STORE.save(spec);
     }
 
     public static void delete(String realmId, String id) {
-        if (realmId != null && id != null) {
-            K8sStorageBackend.delete(OrganizationInvitationSpec.class, realmId, id);
-        }
+        STORE.delete(realmId, id);
     }
 }

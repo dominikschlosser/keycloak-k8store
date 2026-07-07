@@ -15,8 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.loginfailure;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.LoginFailureSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
@@ -27,23 +27,24 @@ import java.util.List;
  */
 public final class LoginFailureCrStore {
 
+    private static final CrStore<LoginFailureSpec> STORE =
+            new CrStore<>(LoginFailureSpec.class, LoginFailureSpec::getRealm, LoginFailureSpec::getUserId);
+
     private LoginFailureCrStore() {}
 
     public static LoginFailureSpec read(String realmId, String userId) {
-        return K8sStorageBackend.get().read(LoginFailureSpec.class, realmId, userId);
+        return STORE.read(realmId, userId);
     }
 
     public static List<LoginFailureSpec> allInRealm(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(LoginFailureSpec.class, realmId);
+        return STORE.allInRealm(realmId);
     }
 
     public static LoginFailureSpec save(LoginFailureSpec spec) {
-        return K8sStorageBackend.update(LoginFailureSpec.class, spec.getRealm(), spec.getUserId(), spec);
+        return STORE.save(spec);
     }
 
     public static void delete(String realmId, String userId) {
-        if (realmId != null && userId != null) {
-            K8sStorageBackend.delete(LoginFailureSpec.class, realmId, userId);
-        }
+        STORE.delete(realmId, userId);
     }
 }

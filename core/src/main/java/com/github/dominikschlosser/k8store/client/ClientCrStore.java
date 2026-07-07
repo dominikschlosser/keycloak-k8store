@@ -15,8 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.client;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.ClientSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
@@ -27,27 +27,28 @@ import java.util.List;
  */
 public final class ClientCrStore {
 
+    private static final CrStore<ClientSpec> STORE =
+            new CrStore<>(ClientSpec.class, ClientSpec::getRealm, ClientSpec::getClientId);
+
     private ClientCrStore() {}
 
     public static ClientSpec read(String realmId, String clientId) {
-        return K8sStorageBackend.get().read(ClientSpec.class, realmId, clientId);
+        return STORE.read(realmId, clientId);
     }
 
     public static boolean exists(String realmId, String clientId) {
-        return K8sStorageBackend.get().exists(ClientSpec.class, realmId, clientId);
+        return STORE.exists(realmId, clientId);
     }
 
     public static List<ClientSpec> allInRealm(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(ClientSpec.class, realmId);
+        return STORE.allInRealm(realmId);
     }
 
     public static ClientSpec save(ClientSpec spec) {
-        return K8sStorageBackend.update(ClientSpec.class, spec.getRealm(), spec.getClientId(), spec);
+        return STORE.save(spec);
     }
 
     public static void delete(String realmId, String clientId) {
-        if (realmId != null && clientId != null) {
-            K8sStorageBackend.delete(ClientSpec.class, realmId, clientId);
-        }
+        STORE.delete(realmId, clientId);
     }
 }

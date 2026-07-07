@@ -15,8 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.authsession;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.AuthSessionSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
@@ -27,23 +27,24 @@ import java.util.List;
  */
 public final class AuthSessionCrStore {
 
+    private static final CrStore<AuthSessionSpec> STORE =
+            new CrStore<>(AuthSessionSpec.class, AuthSessionSpec::getRealm, AuthSessionSpec::getId);
+
     private AuthSessionCrStore() {}
 
     public static AuthSessionSpec read(String realmId, String id) {
-        return K8sStorageBackend.get().read(AuthSessionSpec.class, realmId, id);
+        return STORE.read(realmId, id);
     }
 
     public static List<AuthSessionSpec> allInRealm(String realmId) {
-        return K8sStorageBackend.get().readAllInRealm(AuthSessionSpec.class, realmId);
+        return STORE.allInRealm(realmId);
     }
 
     public static AuthSessionSpec save(AuthSessionSpec spec) {
-        return K8sStorageBackend.update(AuthSessionSpec.class, spec.getRealm(), spec.getId(), spec);
+        return STORE.save(spec);
     }
 
     public static void delete(String realmId, String id) {
-        if (realmId != null && id != null) {
-            K8sStorageBackend.delete(AuthSessionSpec.class, realmId, id);
-        }
+        STORE.delete(realmId, id);
     }
 }

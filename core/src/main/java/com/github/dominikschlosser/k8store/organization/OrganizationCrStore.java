@@ -15,8 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.organization;
 
+import com.github.dominikschlosser.k8store.common.CrStore;
 import com.github.dominikschlosser.k8store.crd.OrganizationSpec;
-import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,32 +37,35 @@ public final class OrganizationCrStore {
 
     private static final Logger LOG = Logger.getLogger(OrganizationCrStore.class);
 
+    private static final CrStore<OrganizationSpec> STORE =
+            new CrStore<>(OrganizationSpec.class, OrganizationSpec::getRealm, OrganizationSpec::getId);
+
     /** Organizations already warned about embedded collections, to avoid log spam. */
     private static final Set<String> WARNED_ORGS = ConcurrentHashMap.newKeySet();
 
     private OrganizationCrStore() {}
 
     public static OrganizationSpec read(String realmId, String id) {
-        return checked(K8sStorageBackend.get().read(OrganizationSpec.class, realmId, id));
+        return checked(STORE.read(realmId, id));
     }
 
     public static boolean exists(String realmId, String id) {
-        return realmId != null && id != null && K8sStorageBackend.get().exists(OrganizationSpec.class, realmId, id);
+        return realmId != null && id != null && STORE.exists(realmId, id);
     }
 
     public static List<OrganizationSpec> allInRealm(String realmId) {
-        List<OrganizationSpec> all = K8sStorageBackend.get().readAllInRealm(OrganizationSpec.class, realmId);
+        List<OrganizationSpec> all = STORE.allInRealm(realmId);
         all.forEach(OrganizationCrStore::checked);
         return all;
     }
 
     public static OrganizationSpec save(OrganizationSpec spec) {
-        return K8sStorageBackend.update(OrganizationSpec.class, spec.getRealm(), spec.getId(), spec);
+        return STORE.save(spec);
     }
 
     public static void delete(String realmId, String id) {
         if (realmId != null && id != null) {
-            K8sStorageBackend.delete(OrganizationSpec.class, realmId, id);
+            STORE.delete(realmId, id);
             WARNED_ORGS.remove(realmId + "/" + id);
         }
     }
