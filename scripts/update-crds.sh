@@ -18,5 +18,5 @@ echo "CRDs in crds/:"
 ls -1 crds/
 if ! git diff --quiet -- crds/ 2>/dev/null; then
   echo
-  echo "crds/ changed — review with: git diff crds/  (and run scripts/crd-tools.sh for a semantic diff)"
+  echo "crds/ changed - review with: git diff crds/  (and run scripts/crd-tools.sh for a semantic diff)"
 fi

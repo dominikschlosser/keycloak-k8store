@@ -22,7 +22,7 @@ import java.util.List;
 /**
  * Access to {@code KeycloakGroup} custom resources, keyed by {@code (realm, id)}. Reads come
  * from the informer mirror and hand out defensive copies; every mutation of a spec must be
- * persisted explicitly through {@link #save} — specs carry no write-through machinery.
+ * persisted explicitly through {@link #save} - specs carry no write-through machinery.
  */
 public final class GroupCrStore {
 

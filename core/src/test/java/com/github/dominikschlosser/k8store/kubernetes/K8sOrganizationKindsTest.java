@@ -74,7 +74,7 @@ class K8sOrganizationKindsTest {
     @Test
     void organizationAreaIsOptInButJoinsAll() {
         assertFalse(K8sStoreConfig.configAreas().contains(Area.ORGANIZATION),
-                "the config default must stay backward-compatible — organization is opt-in");
+                "the config default must stay backward-compatible - organization is opt-in");
         assertFalse(K8sStoreConfig.parseAreas("config").contains(Area.ORGANIZATION));
         assertTrue(K8sStoreConfig.parseAreas("all").contains(Area.ORGANIZATION),
                 "the organization area joins 'all'");
@@ -91,12 +91,12 @@ class K8sOrganizationKindsTest {
         assertThrows(IllegalArgumentException.class,
                 () -> K8sStoreConfig.of(false,
                         EnumSet.of(Area.REALM, Area.IDENTITY_PROVIDER, Area.ORGANIZATION), "test", false, 30),
-                "organizations are group-backed — the group area is required");
+                "organizations are group-backed - the group area is required");
         K8sStoreConfig.reset();
         assertThrows(IllegalArgumentException.class,
                 () -> K8sStoreConfig.of(false,
                         EnumSet.of(Area.REALM, Area.GROUP, Area.ORGANIZATION), "test", false, 30),
-                "the organization-to-IdP linkage lives in the realm CR — the identity-provider area is required");
+                "the organization-to-IdP linkage lives in the realm CR - the identity-provider area is required");
         K8sStoreConfig.reset();
         K8sStoreConfig.of(false,
                 EnumSet.of(Area.REALM, Area.GROUP, Area.IDENTITY_PROVIDER, Area.ORGANIZATION), "test", false, 30);
@@ -109,7 +109,7 @@ class K8sOrganizationKindsTest {
         Profile.init(Profile.ProfileName.DEFAULT, Map.of(Profile.Feature.ORGANIZATION, true));
         assertThrows(IllegalArgumentException.class,
                 () -> K8sStoreConfig.validateOrganizationFeatureCoupling(K8sStoreConfig.configAreas()),
-                "the JPA organization store cannot reference CR-backed groups — boot must fail clearly");
+                "the JPA organization store cannot reference CR-backed groups - boot must fail clearly");
         // adding the organization area resolves it
         Set<Area> withOrganization = EnumSet.copyOf(K8sStoreConfig.configAreas());
         withOrganization.add(Area.ORGANIZATION);
@@ -233,7 +233,7 @@ class K8sOrganizationKindsTest {
         assertEquals("organization", read.getType());
         assertEquals("org-1", read.getOrganizationId());
 
-        // realm groups keep their spec shape — no type/organizationId noise in the wire form
+        // realm groups keep their spec shape - no type/organizationId noise in the wire form
         GroupSpec realmGroup = new GroupSpec();
         realmGroup.setId("plain");
         realmGroup.setRealm("master");

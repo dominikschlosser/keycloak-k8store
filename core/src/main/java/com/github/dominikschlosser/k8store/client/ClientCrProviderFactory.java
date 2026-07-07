@@ -38,7 +38,7 @@ public class ClientCrProviderFactory extends AbstractCrProviderFactory<ClientCrP
         implements ClientProviderFactory<ClientCrProvider>, InvalidationHandler {
 
     /**
-     * Cluster-node registrations per client id — runtime information that is deliberately kept
+     * Cluster-node registrations per client id - runtime information that is deliberately kept
      * out of the custom resources.
      */
     private final Map<String, Map<String, Integer>> registeredNodesStore = new ConcurrentHashMap<>();

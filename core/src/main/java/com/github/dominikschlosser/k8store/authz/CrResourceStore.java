@@ -35,8 +35,8 @@ import org.keycloak.models.utils.KeycloakModelUtils;
 
 /**
  * {@link ResourceStore} over {@code KeycloakAuthzResource} custom resources. Query semantics
- * mirror upstream JPA: names are unique per (resource server, owner) — enforced at create time,
- * there is no database constraint to fall back on — the name/type filters are case-insensitive
+ * mirror upstream JPA: names are unique per (resource server, owner) - enforced at create time,
+ * there is no database constraint to fall back on - the name/type filters are case-insensitive
  * contains matches with {@code *} wildcards, {@code findByType} defaults the owner to the
  * resource server itself, and {@code findByTypeInstance} answers the user-owned instances
  * (owner != resource server) of a type.

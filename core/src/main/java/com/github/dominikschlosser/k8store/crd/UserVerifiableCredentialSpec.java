@@ -24,12 +24,12 @@ import java.util.Map;
  * Spec of a {@code KeycloakUserVerifiableCredential} custom resource: one OID4VC verifiable
  * credential of a user (the user-side registration of a credential scope, CR shape of upstream's
  * {@code USER_VERIFIABLE_CREDENTIAL} table). Written by Keycloak's OID4VC issuance and admin
- * flows at runtime — never author these by hand. Only exists (and is only watched) when the
+ * flows at runtime - never author these by hand. Only exists (and is only watched) when the
  * {@code user} area and the {@code oid4vc-vci} feature are both enabled.
  *
  * <p>Timestamps are epoch millis. {@link #getUserAttributes() userAttributes} is the snapshot of
  * the user's readable profile attributes taken at creation/update time (upstream stores the same
- * snapshot as a JSON column) — it may contain personal data, the same RBAC caveat as
+ * snapshot as a JSON column) - it may contain personal data, the same RBAC caveat as
  * {@code keycloakusers} applies.
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)

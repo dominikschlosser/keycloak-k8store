@@ -28,7 +28,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 /**
  * One authorization policy or permission of a resource server, stored as a Kubernetes custom
  * resource ({@code authorization} area). The spec is {@link AuthzPolicySpec}; {@code spec.id}
- * defaults to {@code metadata.name}. Resource/scope/policy references are id sets in the spec —
+ * defaults to {@code metadata.name}. Resource/scope/policy references are id sets in the spec -
  * plain strings, so the schema has no recursion.
  */
 @Group(KeycloakAuthzPolicyCr.GROUP)
@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kazp")
 public class KeycloakAuthzPolicyCr extends CustomResource<AuthzPolicySpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected AuthzPolicySpec initSpec() {
         return new AuthzPolicySpec();

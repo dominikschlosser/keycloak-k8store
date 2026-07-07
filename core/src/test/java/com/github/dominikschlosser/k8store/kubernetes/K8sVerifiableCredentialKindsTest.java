@@ -85,7 +85,7 @@ class K8sVerifiableCredentialKindsTest {
         K8sStorageBackend withoutUserArea = start(false, K8sStoreConfig.configAreas());
         assertThrows(IllegalArgumentException.class,
                 () -> withoutUserArea.read(UserVerifiableCredentialSpec.class, "master", "vc-1"),
-                "the kinds belong to the user area — config-only areas must not register them");
+                "the kinds belong to the user area - config-only areas must not register them");
         K8sStorageBackend.shutdown();
         K8sStoreConfig.reset();
 

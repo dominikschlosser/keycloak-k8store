@@ -46,8 +46,8 @@ public class GroupCrProvider implements GroupProvider {
     /**
      * {@code spec.type} value of organization-owned groups (an organization's backing group
      * and its organization-scoped subgroups); realm groups leave the field unset. Organization
-     * groups are invisible to the regular group queries — upstream JPA filters its {@code
-     * KEYCLOAK_GROUP.TYPE} column the same way — and are served through the organization
+     * groups are invisible to the regular group queries - upstream JPA filters its {@code
+     * KEYCLOAK_GROUP.TYPE} column the same way - and are served through the organization
      * provider instead.
      */
     public static final String ORGANIZATION_TYPE = "organization";
@@ -70,7 +70,7 @@ public class GroupCrProvider implements GroupProvider {
 
     /**
      * The hierarchy is stored flat: embedded {@code subGroups} content never reaches this
-     * provider — the field is excluded from the CRD schema and from spec deserialization
+     * provider - the field is excluded from the CRD schema and from spec deserialization
      * ({@link GroupSpec#getSubGroups()}); author one CR per subgroup linked via
      * {@code spec.parentId} instead.
      */
@@ -236,7 +236,7 @@ public class GroupCrProvider implements GroupProvider {
         String groupId = id == null ? name : id;
         if (GroupCrStore.exists(realm.getId(), groupId)) {
             // organization-scoped subgroup names are only unique per organization ("admins" in
-            // every organization), so a taken natural id falls back to a generated one — the
+            // every organization), so a taken natural id falls back to a generated one - the
             // realm-group convention (id = name, globally unique) stays strict as before
             if (id == null && effectiveType == GroupModel.Type.ORGANIZATION) {
                 groupId = KeycloakModelUtils.generateId();

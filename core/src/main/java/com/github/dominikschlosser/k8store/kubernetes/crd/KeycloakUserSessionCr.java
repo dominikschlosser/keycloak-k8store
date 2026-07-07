@@ -28,7 +28,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 /**
  * A Keycloak user session (online or offline, client sessions embedded), stored as a Kubernetes
  * custom resource. Volatile runtime state of the experimental dynamic areas: written by Keycloak
- * on every login/refresh, deleted on logout or expiry — never authored by hand. The spec is the
+ * on every login/refresh, deleted on logout or expiry - never authored by hand. The spec is the
  * original {@link UserSessionSpec}; {@code spec.id} defaults to {@code metadata.name}.
  */
 @Group(KeycloakUserSessionCr.GROUP)
@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kus")
 public class KeycloakUserSessionCr extends CustomResource<UserSessionSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected UserSessionSpec initSpec() {
         return new UserSessionSpec();

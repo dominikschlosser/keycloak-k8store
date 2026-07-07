@@ -30,7 +30,7 @@ import org.keycloak.models.utils.KeycloakModelUtils;
 
 /**
  * {@link ScopeStore} over {@code KeycloakAuthzScope} custom resources. Query semantics mirror
- * upstream JPA: names are unique per resource server (enforced here at create time — there is
+ * upstream JPA: names are unique per resource server (enforced here at create time - there is
  * no database constraint to fall back on), the name filter is a case-insensitive contains match
  * with {@code *} wildcards, results are ordered by name.
  */

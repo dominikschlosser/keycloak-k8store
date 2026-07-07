@@ -39,11 +39,11 @@ import org.keycloak.models.RoleModel;
 
 /**
  * {@link ClientModel} over a {@link ClientSpec}. The adapter owns a defensive copy of the CR
- * spec; every mutation is persisted explicitly and as a whole — there are no dirty flags and no
+ * spec; every mutation is persisted explicitly and as a whole - there are no dirty flags and no
  * shared references to rely on. Setters persist only when the value actually changes.
  *
  * <p>Identity: the model id <em>is</em> the clientId (human-readable, GitOps-friendly). Renaming
- * the clientId moves the CR — the old resource is deleted and the spec is re-persisted under the
+ * the clientId moves the CR - the old resource is deleted and the spec is re-persisted under the
  * new id; name-based references from other stores keep the usual staleness caveat of this store.
  *
  * <p>Registered cluster nodes are runtime information and deliberately never persisted to the
@@ -74,7 +74,7 @@ public class ClientAdapter implements ClientModel {
      * The live spec this adapter keeps persisting. Cross-cutting writes that happen while an
      * adapter is being populated (e.g. the login-protocol factories assigning the realm's
      * default client scopes from the {@code ClientProtocolUpdatedEvent} fired in the middle of
-     * client creation) must mutate <em>this</em> instance — a freshly read copy would be
+     * client creation) must mutate <em>this</em> instance - a freshly read copy would be
      * clobbered by the adapter's next persist.
      */
     ClientSpec spec() {

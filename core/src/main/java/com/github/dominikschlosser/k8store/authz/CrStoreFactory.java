@@ -42,7 +42,7 @@ import org.keycloak.models.RealmModel;
  * unique), while this store keys every CR by realm. Lookups therefore resolve the realm from
  * the model instance where one is passed, else from the session context; the id-only lookups
  * fall back to a cross-realm mirror scan (ids are UUIDs except resource-server ids, which are
- * clientIds and only unique per realm — the context realm wins for those).
+ * clientIds and only unique per realm - the context realm wins for those).
  */
 public class CrStoreFactory implements StoreFactory {
 
@@ -215,7 +215,7 @@ public class CrStoreFactory implements StoreFactory {
 
     /**
      * Deletes one client's whole authorization graph: permission tickets, policies, resources,
-     * authorization scopes and finally the resource server itself — upstream JPA's
+     * authorization scopes and finally the resource server itself - upstream JPA's
      * resource-server delete cascade over CRs. Policies are plain CRs whose associations are id
      * sets inside the graph being deleted, so no reference rewriting is needed.
      */

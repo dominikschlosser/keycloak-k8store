@@ -41,7 +41,7 @@ import org.keycloak.testframework.remote.runonserver.RunOnServerClient;
  * Consent scope-parameters of the experimental {@code parameterized-scopes} feature (enabled on
  * the server under test): granting a parameterized scope with parameters persists them in the
  * user CR's consent entry ({@code grantedScopeParameters}), and the consent model reads them
- * back — driven through the provider SPI via run-on-server, because the admin consent
+ * back - driven through the provider SPI via run-on-server, because the admin consent
  * representation has no parameter surface (nothing to exercise over REST).
  */
 @Order(1)
@@ -62,7 +62,7 @@ public class ConsentParametersStorageTest {
     @Test
     public void parameterizedScopeConsentPersistsItsParametersOnTheUserCr() {
         // fixture: a client, a parameterized scope (the feature's marker attribute), a plain
-        // scope and a user — all CR-backed
+        // scope and a user - all CR-backed
         ClientRepresentation client = new ClientRepresentation();
         client.setClientId(CLIENT_ID);
         client.setEnabled(true);

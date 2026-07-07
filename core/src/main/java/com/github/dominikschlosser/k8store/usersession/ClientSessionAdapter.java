@@ -26,7 +26,7 @@ import org.keycloak.models.UserSessionModel;
 
 /**
  * {@link AuthenticatedClientSessionModel} over a {@link ClientSessionSpec} embedded in its user
- * session. Every mutation re-persists the owning user-session spec through the parent adapter —
+ * session. Every mutation re-persists the owning user-session spec through the parent adapter -
  * client sessions have no CR of their own. Refresh-token bookkeeping goes through the interface's
  * default note-based methods, which land in this spec's notes.
  */

@@ -27,7 +27,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 
 /**
  * A pending (or expired) organization invitation as a Kubernetes custom resource
- * ({@code organization} area, runtime data — writable in read-only mode). These CRs are
+ * ({@code organization} area, runtime data - writable in read-only mode). These CRs are
  * Keycloak-managed by the invitation flows and never authored by hand.
  */
 @Group(KeycloakOrganizationInvitationCr.GROUP)
@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 public class KeycloakOrganizationInvitationCr extends CustomResource<OrganizationInvitationSpec, Void>
         implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected OrganizationInvitationSpec initSpec() {
         return new OrganizationInvitationSpec();

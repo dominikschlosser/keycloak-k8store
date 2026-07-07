@@ -28,7 +28,7 @@ import org.jboss.logging.Logger;
  * persisted explicitly through {@link #save}.
  *
  * <p>Embedded collections in an organization spec ({@code members}, {@code groups},
- * {@code identityProviders}) are not served — membership lives on the users, organization
+ * {@code identityProviders}) are not served - membership lives on the users, organization
  * groups are {@code KeycloakGroup} CRs, the identity-provider linkage lives in the realm CR.
  * The CRD schema already prunes them on the API server; content that arrives anyway is
  * reported once per organization with a warning.
@@ -74,7 +74,7 @@ public final class OrganizationCrStore {
         List<String> ignored = spec.ignoredEmbeddedCollections();
         if (!ignored.isEmpty() && WARNED_ORGS.add(spec.getRealm() + "/" + spec.getId())) {
             LOG.warnv("KeycloakOrganization CR {0} (realm {1}) embeds the collections {2}; they are"
-                            + " ignored — membership lives on the users, organization groups are"
+                            + " ignored - membership lives on the users, organization groups are"
                             + " KeycloakGroup CRs (spec.type: organization) and the identity-provider"
                             + " linkage is the organizationId field in the realm CR",
                     spec.getId(), spec.getRealm(), String.join(", ", ignored));

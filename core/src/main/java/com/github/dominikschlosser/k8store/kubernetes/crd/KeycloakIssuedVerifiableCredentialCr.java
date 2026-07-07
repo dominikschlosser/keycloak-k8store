@@ -28,7 +28,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 /**
  * One OID4VC credential issuance, stored as a Kubernetes custom resource (experimental
  * {@code user} area + {@code oid4vc-vci} feature). Keycloak-managed runtime state that expires
- * ({@code spec.expiresAt}) — never authored by hand. The spec is the original
+ * ({@code spec.expiresAt}) - never authored by hand. The spec is the original
  * {@link IssuedVerifiableCredentialSpec}; {@code spec.id} is the store id.
  */
 @Group(KeycloakIssuedVerifiableCredentialCr.GROUP)
@@ -40,7 +40,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 public class KeycloakIssuedVerifiableCredentialCr extends CustomResource<IssuedVerifiableCredentialSpec, Void>
         implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected IssuedVerifiableCredentialSpec initSpec() {
         return new IssuedVerifiableCredentialSpec();

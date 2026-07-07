@@ -27,7 +27,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 
 /**
  * A Keycloak root authentication session (an in-flight login, browser tabs embedded), stored as
- * a Kubernetes custom resource. Volatile runtime state of the experimental dynamic areas —
+ * a Kubernetes custom resource. Volatile runtime state of the experimental dynamic areas -
  * never authored by hand. The spec is the original {@link AuthSessionSpec}; {@code spec.id}
  * defaults to {@code metadata.name}.
  */
@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kas")
 public class KeycloakAuthSessionCr extends CustomResource<AuthSessionSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected AuthSessionSpec initSpec() {
         return new AuthSessionSpec();

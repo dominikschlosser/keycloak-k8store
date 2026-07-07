@@ -28,7 +28,7 @@ import java.util.List;
  * by {@code (realm, clientId)}; resources, authorization scopes, policies and permission
  * tickets by {@code (realm, uuid)}. Reads come from the informer mirror and hand out defensive
  * copies; every mutation of a spec must be persisted explicitly through the matching
- * {@code save} — specs carry no write-through machinery. Whether a write is accepted in
+ * {@code save} - specs carry no write-through machinery. Whether a write is accepted in
  * read-only mode is decided per kind by the backend (permission tickets are always writable,
  * the other four kinds are config).
  */

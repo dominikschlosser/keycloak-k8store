@@ -32,11 +32,11 @@ import org.keycloak.models.utils.RoleUtils;
 
 /**
  * {@link ClientScopeModel} over a {@link ClientScopeSpec}. The adapter owns a defensive copy of
- * the CR spec; every mutation is persisted explicitly and as a whole — there are no dirty flags
+ * the CR spec; every mutation is persisted explicitly and as a whole - there are no dirty flags
  * and no shared references to rely on.
  *
  * <p>Identity: the model id <em>is</em> the scope name (human-readable, GitOps-friendly).
- * Renaming the scope moves the CR — the old resource is deleted and the spec is re-persisted
+ * Renaming the scope moves the CR - the old resource is deleted and the spec is re-persisted
  * under the new name; name-based references (client assignment lists, realm default-scope ids)
  * keep the usual staleness caveat of this store.
  */

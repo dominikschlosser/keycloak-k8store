@@ -21,7 +21,7 @@ import java.util.Map;
 
 /**
  * One authenticated client session, embedded in its user session's
- * {@link UserSessionSpec#getClientSessions() clientSessions} map (keyed by client storage id) —
+ * {@link UserSessionSpec#getClientSessions() clientSessions} map (keyed by client storage id) -
  * not a custom resource of its own, so a login is at most one user-session CR write. Whether the
  * client session is offline follows from the owning user session. Timestamps are epoch millis;
  * refresh-token bookkeeping and start times live in {@link #getNotes() notes} under Keycloak's

@@ -29,12 +29,12 @@ import org.keycloak.representations.idm.ComponentExportRepresentation;
 
 /**
  * A Keycloak realm, stored as a Kubernetes custom resource. The spec is Keycloak's realm
- * representation ({@link RealmSpec}); {@code spec.realm} — the realm name, doubling as the realm
- * id — defaults to {@code metadata.name} when omitted.
+ * representation ({@link RealmSpec}); {@code spec.realm} - the realm name, doubling as the realm
+ * id - defaults to {@code metadata.name} when omitted.
  *
  * <p>{@code components.*.subComponents} recurses (components nest their child components, e.g.
  * user-storage mappers); a CRD structural schema cannot express recursion, so the schema is
- * unrolled to a fixed depth — 3 levels, matching what the upstream keycloak-operator uses for
+ * unrolled to a fixed depth - 3 levels, matching what the upstream keycloak-operator uses for
  * the same representation graph.
  */
 @Group(KeycloakRealmCr.GROUP)
@@ -46,7 +46,7 @@ import org.keycloak.representations.idm.ComponentExportRepresentation;
 @SchemaSwap(originalType = ComponentExportRepresentation.class, fieldName = "subComponents", depth = 3)
 public class KeycloakRealmCr extends CustomResource<RealmSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected RealmSpec initSpec() {
         return new RealmSpec();

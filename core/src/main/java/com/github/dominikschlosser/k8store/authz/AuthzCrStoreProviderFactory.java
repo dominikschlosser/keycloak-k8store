@@ -42,7 +42,7 @@ import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
  * <ul>
  *   <li>k8store invalidation events: {@code CLIENT_BEFORE_REMOVE} deletes the removed client's
  *       whole authorization graph (tickets, policies, resources, scopes, resource server) and
- *       {@code REALM_BEFORE_REMOVE} bulk-deletes every authorization CR of the realm — the
+ *       {@code REALM_BEFORE_REMOVE} bulk-deletes every authorization CR of the realm - the
  *       realm path matters because the k8store realm removal deletes client CRs in bulk without
  *       per-client events, so upstream's realm synchronizer would find no clients left to
  *       cascade from.</li>
@@ -55,7 +55,7 @@ import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
  *
  * <p>Note on read-only mode: the resource-server/resource/scope/policy kinds are configuration
  * and rejected by the backend in read-only mode, permission tickets stay writable. Fine-grained
- * admin permissions v2 writes policies at runtime — that feature requires write mode.
+ * admin permissions v2 writes policies at runtime - that feature requires write mode.
  */
 @AutoService(AuthorizationStoreFactory.class)
 public class AuthzCrStoreProviderFactory extends AbstractCrProviderFactory<StoreFactory>
@@ -82,7 +82,7 @@ public class AuthzCrStoreProviderFactory extends AbstractCrProviderFactory<Store
     }
 
     /**
-     * {@link AbstractCrProviderFactory}'s no-op would shadow the SPI's default postInit — the
+     * {@link AbstractCrProviderFactory}'s no-op would shadow the SPI's default postInit - the
      * synchronization listeners must stay registered (see the class javadoc).
      */
     @Override

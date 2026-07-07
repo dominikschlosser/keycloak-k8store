@@ -23,7 +23,7 @@ import java.util.List;
  * Access to {@code KeycloakUserSession} custom resources, keyed by {@code (realm, session id)}.
  * Reads come from the informer mirror (expired sessions are filtered there) and hand out
  * defensive copies; every mutation of a spec must be persisted explicitly through {@link #save}.
- * Writes go through the per-transaction buffer like the config kinds — the many setter calls of
+ * Writes go through the per-transaction buffer like the config kinds - the many setter calls of
  * one login coalesce into one server-side apply at commit.
  */
 public final class UserSessionCrStore {

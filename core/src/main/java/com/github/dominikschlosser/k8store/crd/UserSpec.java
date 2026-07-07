@@ -36,7 +36,7 @@ import org.keycloak.representations.idm.oid4vc.UserVerifiableCredentialRepresent
  *
  * <p><strong>Security:</strong> user CRs carry password hashes and OTP secrets in
  * {@code spec.credentials} ({@code secretData}/{@code credentialData} JSON, hashed through
- * Keycloak's password-hash providers — never plaintext) and, when identity-broker token storage
+ * Keycloak's password-hash providers - never plaintext) and, when identity-broker token storage
  * is enabled, broker tokens in {@link #getFederatedIdentityTokens() federatedIdentityTokens}.
  * RBAC read access to {@code keycloakusers} resources must be locked down accordingly.
  *
@@ -44,17 +44,17 @@ import org.keycloak.representations.idm.oid4vc.UserVerifiableCredentialRepresent
  *
  * <ul>
  *   <li>The store id is {@code spec.id}, fixed at creation to the <em>lowercased username</em>
- *       (human-readable CR names, like the other kinds) and immutable afterwards — renaming a
+ *       (human-readable CR names, like the other kinds) and immutable afterwards - renaming a
  *       user keeps its id, so sessions, tokens ({@code sub}) and login-failure CRs stay valid.
  *       Hand-authored CRs may omit it ({@code metadata.name} is the fallback).
- *   <li>{@code username} and {@code email} are stored lowercased (JPA parity — upstream
+ *   <li>{@code username} and {@code email} are stored lowercased (JPA parity - upstream
  *       normalizes both on write), which makes every lookup case-insensitive by construction.
  *       The realm attribute {@code keycloak.username-search.case-sensitive} is not honored.
  *   <li>{@code realmRoles} holds realm role <em>names</em> (== realm role ids in this store);
- *       {@code clientRoles} is keyed by the owning client's id (== clientId) with role names —
+ *       {@code clientRoles} is keyed by the owning client's id (== clientId) with role names -
  *       the same by-name convention as composites and scope mappings.
  *   <li>{@code groups} holds group <em>ids</em> (immutable at creation), <em>not</em> the group
- *       paths of Keycloak's import representations — paths would break on parent renames.
+ *       paths of Keycloak's import representations - paths would break on parent renames.
  *   <li>{@code credentials} order <em>is</em> the credential priority order; the entries carry
  *       only {@code id/type/userLabel/createdDate/secretData/credentialData}.
  *   <li>{@code serviceAccountClientId} links a service-account user to its client (== clientId).
@@ -66,7 +66,7 @@ import org.keycloak.representations.idm.oid4vc.UserVerifiableCredentialRepresent
  * {@code applicationRoles} import fields, and the OID4VC {@code verifiableCredentials}/
  * {@code issuedVerifiableCredentials} (the feature is unsupported by this store).
  *
- * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped — a
+ * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped - a
  * real API server rejects explicit nulls in {@code map<string,string>} schema fields with 422.
  * Unknown properties are ignored on read.
  */
@@ -82,7 +82,7 @@ public class UserSpec extends UserRepresentation {
 
     /**
      * Identity-broker tokens by identity-provider alias, stored only when the provider's
-     * "store tokens" option is on. Sensitive — see the class-level security note.
+     * "store tokens" option is on. Sensitive - see the class-level security note.
      */
     private Map<String, String> federatedIdentityTokens;
 
@@ -95,7 +95,7 @@ public class UserSpec extends UserRepresentation {
     }
 
     /**
-     * The consent entries — the standard {@code clientConsents} JSON shape, but typed as
+     * The consent entries - the standard {@code clientConsents} JSON shape, but typed as
      * {@link UserConsentSpec} so per-scope parameters of the (experimental)
      * parameterized-scopes feature persist alongside the granted scope names. Replaces the
      * inherited representation-typed property under the same JSON name.
@@ -120,7 +120,7 @@ public class UserSpec extends UserRepresentation {
         this.consents = consents;
     }
 
-    /** Hidden (see {@link #getConsents()} — same JSON property, parameter-aware type). */
+    /** Hidden (see {@link #getConsents()} - same JSON property, parameter-aware type). */
     @JsonIgnore
     @Override
     public List<UserConsentRepresentation> getClientConsents() {

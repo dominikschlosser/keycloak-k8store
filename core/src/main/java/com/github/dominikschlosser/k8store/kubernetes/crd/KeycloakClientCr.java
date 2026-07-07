@@ -38,7 +38,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kc")
 public class KeycloakClientCr extends CustomResource<ClientSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected ClientSpec initSpec() {
         return new ClientSpec();

@@ -43,7 +43,7 @@ public class UserSessionCrProviderFactory extends AbstractCrProviderFactory<User
     }
 
     /**
-     * A removed user's sessions must not survive as CRs until they expire — upstream's session
+     * A removed user's sessions must not survive as CRs until they expire - upstream's session
      * providers listen for the user removal the same way.
      */
     @Override

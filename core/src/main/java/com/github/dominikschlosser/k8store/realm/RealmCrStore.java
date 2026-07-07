@@ -25,11 +25,11 @@ import org.jboss.logging.Logger;
 /**
  * Access to {@code KeycloakRealm} custom resources. The realm name is the store id (both live in
  * {@code spec.realm}). Reads come from the informer mirror and hand out defensive copies; every
- * mutation of a spec must be persisted explicitly through {@link #save} — specs carry no
+ * mutation of a spec must be persisted explicitly through {@link #save} - specs carry no
  * write-through machinery.
  *
  * <p>Embedded per-kind collections ({@code clients}, {@code roles}, ...) in a realm spec are not
- * served — per-kind CRs are the storage. The CRD schema already prunes them on the API server;
+ * served - per-kind CRs are the storage. The CRD schema already prunes them on the API server;
  * content that arrives anyway (e.g. through a mock server or direct population) is reported once
  * per realm with a warning listing what was ignored.
  */
@@ -73,7 +73,7 @@ public final class RealmCrStore {
         }
         List<String> ignored = spec.ignoredEmbeddedCollections();
         if (!ignored.isEmpty() && WARNED_REALMS.add(spec.getRealm())) {
-            LOG.warnv("KeycloakRealm CR for realm {0} embeds the collections {1}; they are ignored —"
+            LOG.warnv("KeycloakRealm CR for realm {0} embeds the collections {1}; they are ignored -"
                             + " per-kind custom resources (KeycloakClient, KeycloakRole, KeycloakGroup,"
                             + " KeycloakClientScope) are the storage for those entities",
                     spec.getRealm(), String.join(", ", ignored));

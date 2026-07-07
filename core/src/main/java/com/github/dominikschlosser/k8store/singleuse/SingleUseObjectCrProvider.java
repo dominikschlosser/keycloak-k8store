@@ -28,8 +28,8 @@ import org.keycloak.models.SingleUseObjectProvider;
  * objects are not realm-scoped).
  *
  * <p>Unlike the session kinds, every operation goes straight to the API server (no transaction
- * buffering): action tokens, nonces and replay guards must be visible to the next request — on
- * any node — the moment the call returns, and the single-use guarantee of {@link #remove} is
+ * buffering): action tokens, nonces and replay guards must be visible to the next request - on
+ * any node - the moment the call returns, and the single-use guarantee of {@link #remove} is
  * exactly Kubernetes DELETE semantics (the object is handed to precisely one deleter;
  * {@link #putIfAbsent} maps onto atomic create the same way). Single-use-critical reads fall
  * back to a direct API-server GET on a mirror miss so a value written on another node
@@ -75,7 +75,7 @@ public class SingleUseObjectCrProvider implements SingleUseObjectProvider {
         if (spec == null) {
             return null;
         }
-        // single-use contract: return the notes only if THIS call deleted the object —
+        // single-use contract: return the notes only if THIS call deleted the object -
         // Kubernetes answers a DELETE exactly once across all nodes
         boolean deleted = K8sStorageBackend.deleteNow(
                 SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key);
@@ -107,7 +107,7 @@ public class SingleUseObjectCrProvider implements SingleUseObjectProvider {
             return true;
         }
         // name conflict: either a live entry won the race, or an expired CR is still awaiting
-        // the reaper — an expired entry counts as absent, so claim it by overwrite
+        // the reaper - an expired entry counts as absent, so claim it by overwrite
         if (fetch(key) != null) {
             return false;
         }
@@ -118,7 +118,7 @@ public class SingleUseObjectCrProvider implements SingleUseObjectProvider {
     @Override
     public boolean contains(String key) {
         // mirror-only on purpose: contains() sits on token-validation hot paths and a miss is
-        // the common case — an API-server round trip per miss would bound request throughput.
+        // the common case - an API-server round trip per miss would bound request throughput.
         // Entries written on other nodes become visible within watch latency (milliseconds).
         return K8sStorageBackend.get().read(
                 SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key) != null;

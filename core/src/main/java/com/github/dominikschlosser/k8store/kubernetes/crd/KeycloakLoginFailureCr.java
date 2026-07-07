@@ -27,7 +27,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 
 /**
  * The brute-force-protection counters of one (realm, user) pair, stored as a Kubernetes custom
- * resource. Volatile runtime state of the experimental dynamic areas — never authored by hand.
+ * resource. Volatile runtime state of the experimental dynamic areas - never authored by hand.
  * The spec is the original {@link LoginFailureSpec}; {@code spec.userId} defaults to
  * {@code metadata.name}.
  */
@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("klf")
 public class KeycloakLoginFailureCr extends CustomResource<LoginFailureSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected LoginFailureSpec initSpec() {
         return new LoginFailureSpec();

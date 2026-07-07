@@ -38,13 +38,13 @@ import org.keycloak.models.utils.RoleUtils;
  * every mutation is persisted explicitly and as a whole. Setters persist only when the value
  * actually changes.
  *
- * <p>Identity: the model id is {@code spec.id} — the lowercased username at creation, immutable
+ * <p>Identity: the model id is {@code spec.id} - the lowercased username at creation, immutable
  * afterwards (renaming a user does <em>not</em> move the CR, so token {@code sub} claims and
  * session references stay valid). {@code username} and {@code email} are normalized to lower
  * case on write, matching upstream JPA behavior.
  *
  * <p>{@code firstName}/{@code lastName}/{@code email}/{@code username} masquerade as attributes
- * in the attribute API — Keycloak's user-profile layer reads and writes them that way.
+ * in the attribute API - Keycloak's user-profile layer reads and writes them that way.
  */
 public class UserAdapter implements UserModel {
 
@@ -60,7 +60,7 @@ public class UserAdapter implements UserModel {
         this.spec = spec;
     }
 
-    /** The backing spec — the provider's credential store mutates it through here. */
+    /** The backing spec - the provider's credential store mutates it through here. */
     UserSpec spec() {
         return spec;
     }

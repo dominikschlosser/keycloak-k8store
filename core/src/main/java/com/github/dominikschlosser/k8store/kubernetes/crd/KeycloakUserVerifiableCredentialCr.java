@@ -28,7 +28,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 /**
  * An OID4VC verifiable credential of a user, stored as a Kubernetes custom resource
  * (experimental {@code user} area + {@code oid4vc-vci} feature). Keycloak-managed runtime state
- * — never authored by hand. The spec is the original {@link UserVerifiableCredentialSpec};
+ * - never authored by hand. The spec is the original {@link UserVerifiableCredentialSpec};
  * {@code spec.id} is the store id.
  */
 @Group(KeycloakUserVerifiableCredentialCr.GROUP)
@@ -40,7 +40,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 public class KeycloakUserVerifiableCredentialCr extends CustomResource<UserVerifiableCredentialSpec, Void>
         implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected UserVerifiableCredentialSpec initSpec() {
         return new UserVerifiableCredentialSpec();

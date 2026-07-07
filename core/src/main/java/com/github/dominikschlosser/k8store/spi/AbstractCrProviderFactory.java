@@ -26,7 +26,7 @@ import org.keycloak.provider.Provider;
 /**
  * Base of the k8store per-area provider factories. Every factory registers under provider id
  * {@link #PROVIDER_ID} and only when its {@link K8sStoreConfig.Area area} is configured to be
- * served from custom resources — otherwise Keycloak's default provider for the area stays in
+ * served from custom resources - otherwise Keycloak's default provider for the area stays in
  * place. Providers are stateless facades over the informer-backed store, so one instance per
  * session is enough; it is memoized in the session attributes.
  */

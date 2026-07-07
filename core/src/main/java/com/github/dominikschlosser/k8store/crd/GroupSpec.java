@@ -28,13 +28,13 @@ import org.keycloak.representations.idm.GroupRepresentation;
  *
  * <p>Identity and hierarchy: {@code spec.id} is the store id and defaults to
  * {@code metadata.name} when omitted; Keycloak writes name-based ids. The hierarchy is stored
- * <em>flat</em> — one CR per group, linked through {@code spec.parentId}. The recursive
+ * <em>flat</em> - one CR per group, linked through {@code spec.parentId}. The recursive
  * {@code subGroups} list of the representation is intentionally not part of the CRD schema and
  * its content is ignored at read time; author one CR per subgroup instead. Role grants are
  * stored the standard representation way ({@code realmRoles} role names, {@code clientRoles}
  * keyed by client).
  *
- * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped — a
+ * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped - a
  * real API server rejects explicit nulls in {@code map<string,string>} schema fields with 422.
  * Unknown properties are ignored on read.
  */
@@ -58,7 +58,7 @@ public class GroupSpec extends GroupRepresentation {
 
     /**
      * Id of the organization owning this group (backing group and organization-scoped
-     * subgroups) — the CR shape of upstream's group-to-organization foreign key. Null for
+     * subgroups) - the CR shape of upstream's group-to-organization foreign key. Null for
      * realm groups.
      */
     private String organizationId;
@@ -89,7 +89,7 @@ public class GroupSpec extends GroupRepresentation {
 
     /**
      * Excluded from (de)serialization and thus from the CRD schema: the hierarchy is stored
-     * flat via {@code parentId}, and the superclass getter lazily initializes the list — an
+     * flat via {@code parentId}, and the superclass getter lazily initializes the list - an
      * always-serialized empty {@code subGroups} array would be rejected by server-side apply
      * against a schema without the field.
      */

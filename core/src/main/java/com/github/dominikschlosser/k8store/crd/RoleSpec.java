@@ -25,13 +25,13 @@ import org.keycloak.representations.idm.RoleRepresentation;
  * role JSON.
  *
  * <p>Identity: {@code spec.id} is the store id and defaults to {@code metadata.name} when
- * omitted. Keycloak writes human-readable ids — the role name for realm roles,
+ * omitted. Keycloak writes human-readable ids - the role name for realm roles,
  * {@code <clientId>:<name>} for client roles. Client roles carry {@code clientRole: true} and
  * {@code containerId} referencing the owning client; composites are stored the standard
  * representation way ({@code composites.realm} role names, {@code composites.client} keyed by
  * client).
  *
- * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped — a
+ * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped - a
  * real API server rejects explicit nulls in {@code map<string,string>} schema fields with 422.
  * Unknown properties are ignored on read.
  */

@@ -11,12 +11,12 @@
 #   k8store            deploy/Dockerfile image: config entities served from CR informer
 #                      mirrors, users/sessions in postgres (read-only=false)
 #   vanilla-stateless  stock nightly, --features=stateless --db=postgres: the same feature
-#                      set with the JPA config store — isolates the storage-layer difference
+#                      set with the JPA config store - isolates the storage-layer difference
 #   vanilla-default    stock nightly, default features: embedded Infinispan caches with
 #                      jdbc-ping clustering, as Keycloak is commonly run today
 # The vanilla variants reuse deploy/30-keycloak.yaml and are patched at runtime (image/args/
 # env). Keycloak's non-optimized `start` re-augments inside the pod, so the runtime args are
-# authoritative — no second Dockerfile needed. All variants share the exact same base image:
+# authoritative - no second Dockerfile needed. All variants share the exact same base image:
 # the locally cached quay.io/keycloak/keycloak:nightly (also the k8store image base) is pushed
 # to the local registry as keycloak-vanilla:dev, so quay's rolling :nightly tag cannot drift
 # between variants.
@@ -26,12 +26,12 @@
 # targets the ClusterIP service http://keycloak.keycloak:8080. Rationale: on macOS/Docker
 # Desktop the kind node IPs are not routable from the host (verified: 172.21.0.0/16 does not
 # answer), and `kubectl port-forward` funnels all load through a single connection, which
-# distorts results. Seeding and sanity checks do use a short-lived port-forward — they are
+# distorts results. Seeding and sanity checks do use a short-lived port-forward - they are
 # low-rate and not part of the measured path.
 #
 # Per variant: clean namespace (fresh DB), deploy, wait ready, seed (realm `benchmark`,
 # confidential client client-0/client-0-secret with service accounts, users user-0..N-1 with
-# password user-<i>-password — kcb's built-in naming conventions), sanity-gate (token endpoint
+# password user-<i>-password - kcb's built-in naming conventions), sanity-gate (token endpoint
 # 200 through the in-cluster path), then per scenario one discarded warm-up pass followed by
 # the measured run (--filter-results=true limits Gatling stats to the measurement window).
 #
@@ -123,7 +123,7 @@ EOF
 
 ensure_vanilla_image() {
   # Reuse the locally cached nightly (the same image the k8store build is based on) instead of
-  # letting the nodes pull quay's rolling tag — keeps all variants on one image digest.
+  # letting the nodes pull quay's rolling tag - keeps all variants on one image digest.
   if ! docker image inspect "${NIGHTLY_IMAGE}" >/dev/null 2>&1; then
     docker pull "${NIGHTLY_IMAGE}"
   fi
@@ -226,7 +226,7 @@ seed() {
   }')
   [ "${code}" = "201" ] || { echo "ERROR: client creation returned HTTP ${code}" >&2; return 1; }
   for i in $(seq 0 $((USERS - 1))); do
-    # the bootstrap admin token only lives 60s — refresh it while iterating
+    # the bootstrap admin token only lives 60s - refresh it while iterating
     [ $((i % 25)) -eq 0 ] && token=$(fetch_admin_token)
     code=$(post_json "${token}" "${PF_URL}/admin/realms/benchmark/users" '{
       "username": "user-'"${i}"'",
@@ -276,7 +276,7 @@ run_scenario() {
     "--users-per-sec=${rate}"
     # NOT using kcb's --filter-results: its LogProcessor cannot parse the simulation.log format
     # of the Gatling version bundled in this release ("Unknow log entry type"), which crashes the
-    # run before report generation. Stats therefore include the ramp-up phase — identical for
+    # run before report generation. Stats therefore include the ramp-up phase - identical for
     # every variant, so the comparison is unaffected.
     "--sla-error-percentage=100"
     "--sla-mean-response-time=60000"

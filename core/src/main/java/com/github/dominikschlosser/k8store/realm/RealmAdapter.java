@@ -79,7 +79,7 @@ import org.keycloak.representations.idm.RoleRepresentation;
 
 /**
  * {@link RealmModel} over a {@link RealmSpec}. The adapter owns a defensive copy of the CR spec;
- * <b>every mutation persists the whole spec explicitly</b> — there are no dirty flags, no
+ * <b>every mutation persists the whole spec explicitly</b> - there are no dirty flags, no
  * write-through setters and no shared references to rely on, so nested updates (component
  * configs, flow executions, ...) can never be lost between the model and the custom resource.
  *
@@ -1712,7 +1712,7 @@ public class RealmAdapter implements StorageProviderRealmModel {
      * Executions are stored inside their flow in the standard export shape, which carries no id.
      * Ids are derived deterministically from the flow id and the execution's position, so every
      * node computes the same id for the same CR content. Positions are stable under updates and
-     * appends; removing an execution shifts the ids of the ones after it — acceptable, since the
+     * appends; removing an execution shifts the ids of the ones after it - acceptable, since the
      * admin API re-reads the flow after each mutation.
      */
     private static String executionId(String flowId, int index) {

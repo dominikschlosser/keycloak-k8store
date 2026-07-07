@@ -23,12 +23,12 @@ import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
 /**
  * All areas including the experimental dynamic ones ({@code areas=all}): users, user sessions,
  * auth sessions, login failures, single-use objects and revoked tokens are served from custom
- * resources instead of the database. Write mode, because the admin API drives the tests — but
+ * resources instead of the database. Write mode, because the admin API drives the tests - but
  * note the dynamic kinds would be writable in read-only mode too.
  *
  * <p>Uses its own namespace ({@link TestKube#dynamicNamespace()}): with users as CRs, this
  * server's master-realm bootstrap (admin user, temp-admin service account) lives in CRs, while
- * the config-mode servers keep theirs in the shared dev database — the two worlds must not
+ * the config-mode servers keep theirs in the shared dev database - the two worlds must not
  * share a master realm.
  */
 public class DynamicAreasServerConfig implements KeycloakServerConfig {

@@ -24,7 +24,7 @@ import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
  * feature enabled, write mode: organization definitions and invitations are served from custom
  * resources, organization backing groups land in the group area as {@code KeycloakGroup} CRs,
  * membership stays on the users (database in this config) and the identity-provider linkage in
- * the realm CR. Users and sessions stay in the database — the bootstrap admin remains shared
+ * the realm CR. Users and sessions stay in the database - the bootstrap admin remains shared
  * with the other config-mode servers, so this server uses the common test namespace.
  */
 public class OrganizationAreasServerConfig implements KeycloakServerConfig {

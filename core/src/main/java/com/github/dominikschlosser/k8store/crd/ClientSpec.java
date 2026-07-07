@@ -40,7 +40,7 @@ import org.keycloak.representations.idm.authorization.ResourceServerRepresentati
  * not the client model (its resource/scope representations also recurse, which a CRD schema
  * cannot express).
  *
- * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped — a
+ * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped - a
  * real API server rejects explicit nulls in {@code map<string,string>} schema fields with 422.
  * Unknown properties are ignored on read.
  */

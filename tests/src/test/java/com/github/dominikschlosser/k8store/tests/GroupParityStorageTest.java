@@ -38,7 +38,7 @@ import org.keycloak.testframework.realm.ManagedRealm;
 
 /**
  * Group parity: hierarchies, attributes, search and role grants live in KeycloakGroup custom
- * resources, while user membership stays in the database — the cross-store join must behave
+ * resources, while user membership stays in the database - the cross-store join must behave
  * exactly like Keycloak's default storage.
  */
 @Order(1)

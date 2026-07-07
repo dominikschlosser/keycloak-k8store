@@ -30,7 +30,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * representation ({@link GroupSpec}); {@code spec.id} defaults to {@code metadata.name},
  * {@code spec.realm} is required (or supplied via the realm label).
  *
- * <p>Group hierarchies are stored flat — one CR per group, linked via {@code spec.parentId}. The
+ * <p>Group hierarchies are stored flat - one CR per group, linked via {@code spec.parentId}. The
  * recursive {@code subGroups} field of the representation is removed from the CRD schema (the
  * schema generator cannot express unbounded recursion, and this store never reads it): author
  * one CR per subgroup instead.
@@ -43,7 +43,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kg")
 public class KeycloakGroupCr extends CustomResource<GroupSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected GroupSpec initSpec() {
         return new GroupSpec();

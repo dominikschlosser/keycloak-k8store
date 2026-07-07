@@ -2,7 +2,7 @@
 #
 # IMPORTANT: this project builds against Keycloak nightly (999.0.0-SNAPSHOT,
 # resolved from https://central.sonatype.com/repository/maven-snapshots/).
-# That is a moving target that changes daily — a red build here can mean
+# That is a moving target that changes daily - a red build here can mean
 # upstream Keycloak drift rather than a bug in this repo. That is exactly why
 # nobody pushes. When a previously green commit turns red overnight, suspect
 # Keycloak nightly first (bump/regenerate CRDs via scripts/update-crds.sh and
@@ -148,7 +148,7 @@ jobs:
         run: ./scripts/kind-up.sh
 
       # e2e.sh runs `mvn -pl tests test`, which resolves the reactor siblings
-      # (parent, core, crd-tools) from the local repository — install them
+      # (parent, core, crd-tools) from the local repository - install them
       # first. deploy.sh --build then rebuilds the provider jar, builds the
       # Keycloak image, pushes it to localhost:5001, deploys into the cluster
       # and smoke-checks it through a temporary port-forward on 18080.

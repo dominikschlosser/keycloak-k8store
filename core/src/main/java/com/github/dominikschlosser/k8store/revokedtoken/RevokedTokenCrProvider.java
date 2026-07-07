@@ -25,8 +25,8 @@ import org.keycloak.models.RevokedTokenProvider;
  * the {@linkplain K8sStorageBackend#GLOBAL_PSEUDO_REALM global pseudo-realm} (revoked tokens are
  * not realm-scoped). Semantics match the stateless JPA provider: {@link #put} inserts only if
  * absent (expiry = now + lifespan) and reports whether it inserted; {@link #contains} is
- * expiry-filtered. Writes go straight to the API server — a revocation must hold on every node
- * as fast as the watches deliver it — while {@link #contains} reads the mirror only (hot path).
+ * expiry-filtered. Writes go straight to the API server - a revocation must hold on every node
+ * as fast as the watches deliver it - while {@link #contains} reads the mirror only (hot path).
  */
 public class RevokedTokenCrProvider implements RevokedTokenProvider {
 
@@ -48,7 +48,7 @@ public class RevokedTokenCrProvider implements RevokedTokenProvider {
             return true;
         }
         // name conflict: a live entry won the race (report absent-insert failed), or an expired
-        // CR is still awaiting the reaper — expired counts as absent, so claim it by overwrite
+        // CR is still awaiting the reaper - expired counts as absent, so claim it by overwrite
         if (fetch(tokenId) != null) {
             return false;
         }
@@ -59,7 +59,7 @@ public class RevokedTokenCrProvider implements RevokedTokenProvider {
     @Override
     public boolean contains(String tokenId) {
         // mirror-only on purpose: contains() runs on every token validation and "not revoked"
-        // is the common case — an API-server round trip per miss would bound request
+        // is the common case - an API-server round trip per miss would bound request
         // throughput. A revocation from another node holds within watch latency (milliseconds).
         return K8sStorageBackend.get().read(
                 RevokedTokenSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, tokenId) != null;

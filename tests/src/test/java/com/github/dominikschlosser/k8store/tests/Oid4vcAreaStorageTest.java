@@ -56,8 +56,8 @@ import org.keycloak.testframework.server.KeycloakUrls;
  * feature enabled on the server): user verifiable credentials created through the admin API
  * ({@code users/{id}/vc/credentials}) become {@code KeycloakUserVerifiableCredential} CRs with
  * upstream semantics (generated ids, revision rolling on update, attribute snapshots), and
- * issued credentials — driven through the provider SPI via run-on-server, no full issuance flow
- * needed — become expiring {@code KeycloakIssuedVerifiableCredential} CRs that die with their
+ * issued credentials - driven through the provider SPI via run-on-server, no full issuance flow
+ * needed - become expiring {@code KeycloakIssuedVerifiableCredential} CRs that die with their
  * verifiable credential.
  */
 @Order(1)
@@ -143,7 +143,7 @@ public class Oid4vcAreaStorageTest {
         enableRealmVcAndCreateCredentialScope();
         String userId = createUser("vc-user");
 
-        // create through the feature's admin endpoint — the storage behind it is the CR store
+        // create through the feature's admin endpoint - the storage behind it is the CR store
         HttpResponse<String> created = vcRequest("POST", userId, "credentials",
                 "{\"credentialScopeName\":\"" + SCOPE_NAME + "\"}");
         assertEquals(200, created.statusCode(), () -> "creating the credential failed: " + created.body());
@@ -157,7 +157,7 @@ public class Oid4vcAreaStorageTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakUserVerifiableCredential CR for the user"));
         assertEquals(SCOPE_NAME, cr.getSpec().getClientScopeId(),
-                "credential scopes are client scopes — scope id == scope name in this store");
+                "credential scopes are client scopes - scope id == scope name in this store");
         assertEquals(initialRevision, cr.getSpec().getRevision());
         assertNotNull(cr.getSpec().getCreatedDate());
         assertNotNull(cr.getSpec().getUserAttributes(), "the profile attribute snapshot must be stored");
@@ -190,7 +190,7 @@ public class Oid4vcAreaStorageTest {
         String realmName = realm.getName();
 
         // drive the issuance-side SPI directly (a full OID4VC wallet flow needs key material and
-        // a wallet — disproportionate here; the storage contract is what this store implements)
+        // a wallet - disproportionate here; the storage contract is what this store implements)
         String report = runOnServer.fetchString(session -> {
             var realmModel = session.realms().getRealmByName(realmName);
             session.getContext().setRealm(realmModel);
@@ -218,7 +218,7 @@ public class Oid4vcAreaStorageTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakIssuedVerifiableCredential CR; report: " + report));
         assertEquals("wallet-client", issuedCr.getSpec().getClientId());
-        assertNotNull(issuedCr.getSpec().getExpiresAt(), "issuances expire — expiresAt drives the reaper");
+        assertNotNull(issuedCr.getSpec().getExpiresAt(), "issuances expire - expiresAt drives the reaper");
         assertTrue(report.contains("issuedRevision=" + issuedCr.getSpec().getRevision()));
         assertTrue(report.contains("credentialRevision=" + issuedCr.getSpec().getRevision()),
                 "an issuance without an explicit revision inherits the credential's revision");

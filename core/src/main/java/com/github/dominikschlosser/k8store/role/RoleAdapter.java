@@ -38,7 +38,7 @@ import org.keycloak.representations.idm.RoleRepresentation.Composites;
 
 /**
  * {@link RoleModel} over a {@link RoleSpec}. The adapter owns a defensive copy of the CR spec;
- * every mutation is persisted explicitly and as a whole — there are no dirty flags and no shared
+ * every mutation is persisted explicitly and as a whole - there are no dirty flags and no shared
  * references to rely on.
  *
  * <p>Composites are stored the standard representation way: {@code composites.realm} holds realm

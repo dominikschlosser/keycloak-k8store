@@ -27,7 +27,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 
 /**
  * An explicitly revoked Keycloak token id, stored as a Kubernetes custom resource until the
- * token would have expired anyway. Volatile runtime state of the experimental dynamic areas —
+ * token would have expired anyway. Volatile runtime state of the experimental dynamic areas -
  * never authored by hand. The spec is the original {@link RevokedTokenSpec};
  * {@code spec.tokenId} is the store id.
  */
@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("krt")
 public class KeycloakRevokedTokenCr extends CustomResource<RevokedTokenSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected RevokedTokenSpec initSpec() {
         return new RevokedTokenSpec();

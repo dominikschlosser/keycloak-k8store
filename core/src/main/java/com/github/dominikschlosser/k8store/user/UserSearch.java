@@ -29,10 +29,10 @@ import org.keycloak.models.UserModel;
 /**
  * In-memory equivalent of the JPA user search, over {@link UserSpec} mirror entries: every
  * whitespace-separated term of a {@code SEARCH} value must match username, email, first or last
- * name — prefix matching by default, {@code *} wildcards, {@code "quoted"} terms exactly; the
+ * name - prefix matching by default, {@code *} wildcards, {@code "quoted"} terms exactly; the
  * field-specific parameters match infix (or exactly with {@code EXACT}); service accounts are
  * excluded unless {@code INCLUDE_SERVICE_ACCOUNT} says otherwise; unknown keys are custom
- * attribute equality filters (upstream parity — e.g. organization membership queries). All
+ * attribute equality filters (upstream parity - e.g. organization membership queries). All
  * matching is case-insensitive.
  */
 final class UserSearch {

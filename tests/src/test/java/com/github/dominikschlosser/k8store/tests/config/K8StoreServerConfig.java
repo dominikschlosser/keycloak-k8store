@@ -41,7 +41,7 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
     /**
      * The organizations feature is coupled to the {@code organization} area: with groups served
      * from CRs, the built-in JPA organization store cannot work (it references group rows that
-     * do not exist), so the k8store boot validation rejects "feature on, area off" — server
+     * do not exist), so the k8store boot validation rejects "feature on, area off" - server
      * configs enable the feature together with the area ({@code organizations = true}) and keep
      * it disabled otherwise.
      */
@@ -51,14 +51,14 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
         }
         // The authorization feature stays enabled (upstream default): without the authorization
         // area it is served by JPA, with the area by the CR store. Fine-grained admin
-        // permissions v2 stays disabled — preview upstream, and it writes policies at runtime
+        // permissions v2 stays disabled - preview upstream, and it writes policies at runtime
         // (incompatible with the read-only production pattern anyway).
         if (organizations) {
             config.features(Profile.Feature.ORGANIZATION)
                     .featuresDisabled(Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2)
                     // the infinispan organization cache provider (order 10) hardcodes the jpa
                     // organization store as its delegate and depends on the (disabled) realm
-                    // cache — like the realm/authorization caches it must be off so the
+                    // cache - like the realm/authorization caches it must be off so the
                     // CR-backed organization provider wins default resolution
                     .spiOption("organization", "infinispan", "enabled", "false");
         } else {
