@@ -167,26 +167,16 @@ public class IdentityProviderCrProvider implements IdentityProviderStorageProvid
     }
 
     /**
-     * Matches an alias against a Keycloak search keyword. A leading and/or trailing {@code *} is
-     * an explicit wildcard ({@code foo*} prefix, {@code *foo} suffix, {@code *foo*} contains); a
-     * keyword with no wildcard is an infix match, the same default the admin API uses. A blank
-     * keyword matches everything.
+     * Matches an alias against a Keycloak search keyword. The admin API searches identity
+     * providers by infix match (SQL {@code LIKE %keyword%}); asterisks are treated as wildcards
+     * and ignored, so a keyword with or without them matches on the remaining literal text. A
+     * blank keyword matches everything.
      */
     static boolean aliasMatchesSearch(String alias, String search) {
         if (StringUtil.isNullOrEmpty(search)) {
             return true;
         }
-        String keyword = search.trim();
-        boolean prefix = keyword.endsWith("*");
-        boolean suffix = keyword.startsWith("*");
-        String core = keyword.replaceAll("^\\*+|\\*+$", "");
-        if (prefix && !suffix) {
-            return alias.startsWith(core);
-        }
-        if (suffix && !prefix) {
-            return alias.endsWith(core);
-        }
-        return alias.contains(core);
+        return alias.contains(search.trim().replace("*", ""));
     }
 
     @Override
