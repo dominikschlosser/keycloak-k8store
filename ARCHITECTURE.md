@@ -192,8 +192,8 @@ with nothing; the Vert.x client would clash with Keycloak's, the JDK client buff
 streams for minutes). Key properties:
 
 * **Reads** are served from the mirror (no API round trip) and hand out **defensive copies**, so
-  a request thread can never corrupt what other sessions read, and a rejected write cannot poison
-  the mirror.
+  a request thread can never corrupt what other sessions read, and a rejected write cannot leave
+  the node's mirror inconsistent.
 * **Writes** update the mirror immediately (read-your-write) and buffer the API call per
   `KeycloakSession`, keyed by `(kind, realm, id)` with last-write-wins. On **commit** each key is
   server-side-applied once in the *prepare* phase (before the DB commit), so a CR failure fails
@@ -364,7 +364,7 @@ docs/          BENCHMARK.md - k8store-vs-vanilla load-test results (scripts/benc
 --spi-datastore--k8store--areas=config                  # config (default) | all | explicit list
 --spi-datastore--k8store--namespace=<ns>                # default: own pod namespace
 --spi-datastore--k8store--all-namespaces=false
---spi-datastore--k8store--reconcile-interval-seconds=60 # bounds staleness if a watch wedges (0 = off)
+--spi-datastore--k8store--reconcile-interval-seconds=60 # bounds staleness if a watch silently stalls (0 = off)
 --spi-datastore--k8store--expiration-sweep-seconds=300  # reaper for expired dynamic CRs (0 = off)
 --spi-realm--jpa--enabled=false                         # disable the built-in JPA realm provider
 --spi-realm-cache--default--enabled=false               # the informer mirror replaces the realm cache

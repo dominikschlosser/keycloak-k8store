@@ -163,7 +163,7 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
             userId = KeycloakModelUtils.generateId();
         } else if (id == null && !StorageId.isLocalStorage(userId)) {
             // a username like "f:x:y" would parse as a federated storage id and be routed to a
-            // storage provider by UserStorageManager - never mint such an id from a username
+            // storage provider by UserStorageManager - never derive such an id from a username
             userId = KeycloakModelUtils.generateId();
         }
 
