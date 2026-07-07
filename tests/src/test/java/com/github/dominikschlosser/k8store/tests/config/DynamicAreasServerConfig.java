@@ -15,7 +15,7 @@
  */
 package com.github.dominikschlosser.k8store.tests.config;
 
-import com.github.dominikschlosser.k8store.tests.TestKube;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespaces;
 import org.keycloak.common.Profile;
 import org.keycloak.testframework.server.KeycloakServerConfig;
 import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
@@ -26,18 +26,16 @@ import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
  * resources instead of the database. Write mode, because the admin API drives the tests - but
  * note the dynamic kinds would be writable in read-only mode too.
  *
- * <p>Uses its own namespace ({@link TestKube#dynamicNamespace()}): with users as CRs, this
- * server's master-realm bootstrap (admin user, temp-admin service account) lives in CRs, while
- * the config-mode servers keep theirs in the shared dev database - the two worlds must not
- * share a master realm.
+ * <p>Uses its own namespace ({@link TestNamespaces#dynamicName()}, see there for why the
+ * config-mode and users-as-CRs servers must not share a master realm). Test classes using this
+ * config inject it with {@code @InjectTestNamespace(ref = TestNamespaces.DYNAMIC_REF)}; the
+ * injection is load-bearing - it makes the supplier create the namespace before this server
+ * boots.
  */
 public class DynamicAreasServerConfig implements KeycloakServerConfig {
 
     @Override
     public KeycloakServerConfigBuilder configure(KeycloakServerConfigBuilder config) {
-        if (!TestKube.isRemote()) {
-            TestKube.dynamicNamespace();
-        }
         return K8StoreServerConfig.commonOptions(config)
                 // deploys the test classpath as a provider source: the tiny test-only
                 // user-storage federation provider (UserFederationStorageTest) lives there
@@ -46,7 +44,7 @@ public class DynamicAreasServerConfig implements KeycloakServerConfig {
                 // storage of the user area (Oid4vcAreaStorageTest) and consent scope
                 // parameters (ConsentParametersStorageTest)
                 .features(Profile.Feature.OID4VC_VCI, Profile.Feature.PARAMETERIZED_SCOPES)
-                .option("spi-datastore--k8store--namespace", TestKube.dynamicNamespace())
+                .option("spi-datastore--k8store--namespace", TestNamespaces.dynamicName())
                 .option("spi-datastore--k8store--read-only", "false")
                 .option("spi-datastore--k8store--areas", "all");
     }

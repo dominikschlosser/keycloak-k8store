@@ -26,6 +26,10 @@ import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakGroupCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRealmCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRoleCr;
 import com.github.dominikschlosser.k8store.tests.config.K8StoreServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import io.fabric8.kubernetes.client.CustomResource;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
@@ -63,6 +67,12 @@ import org.keycloak.testframework.annotations.InjectKeycloakUrls;
 @KeycloakIntegrationTest(config = K8StoreServerConfig.class)
 public class WriteModeStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     @InjectRealm(lifecycle = LifeCycle.CLASS)
     ManagedRealm realm;
 
@@ -73,11 +83,11 @@ public class WriteModeStorageTest {
     KeycloakUrls urls;
 
     private String ns() {
-        return TestKube.namespace();
+        return namespace.name();
     }
 
     private <T extends CustomResource<?, ?>> List<T> crs(Class<T> type) {
-        return TestKube.client().resources(type).inNamespace(ns()).list().getItems();
+        return kube.client().resources(type).inNamespace(ns()).list().getItems();
     }
 
     @Test

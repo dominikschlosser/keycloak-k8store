@@ -26,6 +26,11 @@ import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakAuthzResourceC
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakAuthzScopeCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakResourceServerCr;
 import com.github.dominikschlosser.k8store.tests.config.AuthorizationAreasServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.Await;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import io.fabric8.kubernetes.client.CustomResource;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
@@ -70,6 +75,12 @@ import org.keycloak.testframework.server.KeycloakUrls;
 @KeycloakIntegrationTest(config = AuthorizationAreasServerConfig.class)
 public class AuthorizationAreaStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     private static final String CLIENT_SECRET = "authz-secret";
@@ -83,7 +94,7 @@ public class AuthorizationAreaStorageTest {
     // ------------------------------------------------------------------ CR helpers
 
     private <T extends CustomResource<?, ?>> List<T> crs(Class<T> type) {
-        return TestKube.client().resources(type).inNamespace(TestKube.namespace()).list().getItems();
+        return kube.client().resources(type).inNamespace(namespace.name()).list().getItems();
     }
 
     private List<KeycloakResourceServerCr> resourceServerCrs(String clientId) {
@@ -221,7 +232,7 @@ public class AuthorizationAreaStorageTest {
         settings.setDecisionStrategy(DecisionStrategy.AFFIRMATIVE);
         settings.setAllowRemoteResourceManagement(true);
         authorization(clientUuid).update(settings);
-        TestKube.await("resource-server CR to carry the updated settings",
+        Await.await("resource-server CR to carry the updated settings",
                 () -> resourceServerCrs("authz-enable-client").stream().anyMatch(cr ->
                         DecisionStrategy.AFFIRMATIVE == cr.getSpec().getDecisionStrategy()
                                 && Boolean.TRUE.equals(cr.getSpec().getAllowRemoteResourceManagement())));
@@ -370,21 +381,21 @@ public class AuthorizationAreaStorageTest {
                 .getSpec()
                 .getId();
         authorization.resources().resource(resourceId).remove();
-        TestKube.await("resource CR to be deleted", () -> resourceCrs("authz-cascade-client").stream()
+        Await.await("resource CR to be deleted", () -> resourceCrs("authz-cascade-client").stream()
                 .noneMatch(cr -> "Cascade Resource".equals(cr.getSpec().getName())));
-        TestKube.await("dependent permission CR to be deleted with its only resource",
+        Await.await("dependent permission CR to be deleted with its only resource",
                 () -> policyCrs("authz-cascade-client").stream()
                         .noneMatch(cr -> "cascade-permission".equals(cr.getSpec().getName())));
 
         // deleting the client deletes the whole remaining graph
         realm.admin().clients().get(clientUuid).remove();
-        TestKube.await("resource-server CR to be deleted with the client",
+        Await.await("resource-server CR to be deleted with the client",
                 () -> resourceServerCrs("authz-cascade-client").isEmpty());
-        TestKube.await("all policy CRs to be deleted with the client",
+        Await.await("all policy CRs to be deleted with the client",
                 () -> policyCrs("authz-cascade-client").isEmpty());
-        TestKube.await("all resource CRs to be deleted with the client",
+        Await.await("all resource CRs to be deleted with the client",
                 () -> resourceCrs("authz-cascade-client").isEmpty());
-        TestKube.await("all scope CRs to be deleted with the client",
+        Await.await("all scope CRs to be deleted with the client",
                 () -> scopeCrs("authz-cascade-client").isEmpty());
     }
 }

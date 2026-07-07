@@ -27,6 +27,12 @@ import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakLoginFailureCr
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRevokedTokenCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserSessionCr;
 import com.github.dominikschlosser.k8store.tests.config.DynamicAreasServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.Await;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespaces;
 import io.fabric8.kubernetes.client.CustomResource;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -64,6 +70,12 @@ import org.keycloak.testframework.server.KeycloakUrls;
 @KeycloakIntegrationTest(config = DynamicAreasServerConfig.class)
 public class DynamicAreasStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace(ref = TestNamespaces.DYNAMIC_REF)
+    TestNamespace namespace;
+
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
@@ -77,7 +89,7 @@ public class DynamicAreasStorageTest {
     KeycloakUrls urls;
 
     private <T extends CustomResource<?, ?>> List<T> crs(Class<T> type) {
-        return TestKube.client().resources(type).inNamespace(TestKube.dynamicNamespace()).list().getItems();
+        return kube.client().resources(type).inNamespace(namespace.name()).list().getItems();
     }
 
     private String tokenEndpoint() {
@@ -114,7 +126,7 @@ public class DynamicAreasStorageTest {
         String sessionId = JSON.readTree(Base64.getUrlDecoder()
                 .decode(tokens.get("access_token").asText().split("\\.")[1])).get("sid").asText();
 
-        TestKube.await("user session CR of the password-grant login", () -> sessionsOfTestUser().stream()
+        Await.await("user session CR of the password-grant login", () -> sessionsOfTestUser().stream()
                 .anyMatch(cr -> sessionId.equals(cr.getSpec().getId())));
         UserSessionSpec spec = sessionsOfTestUser().stream()
                 .filter(cr -> sessionId.equals(cr.getSpec().getId()))
@@ -133,7 +145,7 @@ public class DynamicAreasStorageTest {
 
         String userId = realm.admin().users().search(user.getUsername()).get(0).getId();
         realm.admin().users().get(userId).logout();
-        TestKube.await("user session CRs to be deleted on logout", () -> sessionsOfTestUser().isEmpty());
+        Await.await("user session CRs to be deleted on logout", () -> sessionsOfTestUser().isEmpty());
     }
 
     @Test
@@ -150,7 +162,7 @@ public class DynamicAreasStorageTest {
                 HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), () -> "auth endpoint answered: " + response.body());
 
-        TestKube.await("auth session CR of the started flow", () -> crs(KeycloakAuthSessionCr.class).stream()
+        Await.await("auth session CR of the started flow", () -> crs(KeycloakAuthSessionCr.class).stream()
                 .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())
                         && cr.getSpec().getTabs() != null
                         && cr.getSpec().getTabs().values().stream()
@@ -165,7 +177,7 @@ public class DynamicAreasStorageTest {
         try {
             passwordGrant("definitely-wrong-password", 400);
             String userId = realm.admin().users().search(user.getUsername()).get(0).getId();
-            TestKube.await("login failure CR of the failed login", () -> crs(KeycloakLoginFailureCr.class).stream()
+            Await.await("login failure CR of the failed login", () -> crs(KeycloakLoginFailureCr.class).stream()
                     .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())
                             && userId.equals(cr.getSpec().getUserId())
                             && cr.getSpec().getNumFailures() != null
@@ -187,7 +199,7 @@ public class DynamicAreasStorageTest {
                 "client_id=admin-cli&token=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8));
         assertEquals(200, response.statusCode(), () -> "revocation endpoint answered: " + response.body());
 
-        TestKube.await("revoked token CR", () -> crs(KeycloakRevokedTokenCr.class).stream()
+        Await.await("revoked token CR", () -> crs(KeycloakRevokedTokenCr.class).stream()
                 .anyMatch(cr -> jti.equals(cr.getSpec().getTokenId())));
     }
 

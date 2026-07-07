@@ -27,6 +27,11 @@ import com.github.dominikschlosser.k8store.crd.RoleSpec;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRoleCr;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.tests.config.ReadOnlyK8StoreServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.Await;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import jakarta.ws.rs.WebApplicationException;
@@ -53,6 +58,12 @@ import org.keycloak.testframework.annotations.KeycloakIntegrationTest;
 @Order(2)
 @KeycloakIntegrationTest(config = ReadOnlyK8StoreServerConfig.class)
 public class ReadOnlyStorageTest {
+
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
 
     @InjectAdminClient(mode = InjectAdminClient.Mode.BOOTSTRAP)
     Keycloak adminClient;
@@ -89,9 +100,9 @@ public class ReadOnlyStorageTest {
 
     @Test
     public void outOfBandCrChangesBecomeVisibleWithoutRestart() {
-        KeycloakRealmCr masterCr = TestKube.client()
+        KeycloakRealmCr masterCr = kube.client()
                 .resources(KeycloakRealmCr.class)
-                .inNamespace(TestKube.namespace())
+                .inNamespace(namespace.name())
                 .list()
                 .getItems()
                 .stream()
@@ -101,9 +112,9 @@ public class ReadOnlyStorageTest {
 
         // out-of-band change, the way a GitOps pipeline would do it
         masterCr.getSpec().setDisplayName("changed-out-of-band");
-        TestKube.client().resource(masterCr).update();
+        kube.client().resource(masterCr).update();
 
-        TestKube.await("display name change to propagate through the informer", () ->
+        Await.await("display name change to propagate through the informer", () ->
                 "changed-out-of-band".equals(adminClient.realm("master").toRepresentation().getDisplayName()));
     }
 
@@ -162,18 +173,18 @@ public class ReadOnlyStorageTest {
 
     @Test
     public void outOfBandNewRealmBecomesVisibleWithoutRestart() {
-        KeycloakRealmCr masterCr = TestKube.client()
+        KeycloakRealmCr masterCr = kube.client()
                 .resources(KeycloakRealmCr.class)
-                .inNamespace(TestKube.namespace())
+                .inNamespace(namespace.name())
                 .list()
                 .getItems()
                 .stream()
                 .filter(cr -> "master".equals(cr.getSpec().getRealm()))
                 .findFirst()
                 .orElseThrow();
-        KeycloakRoleCr masterDefaultRoleCr = TestKube.client()
+        KeycloakRoleCr masterDefaultRoleCr = kube.client()
                 .resources(KeycloakRoleCr.class)
-                .inNamespace(TestKube.namespace())
+                .inNamespace(namespace.name())
                 .list()
                 .getItems()
                 .stream()
@@ -205,16 +216,16 @@ public class ReadOnlyStorageTest {
         realmCr.setSpec(json.convertValue(realmJson, RealmSpec.class));
         roleCr.setMetadata(new ObjectMetaBuilder()
                 .withName("gitops-realm.default-roles-gitops-realm")
-                .withNamespace(TestKube.namespace())
+                .withNamespace(namespace.name())
                 .build());
         realmCr.setMetadata(new ObjectMetaBuilder()
                 .withName("gitops-realm")
-                .withNamespace(TestKube.namespace())
+                .withNamespace(namespace.name())
                 .build());
-        TestKube.client().resource(roleCr).create();
-        TestKube.client().resource(realmCr).create();
+        kube.client().resource(roleCr).create();
+        kube.client().resource(realmCr).create();
 
-        TestKube.await("out-of-band realm to appear in the realm listing", () ->
+        Await.await("out-of-band realm to appear in the realm listing", () ->
                 adminClient.realms().findAll().stream()
                         .anyMatch(r -> "gitops-realm".equals(r.getRealm())));
         assertEquals("Provisioned out of band",

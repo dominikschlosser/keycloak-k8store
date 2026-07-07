@@ -21,6 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRoleCr;
 import com.github.dominikschlosser.k8store.tests.config.K8StoreServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
@@ -42,12 +46,18 @@ import org.keycloak.testframework.realm.ManagedRealm;
 @KeycloakIntegrationTest(config = K8StoreServerConfig.class)
 public class RoleParityStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     @InjectRealm(lifecycle = LifeCycle.CLASS)
     ManagedRealm realm;
 
     private List<KeycloakRoleCr> roleCrs() {
-        return TestKube.client().resources(KeycloakRoleCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems();
+        return kube.client().resources(KeycloakRoleCr.class)
+                .inNamespace(namespace.name()).list().getItems();
     }
 
     private KeycloakRoleCr roleCr(String name) {

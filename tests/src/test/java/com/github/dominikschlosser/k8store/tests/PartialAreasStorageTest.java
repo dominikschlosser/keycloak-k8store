@@ -21,6 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakGroupCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRealmCr;
 import com.github.dominikschlosser.k8store.tests.config.PartialAreasServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -38,13 +42,19 @@ import org.keycloak.testframework.realm.ManagedRealm;
 @KeycloakIntegrationTest(config = PartialAreasServerConfig.class)
 public class PartialAreasStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     @InjectRealm(lifecycle = LifeCycle.CLASS)
     ManagedRealm realm;
 
     @Test
     public void realmsAreCustomResourcesButGroupsStayInDatabase() {
-        assertTrue(TestKube.client().resources(KeycloakRealmCr.class)
-                        .inNamespace(TestKube.namespace()).list().getItems().stream()
+        assertTrue(kube.client().resources(KeycloakRealmCr.class)
+                        .inNamespace(namespace.name()).list().getItems().stream()
                         .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())),
                 "realm area is CR-backed");
 
@@ -56,8 +66,8 @@ public class PartialAreasStorageTest {
 
         assertTrue(realm.admin().groups().groups("jpa-group", 0, 10).size() > 0,
                 "group is served through the default JPA storage");
-        assertTrue(TestKube.client().resources(KeycloakGroupCr.class)
-                        .inNamespace(TestKube.namespace()).list().getItems().stream()
+        assertTrue(kube.client().resources(KeycloakGroupCr.class)
+                        .inNamespace(namespace.name()).list().getItems().stream()
                         .noneMatch(cr -> "jpa-group".equals(cr.getSpec().getName())),
                 "no KeycloakGroup CR may be created for a JPA-backed group");
     }

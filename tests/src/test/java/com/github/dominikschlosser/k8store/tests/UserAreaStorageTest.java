@@ -25,6 +25,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserSessionCr;
 import com.github.dominikschlosser.k8store.tests.config.DynamicAreasServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.Await;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespaces;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
@@ -59,6 +65,12 @@ import org.keycloak.testframework.server.KeycloakUrls;
 @KeycloakIntegrationTest(config = DynamicAreasServerConfig.class)
 public class UserAreaStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace(ref = TestNamespaces.DYNAMIC_REF)
+    TestNamespace namespace;
+
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final HttpClient HTTP = HttpClient.newHttpClient();
 
@@ -69,8 +81,8 @@ public class UserAreaStorageTest {
     KeycloakUrls urls;
 
     private List<KeycloakUserCr> userCrs() {
-        return TestKube.client().resources(KeycloakUserCr.class)
-                .inNamespace(TestKube.dynamicNamespace()).list().getItems();
+        return kube.client().resources(KeycloakUserCr.class)
+                .inNamespace(namespace.name()).list().getItems();
     }
 
     private KeycloakUserCr userCr(String username) {
@@ -148,8 +160,8 @@ public class UserAreaStorageTest {
         // mixed-case login name: usernames are stored lowercased, lookups are case-insensitive
         passwordGrant("CR-Login-USER", "cr-login-password", 200);
 
-        TestKube.await("user session CR of the CR-backed user's login", () -> TestKube.client()
-                .resources(KeycloakUserSessionCr.class).inNamespace(TestKube.dynamicNamespace()).list().getItems()
+        Await.await("user session CR of the CR-backed user's login", () -> kube.client()
+                .resources(KeycloakUserSessionCr.class).inNamespace(namespace.name()).list().getItems()
                 .stream()
                 .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())
                         && userId.equals(cr.getSpec().getUserId())));
@@ -224,7 +236,7 @@ public class UserAreaStorageTest {
 
         realm.admin().users().get(userId).remove();
 
-        TestKube.await("user CR to be deleted with the user", () -> userCrs().stream()
+        Await.await("user CR to be deleted with the user", () -> userCrs().stream()
                 .noneMatch(cr -> "cr-doomed-user".equals(cr.getSpec().getUsername())
                         && realm.getName().equals(cr.getSpec().getRealm())));
     }

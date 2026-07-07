@@ -26,6 +26,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakIssuedVerifiableCredentialCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserVerifiableCredentialCr;
 import com.github.dominikschlosser.k8store.tests.config.DynamicAreasServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.Await;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespaces;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -64,6 +70,12 @@ import org.keycloak.testframework.server.KeycloakUrls;
 @KeycloakIntegrationTest(config = DynamicAreasServerConfig.class)
 public class Oid4vcAreaStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace(ref = TestNamespaces.DYNAMIC_REF)
+    TestNamespace namespace;
+
     private static final ObjectMapper JSON = new ObjectMapper();
     private static final HttpClient HTTP = HttpClient.newHttpClient();
     private static final String SCOPE_NAME = "university-degree";
@@ -81,15 +93,15 @@ public class Oid4vcAreaStorageTest {
     RunOnServerClient runOnServer;
 
     private List<KeycloakUserVerifiableCredentialCr> credentialCrs() {
-        return TestKube.client().resources(KeycloakUserVerifiableCredentialCr.class)
-                .inNamespace(TestKube.dynamicNamespace()).list().getItems().stream()
+        return kube.client().resources(KeycloakUserVerifiableCredentialCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(cr -> realm.getName().equals(cr.getSpec().getRealm()))
                 .toList();
     }
 
     private List<KeycloakIssuedVerifiableCredentialCr> issuedCrs() {
-        return TestKube.client().resources(KeycloakIssuedVerifiableCredentialCr.class)
-                .inNamespace(TestKube.dynamicNamespace()).list().getItems().stream()
+        return kube.client().resources(KeycloakIssuedVerifiableCredentialCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(cr -> realm.getName().equals(cr.getSpec().getRealm()))
                 .toList();
     }
@@ -179,7 +191,7 @@ public class Oid4vcAreaStorageTest {
 
         // revoke deletes the CR
         assertEquals(204, vcRequest("DELETE", userId, "credentials/" + SCOPE_NAME, null).statusCode());
-        TestKube.await("verifiable-credential CR to be deleted on revocation", () -> credentialCrs().stream()
+        Await.await("verifiable-credential CR to be deleted on revocation", () -> credentialCrs().stream()
                 .noneMatch(candidate -> userId.equals(candidate.getSpec().getUserId())));
     }
 
@@ -233,7 +245,7 @@ public class Oid4vcAreaStorageTest {
             return "removed=" + removed;
         });
         assertTrue(removal.contains("removed=true"), removal);
-        TestKube.await("credential and issuance CRs to be deleted together", () ->
+        Await.await("credential and issuance CRs to be deleted together", () ->
                 credentialCrs().stream().noneMatch(candidate -> userId.equals(candidate.getSpec().getUserId()))
                         && issuedCrs().stream().noneMatch(candidate ->
                                 userId.equals(candidate.getSpec().getUserId())));

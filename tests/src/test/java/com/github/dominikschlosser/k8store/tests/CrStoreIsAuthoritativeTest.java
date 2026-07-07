@@ -22,6 +22,11 @@ import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakClientCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRealmCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRoleCr;
 import com.github.dominikschlosser.k8store.tests.config.K8StoreServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.Await;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import jakarta.ws.rs.core.Response;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -59,6 +64,12 @@ import org.keycloak.testframework.remote.runonserver.RunOnServerClient;
 @KeycloakIntegrationTest(config = K8StoreServerConfig.class)
 public class CrStoreIsAuthoritativeTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     @InjectRealm(lifecycle = LifeCycle.CLASS)
     ManagedRealm realm;
 
@@ -75,8 +86,8 @@ public class CrStoreIsAuthoritativeTest {
             assertEquals(201, response.getStatus());
         }
 
-        KeycloakClientCr cr = TestKube.client().resources(KeycloakClientCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems().stream()
+        KeycloakClientCr cr = kube.client().resources(KeycloakClientCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(c -> "authority-client".equals(c.getSpec().getClientId())
                         && realm.getName().equals(c.getSpec().getRealm()))
                 .findFirst()
@@ -84,15 +95,15 @@ public class CrStoreIsAuthoritativeTest {
 
         // mutate the CR the way a GitOps pipeline would - the database knows nothing about this
         cr.getSpec().setDescription("changed-out-of-band");
-        TestKube.client().resource(cr).update();
+        kube.client().resource(cr).update();
 
-        TestKube.await("admin API to serve the out-of-band client change", () ->
+        Await.await("admin API to serve the out-of-band client change", () ->
                 "changed-out-of-band".equals(
                         realm.admin().clients().findByClientId("authority-client").get(0).getDescription()));
 
         // out-of-band deletion must make the client vanish from Keycloak
-        TestKube.client().resource(cr).delete();
-        TestKube.await("admin API to stop serving the deleted client", () ->
+        kube.client().resource(cr).delete();
+        Await.await("admin API to stop serving the deleted client", () ->
                 realm.admin().clients().findByClientId("authority-client").isEmpty());
     }
 
@@ -103,32 +114,32 @@ public class CrStoreIsAuthoritativeTest {
         role.setDescription("original");
         realm.admin().roles().create(role);
 
-        KeycloakRoleCr cr = TestKube.client().resources(KeycloakRoleCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems().stream()
+        KeycloakRoleCr cr = kube.client().resources(KeycloakRoleCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(r -> "authority-role".equals(r.getSpec().getName())
                         && realm.getName().equals(r.getSpec().getRealm()))
                 .findFirst()
                 .orElseThrow();
 
         cr.getSpec().setDescription("changed-out-of-band");
-        TestKube.client().resource(cr).update();
+        kube.client().resource(cr).update();
 
-        TestKube.await("admin API to serve the out-of-band role change", () ->
+        Await.await("admin API to serve the out-of-band role change", () ->
                 "changed-out-of-band".equals(realm.admin().roles().get("authority-role").toRepresentation().getDescription()));
     }
 
     @Test
     public void realmReadsFollowOutOfBandCrChanges() {
-        KeycloakRealmCr cr = TestKube.client().resources(KeycloakRealmCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems().stream()
+        KeycloakRealmCr cr = kube.client().resources(KeycloakRealmCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(r -> realm.getName().equals(r.getSpec().getRealm()))
                 .findFirst()
                 .orElseThrow();
 
         cr.getSpec().setDisplayName("write-mode-out-of-band");
-        TestKube.client().resource(cr).update();
+        kube.client().resource(cr).update();
 
-        TestKube.await("admin API to serve the out-of-band realm change", () ->
+        Await.await("admin API to serve the out-of-band realm change", () ->
                 "write-mode-out-of-band".equals(realm.admin().toRepresentation().getDisplayName()));
     }
 
@@ -140,9 +151,9 @@ public class CrStoreIsAuthoritativeTest {
         upConfig.setUnmanagedAttributePolicy(UnmanagedAttributePolicy.ENABLED);
         realm.admin().users().userProfile().update(upConfig);
 
-        TestKube.await("user-profile component config to land in the realm CR", () ->
-                TestKube.client().resources(KeycloakRealmCr.class)
-                        .inNamespace(TestKube.namespace()).list().getItems().stream()
+        Await.await("user-profile component config to land in the realm CR", () ->
+                kube.client().resources(KeycloakRealmCr.class)
+                        .inNamespace(namespace.name()).list().getItems().stream()
                         .filter(r -> realm.getName().equals(r.getSpec().getRealm()))
                         .findFirst()
                         .map(KeycloakRealmCr::getSpec)
@@ -179,9 +190,9 @@ public class CrStoreIsAuthoritativeTest {
         created.getConfig().put("claim.value", "updated-value");
         realm.admin().clients().get(id).getProtocolMappers().update(created.getId(), created);
 
-        TestKube.await("protocol mapper update to land in the client CR", () ->
-                TestKube.client().resources(KeycloakClientCr.class)
-                        .inNamespace(TestKube.namespace()).list().getItems().stream()
+        Await.await("protocol mapper update to land in the client CR", () ->
+                kube.client().resources(KeycloakClientCr.class)
+                        .inNamespace(namespace.name()).list().getItems().stream()
                         .filter(c -> "mapper-client".equals(c.getSpec().getClientId()))
                         .findFirst()
                         .map(c -> c.getSpec().getProtocolMappers().stream()

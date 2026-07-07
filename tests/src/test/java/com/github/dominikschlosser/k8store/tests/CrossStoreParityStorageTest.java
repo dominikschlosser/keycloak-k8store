@@ -23,6 +23,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakClientScopeCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRoleCr;
 import com.github.dominikschlosser.k8store.tests.config.K8StoreServerConfig;
+import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
+import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
+import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -62,6 +66,12 @@ import org.keycloak.testframework.server.KeycloakUrls;
 @KeycloakIntegrationTest(config = K8StoreServerConfig.class)
 public class CrossStoreParityStorageTest {
 
+    @InjectKindCluster
+    KindCluster kube;
+
+    @InjectTestNamespace
+    TestNamespace namespace;
+
     @InjectRealm(lifecycle = LifeCycle.CLASS)
     ManagedRealm realm;
 
@@ -97,8 +107,8 @@ public class CrossStoreParityStorageTest {
     }
 
     private boolean roleCrExists(String name) {
-        return TestKube.client().resources(KeycloakRoleCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems().stream()
+        return kube.client().resources(KeycloakRoleCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .anyMatch(cr -> name.equals(cr.getSpec().getName())
                         && realm.getName().equals(cr.getSpec().getRealm()));
     }
@@ -185,8 +195,8 @@ public class CrossStoreParityStorageTest {
         realm.admin().clients().get(clientDbId).addDefaultClientScope(scopeId);
 
         // both the scope assignment and the mapper must be visible in the cluster before login
-        KeycloakClientScopeCr scopeCr = TestKube.client().resources(KeycloakClientScopeCr.class)
-                .inNamespace(TestKube.namespace()).list().getItems().stream()
+        KeycloakClientScopeCr scopeCr = kube.client().resources(KeycloakClientScopeCr.class)
+                .inNamespace(namespace.name()).list().getItems().stream()
                 .filter(cr -> "token-claim-scope".equals(cr.getSpec().getName()))
                 .findFirst()
                 .orElseThrow();
