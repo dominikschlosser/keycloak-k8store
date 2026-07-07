@@ -15,18 +15,23 @@
  */
 package com.github.dominikschlosser.k8store.usersession;
 
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
+
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.spi.AbstractCrProviderFactory;
 import com.google.auto.service.AutoService;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
 import org.keycloak.models.UserSessionProviderFactory;
+import org.keycloak.provider.InvalidationHandler;
 import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
 
 @AutoService(UserSessionProviderFactory.class)
 public class UserSessionCrProviderFactory extends AbstractCrProviderFactory<UserSessionCrProvider>
-        implements UserSessionProviderFactory<UserSessionCrProvider> {
+        implements UserSessionProviderFactory<UserSessionCrProvider>, InvalidationHandler {
 
     public UserSessionCrProviderFactory() {
         super(UserSessionCrProvider.class, K8sStoreConfig.Area.USER_SESSION);
@@ -65,5 +70,18 @@ public class UserSessionCrProviderFactory extends AbstractCrProviderFactory<User
     @Override
     public int order() {
         return DeclarativeUserProfileProviderFactory.PROVIDER_PRIORITY + 1;
+    }
+
+    /**
+     * A clientId rename must rekey embedded client sessions (keyed by clientId), otherwise the
+     * renamed client's sessions orphan. The broadcasting adapter still reports the old clientId,
+     * so {@code params[1].getId()} is the old key and {@code params[2]} the new one.
+     */
+    @Override
+    public void invalidate(KeycloakSession session, InvalidableObjectType type, Object... params) {
+        if (type == CLIENT_RENAMED) {
+            create(session).onClientRenamed(
+                    (RealmModel) params[0], ((ClientModel) params[1]).getId(), (String) params[2]);
+        }
     }
 }
