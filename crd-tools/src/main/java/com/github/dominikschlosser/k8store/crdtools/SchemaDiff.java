@@ -69,11 +69,6 @@ public final class SchemaDiff {
             "minItems", "maxItems", "uniqueItems",
             "minProperties", "maxProperties");
 
-    /** Keywords handled explicitly in {@link #diffSchema}. */
-    private static final Set<String> HANDLED_KEYWORDS = Set.of(
-            "description", "type", "properties", "required", "enum", "items",
-            "additionalProperties", "nullable", "x-kubernetes-preserve-unknown-fields");
-
     /**
      * Diffs two sets of CRDs matched by {@code metadata.name}.
      *
