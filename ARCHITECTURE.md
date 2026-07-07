@@ -145,7 +145,7 @@ named `cacheless` until its 26.7 rename -
 landscape in exactly the way this extension needs:
 
 * **All Infinispan distributed caches are removed** (sessions, authenticationSessions,
-  actionTokens, loginFailures, …). Auth sessions, action tokens, login failures and revoked
+  actionTokens, loginFailures, ...). Auth sessions, action tokens, login failures and revoked
   tokens are stored by plain JPA providers; user sessions use persistent-user-sessions (DB).
   Nodes coordinate through the database only (JGroups is restricted to JDBC_PING discovery and
   the `work` cache for best-effort invalidation).
@@ -246,7 +246,7 @@ RealmRepresentation`, `ClientSpec extends ClientRepresentation`, and so on for c
 roles and groups (each plus a `realm` field that scopes it). A CR body therefore reads exactly
 like standard Keycloak JSON - the shape of realm exports and the Admin REST API - and the CRD
 schemas are generated from the same classes. Adapter classes (`RealmAdapter`, `ClientAdapter`,
-…) implement `RealmModel`, `ClientModel`, etc. directly over the specs. Identity providers and
+...) implement `RealmModel`, `ClientModel`, etc. directly over the specs. Identity providers and
 their mappers live in the realm spec's standard `identityProviders`/`identityProviderMappers`
 lists, served by a dedicated `IdentityProviderStorageProvider`.
 
@@ -297,7 +297,7 @@ Three deliberate properties of that design:
   * writes on threads without a resolvable session or active transaction (boot-time paths;
     informer threads never write) fall back to immediate apply-then-mirror.
 * Informer caches are indexed by realm and by human-readable id; the per-area static store
-  facades (`RealmCrStore`, `ClientCrStore`, …) read from these caches only - **no API-server
+  facades (`RealmCrStore`, `ClientCrStore`, ...) read from these caches only - **no API-server
   round trip on the hot path**.
 * Startup blocks until all informers are synced (readiness is gated on it), so a booting node
   never serves partial config.
@@ -630,7 +630,7 @@ helper; the cluster-side namespace lifecycle stays entirely in the supplier.
    graph CRs with cross-references, UMA entitlement evaluation end to end, deletion cascades),
    the organization area (organization CR + backing group CR materialization, membership from
    both ends, IdP linkage in the realm CR, search, deletion cascade),
-   the dynamic areas (users, sessions, …),
+   the dynamic areas (users, sessions, ...),
    and CR authority (out-of-band CR edits drive admin reads; JPA config tables stay empty -
    asserted inside the server via run-on-server). The `areas=all` server runs in its **own**
    ephemeral namespace (`TestNamespaces.dynamicName()`): the embedded servers of one JVM share
@@ -732,7 +732,7 @@ scripts/e2e.sh             port-forward + run test suite in remote mode
 * The **dynamic areas are experimental** (see above): every login becomes CR writes with etcd
   churn and API-server throughput as the bounding resources, CR writes are not atomic with the
   database, and cross-node visibility is watch latency (milliseconds). Not implemented for
-  them: per-session note-based lifespan overrides (`internal.maxLifespanOverride` …),
+  them: per-session note-based lifespan overrides (`internal.maxLifespanOverride` ...),
   `importUserSessions` (session import/export), and the auth-session tab limit is a constant
   (300) rather than an option.
 * With the **`user` area** enabled: user CRs carry credential hashes (restrict RBAC, see

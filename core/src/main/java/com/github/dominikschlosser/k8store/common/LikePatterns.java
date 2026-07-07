@@ -40,7 +40,7 @@ public final class LikePatterns {
     /**
      * "Value contains the search term" matching of the authorization stores' filter options:
      * upstream JPA escapes the term's LIKE metacharacters, converts {@code *} to {@code %} and
-     * wraps the result in {@code %…%} - i.e. the term's {@code *} are wildcards, everything
+     * wraps the result in {@code %...%} - i.e. the term's {@code *} are wildcards, everything
      * else is literal, and the term may match anywhere in the value.
      */
     public static boolean containsTerm(String value, String term, boolean caseSensitive) {

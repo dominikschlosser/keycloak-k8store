@@ -26,7 +26,7 @@ import io.fabric8.kubernetes.model.annotation.Singular;
 import io.fabric8.kubernetes.model.annotation.Version;
 
 /**
- * A Keycloak single-use object (action token, nonce, code replay guard, …), stored as a
+ * A Keycloak single-use object (action token, nonce, code replay guard, ...), stored as a
  * Kubernetes custom resource. Volatile, short-lived runtime state of the experimental dynamic
  * areas - never authored by hand. The spec is the original {@link SingleUseObjectSpec};
  * {@code spec.key} is the store id.

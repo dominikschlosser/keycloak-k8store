@@ -49,7 +49,7 @@ public class AuthzPolicySpec {
     private String name;
     private String description;
 
-    /** Policy provider type: {@code role}, {@code client}, {@code resource}, {@code scope}, … */
+    /** Policy provider type: {@code role}, {@code client}, {@code resource}, {@code scope}, ... */
     private String type;
 
     /** Keycloak's default is UNANIMOUS. */

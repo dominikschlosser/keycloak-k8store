@@ -21,7 +21,7 @@ import java.util.Map;
 
 /**
  * Spec of a {@code KeycloakSingleUseObject} custom resource: one short-lived single-use entry
- * (action token, nonce, code replay guard, …), keyed by Keycloak's opaque object
+ * (action token, nonce, code replay guard, ...), keyed by Keycloak's opaque object
  * {@link #getKey() key}. Single-use objects are not realm-scoped - the backend indexes them
  * under a constant pseudo-realm. The single-use guarantee maps onto Kubernetes DELETE semantics:
  * whichever node's delete succeeds owns the consumption. Written by Keycloak at runtime - never
