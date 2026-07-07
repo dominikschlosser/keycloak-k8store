@@ -814,7 +814,7 @@ public final class K8sStorageBackend implements AutoCloseable {
         }
 
         private static String bufferKey(KindState<?, ?> state, String realmId, String id) {
-            return state.specClass.getName() + '\0' + realmId + '\0' + id;
+            return state.specClass.getName() + KEY_SEPARATOR + key(realmId, id);
         }
 
         private void flush() {
@@ -1303,8 +1303,16 @@ public final class K8sStorageBackend implements AutoCloseable {
 
     private record CrRef(String name, String namespace) {}
 
-    private static String key(String realmId, String id) {
-        return realmId + '\0' + id;
+    /**
+     * Separator for {@code (realmId, id)} composite keys. A NUL byte cannot occur in a realm name
+     * or an entity id, so the concatenation is unambiguous. Defined once here and reused wherever
+     * a composite key is formed (mirror indexing, the write buffer, the adapter caches).
+     */
+    public static final char KEY_SEPARATOR = '\0';
+
+    /** Canonical {@code (realmId, id)} composite key. */
+    public static String key(String realmId, String id) {
+        return realmId + KEY_SEPARATOR + id;
     }
 
     // ------------------------------------------------------------------ naming
