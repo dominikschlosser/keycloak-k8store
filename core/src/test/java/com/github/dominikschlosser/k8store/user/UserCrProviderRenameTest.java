@@ -24,6 +24,9 @@ import com.github.dominikschlosser.k8store.crd.ClientSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
 import com.github.dominikschlosser.k8store.crd.UserConsentSpec;
+import org.keycloak.common.Profile;
+import com.github.dominikschlosser.k8store.crd.IssuedVerifiableCredentialSpec;
+import com.github.dominikschlosser.k8store.crd.UserVerifiableCredentialSpec;
 import com.github.dominikschlosser.k8store.crd.UserSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
@@ -182,5 +185,48 @@ class UserCrProviderRenameTest {
                 "the old scope-parameters key is gone");
         assertEquals(List.of("primary"), readConsent.getGrantedScopeParameters().get("mail"),
                 "the scope-parameters value is preserved under the new key");
+    }
+
+    @Test
+    void clientScopeRenameRekeysBoundVerifiableCredentials() {
+        Profile.reset();
+        Profile.init(Profile.ProfileName.DEFAULT, Map.of(Profile.Feature.OID4VC_VCI, true));
+        try {
+            start();
+            UserVerifiableCredentialSpec vc = new UserVerifiableCredentialSpec();
+            vc.setId("vc-1");
+            vc.setRealm("master");
+            vc.setClientScopeId("email");
+            VerifiableCredentialCrStore.saveCredential(vc);
+
+            new UserCrProvider(null).clientScopeRenamed(realm("master"), "email", "mail");
+
+            assertEquals("mail", VerifiableCredentialCrStore.readCredential("master", "vc-1").getClientScopeId(),
+                    "a renamed scope's bound credential is rekeyed, not orphaned");
+        } finally {
+            Profile.reset();
+        }
+    }
+
+    @Test
+    void clientRenameRekeysIssuedVerifiableCredentials() {
+        Profile.reset();
+        Profile.init(Profile.ProfileName.DEFAULT, Map.of(Profile.Feature.OID4VC_VCI, true));
+        try {
+            start();
+            IssuedVerifiableCredentialSpec issued = new IssuedVerifiableCredentialSpec();
+            issued.setId("issued-1");
+            issued.setRealm("master");
+            issued.setClientId("web");
+            VerifiableCredentialCrStore.saveIssued(issued);
+
+            RealmModel realm = realm("master");
+            new UserCrProvider(null).clientRenamed(realm, client(realm, "web"), "portal");
+
+            assertEquals("portal", VerifiableCredentialCrStore.findIssuedById("issued-1").getClientId(),
+                    "a renamed client's issued credentials are rekeyed, not orphaned");
+        } finally {
+            Profile.reset();
+        }
     }
 }
