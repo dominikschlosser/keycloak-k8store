@@ -477,6 +477,22 @@ public final class K8sStorageBackend implements AutoCloseable {
      * CRs without a stamp (hand-authored / GitOps) are not reported.
      */
     private void warnAboutVersionDrift() {
+        List<String> drifted = detectVersionDrift();
+        if (!drifted.isEmpty()) {
+            LOG.warnv("k8store: {0} custom resource(s) carry a {1} stamp different from the running Keycloak"
+                            + " version {2}. Model migrations do not run against CR-backed config - review the"
+                            + " Keycloak migration notes and refresh these CRs: {3}",
+                    drifted.size(), VERSION_LABEL, Version.VERSION, String.join(", ", drifted));
+        }
+    }
+
+    /**
+     * Identifiers of every mirrored CR whose {@link #VERSION_LABEL} stamp differs from the running
+     * Keycloak version - the drift signal the boot warning reports. CRs without a stamp
+     * (hand-authored / GitOps) are not drifted. Package-visible so a test can assert the detection
+     * without scraping logs.
+     */
+    List<String> detectVersionDrift() {
         String runningStamp = sanitizeLabel(Version.VERSION);
         List<String> drifted = new ArrayList<>();
         for (SharedIndexInformer<?> informer : informers) {
@@ -490,12 +506,7 @@ public final class K8sStorageBackend implements AutoCloseable {
                 }
             }
         }
-        if (!drifted.isEmpty()) {
-            LOG.warnv("k8store: {0} custom resource(s) carry a {1} stamp different from the running Keycloak"
-                            + " version {2}. Model migrations do not run against CR-backed config - review the"
-                            + " Keycloak migration notes and refresh these CRs: {3}",
-                    drifted.size(), VERSION_LABEL, Version.VERSION, String.join(", ", drifted));
-        }
+        return drifted;
     }
 
     /**
