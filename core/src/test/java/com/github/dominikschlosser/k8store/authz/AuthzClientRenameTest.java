@@ -29,6 +29,8 @@ import com.github.dominikschlosser.k8store.crd.ClientSpec;
 import com.github.dominikschlosser.k8store.crd.PermissionTicketSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.ResourceServerSpec;
+import com.github.dominikschlosser.k8store.crd.RoleSpec;
+import com.github.dominikschlosser.k8store.role.RoleCrStore;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
@@ -156,6 +158,7 @@ class AuthzClientRenameTest {
         start();
         RealmModel realm = realm("master");
         // role ids are <clientId>:<name> for client roles; the client rename changes them
+        saveClientRole("web", "view");
         savePolicyConfig("role-policy", "roles",
                 "[{\"id\":\"web:view\",\"required\":false},{\"id\":\"realm-admin\",\"required\":true}]");
 
@@ -165,6 +168,42 @@ class AuthzClientRenameTest {
         assertTrue(roles.contains("\"portal:view\""), roles);
         assertFalse(roles.contains("\"web:view\""), roles);
         assertTrue(roles.contains("\"realm-admin\""), "a realm role id is left untouched: " + roles);
+    }
+
+    @Test
+    void clientRenameLeavesRealmRoleWhoseNameStartsWithClientIdUntouched() {
+        start();
+        RealmModel realm = realm("master");
+        // a realm role id is the role name, which may legally contain a colon and look like a
+        // <clientId>:<name> client-role id; renaming that client must not rewrite it
+        saveRealmRole("web:reports");
+        savePolicyConfig("role-policy", "roles", "[{\"id\":\"web:reports\",\"required\":false}]");
+
+        new CrStoreFactory(null).clientRenamed(realm, client(realm, "web"), "portal");
+
+        String roles = AuthzCrStore.policy("master", "role-policy").getConfig().get("roles");
+        assertTrue(roles.contains("\"web:reports\""),
+                "the realm role reference is not a client role of the renamed client: " + roles);
+        assertFalse(roles.contains("\"portal:reports\""), roles);
+    }
+
+    private void saveClientRole(String clientId, String name) {
+        RoleSpec role = new RoleSpec();
+        role.setId(clientId + ":" + name);
+        role.setName(name);
+        role.setRealm("master");
+        role.setClientRole(true);
+        role.setContainerId(clientId);
+        RoleCrStore.save(role);
+    }
+
+    private void saveRealmRole(String name) {
+        RoleSpec role = new RoleSpec();
+        role.setId(name);
+        role.setName(name);
+        role.setRealm("master");
+        role.setContainerId("master");
+        RoleCrStore.save(role);
     }
 
     private void savePolicyConfig(String id, String key, String jsonValue) {
