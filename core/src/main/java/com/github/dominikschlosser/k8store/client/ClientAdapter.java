@@ -34,6 +34,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientScopeModel;
+import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.RealmModel;
@@ -117,6 +118,12 @@ public class ClientAdapter implements ClientModel {
         String current = spec.getClientId();
         if (Objects.equals(current, clientId)) {
             return;
+        }
+        // the clientId is the store id, so a rename moves the CR: reject a target already taken by
+        // another client instead of overwriting it
+        if (ClientCrStore.exists(spec.getRealm(), clientId)) {
+            throw new ModelDuplicateException(
+                    "Client with clientId " + clientId + " already exists in realm " + spec.getRealm());
         }
         // the clientId is this store's client id: every client-keyed reference (client-role CR
         // ids, role composites, user/group grants, scope mappings, consents, the authorization
