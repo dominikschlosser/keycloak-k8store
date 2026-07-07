@@ -66,11 +66,20 @@ final class Expirations {
         return expiresAt != null && expiresAt > 0 && expiresAt <= nowMillis;
     }
 
-    /** Earliest of the two deadlines; a non-positive deadline means "no limit" (0 = never). */
-    private static long combine(long lifespan, long idle) {
-        if (lifespan > 0 && idle > 0) {
-            return Math.min(lifespan, idle);
+    /**
+     * The effective expiration: the earliest of the positive deadlines. A non-positive candidate
+     * (Keycloak returns 0 for a disabled/unlimited timeout) is "no bound" and must not win the
+     * minimum; when neither candidate is positive the session is unbounded and this returns 0.
+     * Package-visible for a focused unit test.
+     */
+    static long combine(long lifespan, long idle) {
+        long bound = 0;
+        if (lifespan > 0) {
+            bound = lifespan;
         }
-        return lifespan > 0 ? lifespan : Math.max(idle, 0);
+        if (idle > 0 && (bound == 0 || idle < bound)) {
+            bound = idle;
+        }
+        return bound;
     }
 }
