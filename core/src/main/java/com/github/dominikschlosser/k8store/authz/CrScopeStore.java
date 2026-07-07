@@ -15,6 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.authz;
 
+import static org.keycloak.utils.StreamsUtil.paginatedStream;
+
 import com.github.dominikschlosser.k8store.common.LikePatterns;
 import com.github.dominikschlosser.k8store.crd.AuthzScopeSpec;
 import java.util.Comparator;
@@ -105,7 +107,7 @@ class CrScopeStore implements ScopeStore {
                                             Map<Scope.FilterOption, String[]> attributes,
                                             Integer firstResult, Integer maxResults) {
         Stream<AuthzScopeSpec> matches = specs(resourceServer).filter(spec -> matchesFilters(spec, attributes));
-        return Pagination.paginate(matches.sorted(Comparator.comparing(AuthzScopeSpec::getName,
+        return paginatedStream(matches.sorted(Comparator.comparing(AuthzScopeSpec::getName,
                         Comparator.nullsFirst(Comparator.naturalOrder()))), firstResult, maxResults)
                 .map(factory::wrap)
                 .map(Scope.class::cast)
