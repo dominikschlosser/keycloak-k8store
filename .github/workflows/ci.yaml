@@ -1,0 +1,196 @@
+# CI for keycloak-k8store.
+#
+# IMPORTANT: this project builds against Keycloak nightly (999.0.0-SNAPSHOT,
+# resolved from https://central.sonatype.com/repository/maven-snapshots/).
+# That is a moving target that changes daily — a red build here can mean
+# upstream Keycloak drift rather than a bug in this repo. That is exactly why
+# nobody pushes. When a previously green commit turns red overnight, suspect
+# Keycloak nightly first (bump/regenerate CRDs via scripts/update-crds.sh and
+# check scripts/crd-diff.sh).
+#
+# Job graph:
+#   build-and-unit ──> integration   (kind cluster, mvn test -pl tests)
+#                 └──> e2e           (kind + scripts/deploy.sh + scripts/e2e.sh)
+#
+# Usage notes:
+#   - integration/e2e need a kind cluster with kubeconfig context `kind-k8store`
+#     and a local registry on localhost:5001; scripts/kind-up.sh creates both.
+#   - kubectl, helm and docker are preinstalled on ubuntu runners; only kind is
+#     installed here (pinned below via KIND_VERSION).
+#   - scripts/e2e.sh port-forwards 8080/9000 on the runner; both are free on
+#     stock ubuntu runners.
+#   - Run locally: scripts/kind-up.sh && scripts/deploy.sh --build && scripts/e2e.sh
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Cancel superseded runs of the same ref/event (a new push cancels the previous
+# in-flight run; scheduled runs don't cancel push runs and vice versa).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  KIND_VERSION: 0.30.0
+
+jobs:
+  build-and-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build (skip tests)
+        run: mvn -B -ntp install -DskipTests
+
+      - name: Unit tests (core, crd-tools)
+        run: mvn -B -ntp test -pl core -pl crd-tools
+
+      # The CRDs committed under crds/ must match what the current Keycloak
+      # nightly entity model generates. Drift here usually means upstream
+      # Keycloak changed the model: rerun scripts/update-crds.sh locally,
+      # review with scripts/crd-diff.sh, and commit the result.
+      - name: CRD drift check
+        run: |
+          ./scripts/update-crds.sh
+          git diff --exit-code crds/
+
+      - name: Upload surefire reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-build-and-unit
+          path: "**/target/surefire-reports/"
+          if-no-files-found: ignore
+
+  integration:
+    needs: build-and-unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install kind
+        run: |
+          curl -fsSLo "${RUNNER_TEMP}/kind" \
+            "https://kind.sigs.k8s.io/dl/v${KIND_VERSION}/kind-linux-amd64"
+          sudo install -m 0755 "${RUNNER_TEMP}/kind" /usr/local/bin/kind
+          kind version
+
+      # Creates the kind cluster (context kind-k8store) and the local
+      # registry on localhost:5001. Idempotent.
+      - name: Create kind cluster
+        run: ./scripts/kind-up.sh
+
+      - name: Build (skip tests)
+        run: mvn -B -ntp install -DskipTests
+
+      # The tests module talks to the cluster via the kind-k8store kubeconfig
+      # context; it creates ephemeral k8store-test-* namespaces and applies
+      # crds/ itself.
+      - name: Integration tests
+        run: mvn -B -ntp test -pl tests
+
+      - name: Note on failures
+        if: failure()
+        run: echo "::notice::This build runs against Keycloak nightly (999.0.0-SNAPSHOT), a moving target. If this commit was green before, the failure is likely upstream Keycloak drift, not a regression in this repo."
+
+      - name: Upload surefire reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-integration
+          path: "**/target/surefire-reports/"
+          if-no-files-found: ignore
+
+  e2e:
+    needs: build-and-unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Install kind
+        run: |
+          curl -fsSLo "${RUNNER_TEMP}/kind" \
+            "https://kind.sigs.k8s.io/dl/v${KIND_VERSION}/kind-linux-amd64"
+          sudo install -m 0755 "${RUNNER_TEMP}/kind" /usr/local/bin/kind
+          kind version
+
+      - name: Create kind cluster
+        run: ./scripts/kind-up.sh
+
+      # e2e.sh runs `mvn -pl tests test`, which resolves the reactor siblings
+      # (parent, core, crd-tools) from the local repository — install them
+      # first. deploy.sh --build then rebuilds the provider jar, builds the
+      # Keycloak image, pushes it to localhost:5001, deploys into the cluster
+      # and smoke-checks it through a temporary port-forward on 18080.
+      - name: Build (skip tests)
+        run: mvn -B -ntp install -DskipTests
+
+      - name: Deploy Keycloak to kind
+        run: ./scripts/deploy.sh --build
+
+      # Port-forwards 8080/9000 and runs the suite with KC_TEST_SERVER=remote.
+      - name: E2E tests
+        run: ./scripts/e2e.sh -Dtest=WriteModeStorageTest
+
+      - name: Note on failures
+        if: failure()
+        run: echo "::notice::This build runs against Keycloak nightly (999.0.0-SNAPSHOT), a moving target. If this commit was green before, the failure is likely upstream Keycloak drift, not a regression in this repo."
+
+      - name: Collect Keycloak pod logs
+        if: failure()
+        run: |
+          mkdir -p "${RUNNER_TEMP}/keycloak-logs"
+          KUBECTL="kubectl --context kind-k8store -n keycloak"
+          ${KUBECTL} get pods -o wide > "${RUNNER_TEMP}/keycloak-logs/pods.txt" || true
+          ${KUBECTL} get events --sort-by=.lastTimestamp > "${RUNNER_TEMP}/keycloak-logs/events.txt" || true
+          for pod in $(${KUBECTL} get pods -o name || true); do
+            name=$(basename "${pod}")
+            ${KUBECTL} logs "${pod}" --all-containers > "${RUNNER_TEMP}/keycloak-logs/${name}.log" || true
+            ${KUBECTL} logs "${pod}" --all-containers --previous > "${RUNNER_TEMP}/keycloak-logs/${name}.previous.log" 2>/dev/null || true
+          done
+
+      - name: Upload Keycloak pod logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: keycloak-pod-logs
+          path: ${{ runner.temp }}/keycloak-logs/
+          if-no-files-found: ignore
+
+      - name: Upload surefire reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-e2e
+          path: "**/target/surefire-reports/"
+          if-no-files-found: ignore
