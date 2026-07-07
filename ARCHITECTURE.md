@@ -592,6 +592,33 @@ first and pulls the whole server onto the test classpath, which must not leak in
 test (the embedded server deploys a module's main output, never test-scope classes); that jar
 is never shipped.
 
+The tests module plugs into the framework through its official extension mechanism
+(`K8storeTestFrameworkExtension`, registered via
+`META-INF/services/org.keycloak.testframework.TestFrameworkExtension` on the test classpath,
+package `...k8store.tests.framework`). It contributes two injectable value types, both
+GLOBAL-lifecycle and always enabled so every Keycloak server the framework boots finds the
+cluster ready:
+
+- `KindCluster` (`@InjectKindCluster`, `KindClusterSupplier`): resolves the kubeconfig context
+  (`K8STORE_TEST_CONTEXT`, default `kind-k8store`), fails fast with an actionable error if the
+  cluster is unreachable, server-side-applies the committed CRDs and waits until they are
+  established (embedded mode only), and exposes the fabric8 client. As a
+  `KeycloakServerConfigInterceptor` it injects the `context` server option into every embedded
+  server boot.
+- `TestNamespace` (`@InjectTestNamespace`, `TestNamespaceSupplier`): the ephemeral
+  `k8store-test-*` namespaces, created before the server boots and deleted through the
+  framework's close at the end of the run (`K8STORE_TEST_KEEP_NAMESPACE` skips deletion). The
+  default ref is the config-mode namespace; `ref = TestNamespaces.DYNAMIC_REF` is the separate
+  namespace of the `areas=all` server.
+
+In remote mode (`KC_TEST_SERVER=remote`) the suppliers return the same kubeconfig-context
+client and the fixed cluster namespace (`K8STORE_NAMESPACE`, default `keycloak`) without
+creating or deleting anything. One deliberate exception to supplier injection remains: the
+framework instantiates `KeycloakServerConfig` classes without field injection and calls
+`configure()` during dependency-graph resolution, before suppliers deploy, so the server
+configs read the deterministic per-JVM namespace names from the static `TestNamespaces`
+helper; the cluster-side namespace lifecycle stays entirely in the supplier.
+
 1. **Embedded integration tests** (`tests/` module, default `KC_TEST_SERVER=embedded`):
    Keycloak runs in the test JVM with the extension deployed from the local Maven repository,
    `--features=stateless`, `--spi-datastore--provider=k8store`. The Kubernetes API is a **real
@@ -606,11 +633,12 @@ is never shipped.
    the dynamic areas (users, sessions, …),
    and CR authority (out-of-band CR edits drive admin reads; JPA config tables stay empty -
    asserted inside the server via run-on-server). The `areas=all` server runs in its **own**
-   ephemeral namespace (`TestKube.dynamicNamespace()`): the embedded servers of one JVM share
+   ephemeral namespace (`TestNamespaces.dynamicName()`): the embedded servers of one JVM share
    the dev database, and the config-mode servers rely on the bootstrap admin surviving there -
    a users-as-CRs server bootstraps its admin into CRs instead, so the two storage modes get
    independent master-realm bootstraps.
-2. **Restart-with-different-config sequencing**: the mock cluster (and the in-JVM H2 database)
+2. **Restart-with-different-config sequencing**: the per-run test namespace in the kind
+   cluster (and the in-JVM dev database)
    outlive embedded-server restarts, so ordered test classes cover the real operational flow -
    boot in write mode (Keycloak bootstraps the master realm into CRs), restart the server
    read-only against those same CRs, verify enforcement and out-of-band change propagation.
