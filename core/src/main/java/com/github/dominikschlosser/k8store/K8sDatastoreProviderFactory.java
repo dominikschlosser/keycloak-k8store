@@ -28,7 +28,7 @@ import org.keycloak.storage.DatastoreProviderFactory;
 import org.keycloak.storage.datastore.DefaultDatastoreProviderFactory;
 
 /**
- * Activated with {@code --spi-datastore--provider=k8store}. Requires the {@code cacheless}
+ * Activated with {@code --spi-datastore--provider=k8store}. Requires the {@code stateless}
  * feature (Keycloak nightly): with it, the only state left besides the database are the config
  * entities this datastore serves from Kubernetes custom resources.
  */
@@ -38,10 +38,11 @@ public class K8sDatastoreProviderFactory implements DatastoreProviderFactory {
     public static final String PROVIDER_ID = "k8store";
 
     /**
-     * Isolated on purpose: upstream renames this feature to {@code stateless} in Keycloak 26.7
-     * (keycloak#50619); this is the single place to adjust.
+     * Isolated on purpose so upstream feature renames stay a one-line change (the feature
+     * started as {@code cacheless} and was renamed to {@code stateless} for Keycloak 26.7,
+     * keycloak#50619).
      */
-    private static final Profile.Feature REQUIRED_FEATURE = Profile.Feature.CACHELESS;
+    private static final Profile.Feature REQUIRED_FEATURE = Profile.Feature.STATELESS;
 
     /**
      * Initialized delegate for the storage areas that stay on the database: the inherited

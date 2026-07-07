@@ -66,7 +66,7 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
                     Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2,
                     Profile.Feature.ORGANIZATION);
         }
-        return config.features(Profile.Feature.CACHELESS)
+        return config.features(Profile.Feature.STATELESS)
                 .cache(CacheType.LOCAL)
                 .dependency("com.github.dominikschlosser", "keycloak-k8store")
                 .option("spi-datastore--provider", "k8store")

@@ -23,7 +23,7 @@ import org.keycloak.models.RevokedTokenProvider;
 /**
  * {@link RevokedTokenProvider} over {@code KeycloakRevokedToken} custom resources, indexed under
  * the {@linkplain K8sStorageBackend#GLOBAL_PSEUDO_REALM global pseudo-realm} (revoked tokens are
- * not realm-scoped). Semantics match the cacheless JPA provider: {@link #put} inserts only if
+ * not realm-scoped). Semantics match the stateless JPA provider: {@link #put} inserts only if
  * absent (expiry = now + lifespan) and reports whether it inserted; {@link #contains} is
  * expiry-filtered. Writes go straight to the API server — a revocation must hold on every node
  * as fast as the watches deliver it — while {@link #contains} reads the mirror only (hot path).

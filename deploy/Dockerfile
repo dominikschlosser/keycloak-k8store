@@ -13,7 +13,7 @@ COPY core/target/providers/*.jar /opt/keycloak/providers/
 # organization cache (--spi-organization--infinispan--enabled=false); the deployment manifest's
 # non-optimized start makes those runtime args authoritative.
 RUN /opt/keycloak/bin/kc.sh build \
-      --features=cacheless \
+      --features=stateless \
       --db=postgres \
       --spi-datastore--provider=k8store \
       --spi-realm--jpa--enabled=false \

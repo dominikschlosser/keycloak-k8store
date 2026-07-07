@@ -40,7 +40,7 @@ public class RevokedTokenCrProviderFactory extends AbstractCrProviderFactory<Rev
         return "Revoked token provider backed by KeycloakRevokedToken custom resources (experimental)";
     }
 
-    /** Beats the cacheless JPA default in {@code getProvider(Class)} resolution. */
+    /** Beats the stateless JPA default in {@code getProvider(Class)} resolution. */
     @Override
     public int order() {
         return DeclarativeUserProfileProviderFactory.PROVIDER_PRIORITY + 1;

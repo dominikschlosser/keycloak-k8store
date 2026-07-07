@@ -40,7 +40,7 @@ public class SingleUseObjectCrProviderFactory extends AbstractCrProviderFactory<
         return "Single-use object provider backed by KeycloakSingleUseObject custom resources (experimental)";
     }
 
-    /** Beats the cacheless JPA default in {@code getProvider(Class)} resolution. */
+    /** Beats the stateless JPA default in {@code getProvider(Class)} resolution. */
     @Override
     public int order() {
         return DeclarativeUserProfileProviderFactory.PROVIDER_PRIORITY + 1;

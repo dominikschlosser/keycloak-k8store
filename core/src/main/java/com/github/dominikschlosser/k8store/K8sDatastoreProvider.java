@@ -129,7 +129,7 @@ public class K8sDatastoreProvider extends DefaultDatastoreProvider {
      * {@code userLocalStorage()}, which implements {@code UserCredentialStore}.
      *
      * <p>The one deliberate deviation from the inherited {@code users()} is skipping the
-     * {@code UserCache} lookup — this extension runs cacheless (the user cache is disabled),
+     * {@code UserCache} lookup — this extension runs stateless (the user cache is disabled),
      * and the infinispan cache provider would delegate to the JPA store anyway.
      */
     @Override

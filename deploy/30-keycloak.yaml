@@ -45,7 +45,7 @@ spec:
           args:
             - start
             - --db=postgres
-            - --features=cacheless
+            - --features=stateless
             # organizations require the opt-in 'organization' area when groups are CR-backed
             # (the built-in JPA organization store cannot reference CR groups; boot validation
             # rejects feature-on + organization-area-off). To use organizations: enable the
@@ -56,7 +56,7 @@ spec:
             - --spi-realm-cache--default--enabled=false
             # like the realm cache: with the authorization area the informer mirror is the
             # cache; without it (default) authorization data is JPA-served and uncached reads
-            # are fine under cacheless
+            # are fine under stateless
             - --spi-authorization-cache--default--enabled=false
             - --health-enabled=true
             - --metrics-enabled=true
