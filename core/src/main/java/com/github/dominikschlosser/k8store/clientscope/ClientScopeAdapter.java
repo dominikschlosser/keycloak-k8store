@@ -15,9 +15,12 @@
  */
 package com.github.dominikschlosser.k8store.clientscope;
 
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_SCOPE_RENAMED;
+
 import com.github.dominikschlosser.k8store.common.ProtocolMapperSupport;
 import com.github.dominikschlosser.k8store.common.ScopeMappingSupport;
 import com.github.dominikschlosser.k8store.crd.ClientScopeSpec;
+import com.github.dominikschlosser.k8store.realm.RealmAdapter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -74,6 +77,12 @@ public class ClientScopeAdapter implements ClientScopeModel {
         String current = spec.getName();
         if (Objects.equals(current, normalized)) {
             return;
+        }
+        // rewrite name-keyed references (client assignment lists, user consents) before the CR
+        // moves, so the handlers still resolve the old name
+        session.invalidate(CLIENT_SCOPE_RENAMED, realm, current, normalized);
+        if (realm instanceof RealmAdapter ra) {
+            ra.renameDefaultClientScope(current, normalized);
         }
         // the scope name is the store id: move the CR instead of mutating it in place
         ClientScopeCrStore.delete(spec.getRealm(), current);
