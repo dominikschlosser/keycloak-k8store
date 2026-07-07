@@ -275,6 +275,20 @@ public class UserSessionCrProvider implements UserSessionProvider {
         });
     }
 
+    /**
+     * Removes all of a deleted user's sessions, both online and offline. The public
+     * {@code removeUserSessions(realm, user)} covers only online sessions, so a deleted user's
+     * offline sessions would otherwise survive as CRs until they expire.
+     */
+    public void onUserRemoved(RealmModel realm, UserModel user) {
+        UserSessionCrStore.allInRealm(realm.getId()).stream()
+                .filter(spec -> user.getId().equals(spec.getUserId()))
+                .forEach(spec -> {
+                    knownAdapters.remove(spec.getId());
+                    UserSessionCrStore.delete(realm.getId(), spec.getId());
+                });
+    }
+
     @Override
     public void removeAllExpired() {
         // the storage backend filters expired sessions on read and reaps their CRs
