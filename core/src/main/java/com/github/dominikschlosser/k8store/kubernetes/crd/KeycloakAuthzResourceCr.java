@@ -49,6 +49,6 @@ public class KeycloakAuthzResourceCr extends CustomResource<AuthzResourceSpec, V
         return null;
     }
 
-    public static final String GROUP = "keycloak.k8store.io";
+    public static final String GROUP = "k8store.dominikschlosser.github.io";
     public static final String VERSION = "v1alpha1";
 }
