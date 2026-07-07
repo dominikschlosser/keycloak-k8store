@@ -15,6 +15,7 @@
  */
 package com.github.dominikschlosser.k8store.role;
 
+import com.github.dominikschlosser.k8store.common.ListRewrites;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_BEFORE_REMOVE;
 import static org.keycloak.utils.StreamsUtil.paginatedStream;
@@ -343,7 +344,7 @@ public class RoleCrProvider implements RoleProvider {
             if (renamed.isClientRole()) {
                 Map<String, List<String>> byClient = composites.getClient();
                 List<String> names = byClient == null ? null : byClient.get(renamed.getContainerId());
-                changed = replaceInList(names, oldName, newName);
+                changed = ListRewrites.replaceInList(names, oldName, newName);
             } else {
                 Set<String> names = composites.getRealm();
                 changed = names != null && names.remove(oldName);
@@ -359,17 +360,6 @@ public class RoleCrProvider implements RoleProvider {
         });
     }
 
-    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
-        if (names == null) {
-            return false;
-        }
-        int index = names.indexOf(oldValue);
-        if (index < 0) {
-            return false;
-        }
-        names.set(index, newValue);
-        return true;
-    }
 
     /**
      * Client-rename cascade: the client id is this store's container id, so it appears both as the

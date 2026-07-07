@@ -15,6 +15,7 @@
  */
 package com.github.dominikschlosser.k8store.realm;
 
+import com.github.dominikschlosser.k8store.common.ListRewrites;
 import com.github.dominikschlosser.k8store.crd.ClientInitialAccessSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
@@ -1240,24 +1241,13 @@ public class RealmAdapter implements StorageProviderRealmModel {
      * lists, preserving list position so the default-scope ordering stays stable.
      */
     public void renameDefaultClientScope(String oldName, String newName) {
-        boolean changed = replaceInList(spec.getDefaultDefaultClientScopes(), oldName, newName);
-        changed |= replaceInList(spec.getDefaultOptionalClientScopes(), oldName, newName);
+        boolean changed = ListRewrites.replaceInList(spec.getDefaultDefaultClientScopes(), oldName, newName);
+        changed |= ListRewrites.replaceInList(spec.getDefaultOptionalClientScopes(), oldName, newName);
         if (changed) {
             persist();
         }
     }
 
-    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
-        if (names == null) {
-            return false;
-        }
-        int index = names.indexOf(oldValue);
-        if (index < 0) {
-            return false;
-        }
-        names.set(index, newValue);
-        return true;
-    }
 
     @Override
     public Stream<ClientScopeModel> getDefaultClientScopesStream(boolean defaultScope) {

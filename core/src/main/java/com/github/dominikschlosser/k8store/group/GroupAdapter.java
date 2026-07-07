@@ -15,6 +15,7 @@
  */
 package com.github.dominikschlosser.k8store.group;
 
+import com.github.dominikschlosser.k8store.common.ListRewrites;
 import com.github.dominikschlosser.k8store.crd.GroupSpec;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -262,26 +263,15 @@ public class GroupAdapter implements GroupModel {
         if (renamed.isClientRole()) {
             Map<String, List<String>> byClient = spec.getClientRoles();
             List<String> names = byClient == null ? null : byClient.get(renamed.getContainerId());
-            changed = replaceInList(names, oldName, newName);
+            changed = ListRewrites.replaceInList(names, oldName, newName);
         } else {
-            changed = replaceInList(spec.getRealmRoles(), oldName, newName);
+            changed = ListRewrites.replaceInList(spec.getRealmRoles(), oldName, newName);
         }
         if (changed) {
             persist();
         }
     }
 
-    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
-        if (names == null) {
-            return false;
-        }
-        int index = names.indexOf(oldValue);
-        if (index < 0) {
-            return false;
-        }
-        names.set(index, newValue);
-        return true;
-    }
 
     @Override
     public Stream<RoleModel> getRoleMappingsStream() {

@@ -15,6 +15,7 @@
  */
 package com.github.dominikschlosser.k8store.client;
 
+import com.github.dominikschlosser.k8store.common.ListRewrites;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_BEFORE_REMOVE;
 import static org.keycloak.utils.StreamsUtil.paginatedStream;
@@ -266,25 +267,14 @@ public class ClientCrProvider implements ClientProvider {
      */
     void clientScopeRenamed(RealmModel realm, String oldName, String newName) {
         specs(realm).forEach(spec -> {
-            boolean changed = replaceInList(spec.getDefaultClientScopes(), oldName, newName);
-            changed |= replaceInList(spec.getOptionalClientScopes(), oldName, newName);
+            boolean changed = ListRewrites.replaceInList(spec.getDefaultClientScopes(), oldName, newName);
+            changed |= ListRewrites.replaceInList(spec.getOptionalClientScopes(), oldName, newName);
             if (changed) {
                 ClientCrStore.save(spec);
             }
         });
     }
 
-    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
-        if (names == null) {
-            return false;
-        }
-        int index = names.indexOf(oldValue);
-        if (index < 0) {
-            return false;
-        }
-        names.set(index, newValue);
-        return true;
-    }
 
     // ------------------------------------------------------------------ client scope assignment
 
