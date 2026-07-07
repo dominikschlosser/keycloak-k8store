@@ -21,12 +21,12 @@ The primary operating mode is **read-only**: CRs are authored out-of-band (GitOp
 platform, an operator) and Keycloak treats them as the source of truth that cannot be modified
 through the Admin API/Console. A read-write mode exists for interactive bootstrapping and tests.
 
-Requires **Keycloak nightly** (`999.0.0-SNAPSHOT`) with the **`cacheless`** feature enabled.
+Requires **Keycloak nightly** (`999.0.0-SNAPSHOT`) with the **`stateless`** feature enabled.
 
-## Why nightly + CACHELESS
+## Why nightly + STATELESS
 
-The `cacheless` feature (epic [keycloak#49469](https://github.com/keycloak/keycloak/issues/49469),
-experimental in nightly, expected as preview under the name `stateless` in 26.7 —
+The `stateless` feature (epic [keycloak#49469](https://github.com/keycloak/keycloak/issues/49469),
+named `cacheless` until its 26.7 rename —
 [keycloak#50619](https://github.com/keycloak/keycloak/issues/50619)) changes the storage
 landscape in exactly the way this extension needs:
 
@@ -41,7 +41,7 @@ landscape in exactly the way this extension needs:
 
 That means a Keycloak pod is left with two kinds of state: the **database** (dynamic data — we
 keep it) and **config entities** (we move them to CRs served from a local, watch-synchronized
-informer cache). The one cache CACHELESS keeps — the local realm cache — is **disabled** by this
+informer cache). The one cache STATELESS keeps — the local realm cache — is **disabled** by this
 extension's configuration (`--spi-realm-cache--default--enabled=false`), because the informer
 store *is* an always-in-sync in-memory cache: reads are map lookups, and Kubernetes watch events
 keep every node's copy current within milliseconds, with no invalidation protocol of our own.
@@ -67,7 +67,7 @@ layer itself is an independent implementation on Keycloak's representation class
   `userStorageManager()`/`userLocalStorage()`), `userSessions()`, `authSessions()`,
   `loginFailures()`, `singleUseObjects()`, `revokedTokens()`. Everything else — export/import —
   and every non-enabled area is inherited and resolves Keycloak's default providers (JPA +
-  cacheless JPA providers). With the `user` area enabled, `users()` resolves Keycloak's
+  stateless JPA providers). With the `user` area enabled, `users()` resolves Keycloak's
   federation-aware `UserStorageManager` with the CR provider pinned as its local storage
   (the `userLocalStorage()` override) — **user-storage federation (LDAP/Kerberos) works with
   CR-backed users**: the manager fans lookups out to registered federation components,
@@ -400,7 +400,7 @@ does not need the dynamic CRDs installed.
 
 ## CRDs
 
-API group **`keycloak.k8store.io`**, version **`v1alpha1`**, namespaced:
+API group **`k8store.dominikschlosser.github.io`**, version **`v1alpha1`**, namespaced:
 
 | Kind | Plural | Spec | Scope of one CR |
 |---|---|---|---|
@@ -448,7 +448,7 @@ committed files.
 ### Keycloak upgrades & CRD evolution
 
 Upgrading the `keycloak.version` property regenerates the CRDs from the new entity model. The
-`k8store-crd-tools` module provides a CLI (also wrapped as `scripts/crd-diff.sh`) that:
+`k8store-crd-tools` module provides a CLI (also wrapped as `scripts/crd-tools.sh`) that:
 
 1. **diffs** two CRD generations (committed vs freshly generated, or in-cluster vs built) on the
    `openAPIV3Schema` level and classifies changes: *compatible* (added optional fields, added
@@ -472,7 +472,7 @@ Test coverage uses the **official Keycloak test framework**
 
 1. **Embedded integration tests** (`tests/` module, default `KC_TEST_SERVER=embedded`):
    Keycloak runs in the test JVM with the extension deployed from the local Maven repository,
-   `--features=cacheless`, `--spi-datastore--provider=k8store`. The Kubernetes API is a **real
+   `--features=stateless`, `--spi-datastore--provider=k8store`. The Kubernetes API is a **real
    kind cluster** (context `kind-k8store`, created by `scripts/kind-up.sh`) — no mocks: real
    schema validation, real server-side apply, real watches. Each JVM run works in an ephemeral
    `k8store-test-*` namespace and applies the committed CRDs. Covers: provider parity per
@@ -516,14 +516,14 @@ scripts/kind-up.sh         create 2-worker kind cluster + local registry
 scripts/deploy.sh          build extension → image → load into kind → apply manifests
 scripts/kind-down.sh       tear down
 scripts/update-crds.sh     regenerate crds/ after a Keycloak version bump
-scripts/crd-diff.sh        CRD schema diff (wraps crd-tools)
+scripts/crd-tools.sh        CRD schema diff (wraps crd-tools)
 scripts/e2e.sh             port-forward + run test suite in remote mode
 ```
 
 ## Configuration reference (Keycloak server options)
 
 ```
---features=cacheless                                  # required (nightly; becomes 'stateless' in 26.7)
+--features=stateless                                  # required (nightly; becomes 'stateless' in 26.7)
                                                       # optional experimental features served by the
                                                       # user area: oid4vc-vci (adds two CR kinds),
                                                       # parameterized-scopes (consent parameters)
@@ -564,7 +564,7 @@ scripts/e2e.sh             port-forward + run test suite in remote mode
 * **Model migrations are skipped** when realms are CR-backed (`CrMigrationManager` is a
   no-op): Keycloak's `MigrateTo*` steps neither touch the CRs nor
   the JPA-backed data. When bumping the Keycloak version with existing data,
-  check the upstream migration notes manually; the CRD schema diff (`scripts/crd-diff.sh`)
+  check the upstream migration notes manually; the CRD schema diff (`scripts/crd-tools.sh`)
   covers the *shape* side only. Content-level migration tooling is future work.
 * JPA referential integrity when mixing stores (e.g. `USER_GROUP_MEMBERSHIP` → CRD group ids)
   is verified by tests; if the schema enforces FKs for a mapping table, that mapping area must
@@ -585,5 +585,5 @@ scripts/e2e.sh             port-forward + run test suite in remote mode
 * **Toggling the `user` area on existing data is a migration event**: enabling it hides every
   database-stored user (including the bootstrap admin), disabling it hides the user CRs. No
   automatic migration exists — enable it on a fresh bootstrap or migrate users first.
-* The `cacheless` → `stateless` rename in 26.7 will require touching one constant and the
+* The `stateless` → `stateless` rename in 26.7 will require touching one constant and the
   documented flags (isolated in `K8sDatastoreProviderFactory` and the deploy manifests).

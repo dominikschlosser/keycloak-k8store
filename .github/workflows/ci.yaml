@@ -6,7 +6,7 @@
 # upstream Keycloak drift rather than a bug in this repo. That is exactly why
 # nobody pushes. When a previously green commit turns red overnight, suspect
 # Keycloak nightly first (bump/regenerate CRDs via scripts/update-crds.sh and
-# check scripts/crd-diff.sh).
+# check scripts/crd-tools.sh).
 #
 # Job graph:
 #   build-and-unit ──> integration   (kind cluster, mvn test -pl tests)
@@ -62,7 +62,7 @@ jobs:
       # The CRDs committed under crds/ must match what the current Keycloak
       # nightly entity model generates. Drift here usually means upstream
       # Keycloak changed the model: rerun scripts/update-crds.sh locally,
-      # review with scripts/crd-diff.sh, and commit the result.
+      # review with scripts/crd-tools.sh, and commit the result.
       - name: CRD drift check
         run: |
           ./scripts/update-crds.sh
