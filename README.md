@@ -24,6 +24,46 @@ spec:
 CRs use Keycloak's own representation JSON as their spec. Changes applied with `kubectl`/GitOps
 are served by every Keycloak node within milliseconds — no restarts, no cache invalidation.
 
+## How it fits together
+
+```mermaid
+flowchart LR
+    admin["Admin console / API users<br/>OIDC clients"]
+    gitops["GitOps / platform<br/>kubectl, CI"]
+
+    subgraph cluster["Kubernetes cluster"]
+        apiserver["API server + etcd<br/>CRDs and Keycloak CRs,<br/>namespaced"]
+        subgraph ns["namespace: keycloak"]
+            subgraph podA["Keycloak pod A"]
+                dsA["K8sDatastoreProvider<br/>routes per area"]
+                crpA["CR providers<br/>realm, client, role, ..."]
+                beA["K8sStorageBackend<br/>in-memory mirror, informers,<br/>tx write buffer,<br/>reconcile + expiry timers"]
+                dsA --> crpA
+                crpA -->|"reads: mirror lookup,<br/>no API round trip"| beA
+            end
+            subgraph podB["Keycloak pod B"]
+                stackB["same stack,<br/>its own complete mirror"]
+            end
+            pg[("PostgreSQL<br/>dynamic data: users,<br/>sessions, tokens")]
+        end
+    end
+
+    admin -->|"HTTPS"| dsA
+    admin -->|"HTTPS"| stackB
+    gitops -->|"kubectl apply CRs"| apiserver
+    apiserver -.->|"WATCH stream<br/>one per CRD kind"| beA
+    apiserver -.->|"WATCH stream<br/>one per CRD kind"| stackB
+    beA -->|"periodic LIST reconcile"| apiserver
+    beA ==>|"server-side apply at tx prepare,<br/>write mode only"| apiserver
+    stackB ==>|"server-side apply,<br/>write mode only"| apiserver
+    dsA -->|"JPA, non-CR areas"| pg
+    stackB -->|"JPA"| pg
+```
+
+Every pod keeps its own watch-synchronized in-memory mirror of the CRs, so reads never hit the
+API server and pods need no coordination — sequence diagrams and the full design are in
+[ARCHITECTURE.md](ARCHITECTURE.md#how-it-works--at-a-glance).
+
 ## Quickstart (local)
 
 ```bash

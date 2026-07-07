@@ -23,6 +23,120 @@ through the Admin API/Console. A read-write mode exists for interactive bootstra
 
 Requires **Keycloak nightly** (`999.0.0-SNAPSHOT`) with the **`stateless`** feature enabled.
 
+## How it works — at a glance
+
+Three views of the moving parts. The sections below —
+[How it plugs into Keycloak](#how-it-plugs-into-keycloak) and the
+[Kubernetes backing store](#kubernetes-backing-store) — carry the full detail; these diagrams
+are the map.
+
+### Components
+
+```mermaid
+flowchart LR
+    admin["Admin console / API users<br/>OIDC clients"]
+    gitops["GitOps / platform<br/>kubectl, CI"]
+
+    subgraph cluster["Kubernetes cluster"]
+        apiserver["API server + etcd<br/>CRDs and Keycloak CRs,<br/>namespaced"]
+        subgraph ns["namespace: keycloak"]
+            subgraph podA["Keycloak pod A"]
+                dsA["K8sDatastoreProvider<br/>routes per area"]
+                crpA["CR providers<br/>realm, client, role, ..."]
+                beA["K8sStorageBackend<br/>in-memory mirror, informers,<br/>tx write buffer,<br/>reconcile + expiry timers"]
+                dsA --> crpA
+                crpA -->|"reads: mirror lookup,<br/>no API round trip"| beA
+            end
+            subgraph podB["Keycloak pod B"]
+                stackB["same stack,<br/>its own complete mirror"]
+            end
+            pg[("PostgreSQL<br/>dynamic data: users,<br/>sessions, tokens")]
+        end
+    end
+
+    admin -->|"HTTPS"| dsA
+    admin -->|"HTTPS"| stackB
+    gitops -->|"kubectl apply CRs"| apiserver
+    apiserver -.->|"WATCH stream<br/>one per CRD kind"| beA
+    apiserver -.->|"WATCH stream<br/>one per CRD kind"| stackB
+    beA -->|"periodic LIST reconcile"| apiserver
+    beA ==>|"server-side apply at tx prepare,<br/>write mode only"| apiserver
+    stackB ==>|"server-side apply,<br/>write mode only"| apiserver
+    dsA -->|"JPA, non-CR areas"| pg
+    stackB -->|"JPA"| pg
+```
+
+Arrow legend: dotted = watch streams (one `SharedIndexInformer` per CRD kind), thick = the
+transaction-buffered server-side-apply write path (absent in read-only mode), solid = requests,
+periodic LIST reconcile and JPA traffic. Every pod holds its **own complete mirror** of all CRs
+in the namespace — reads are local map lookups and never hit the API server, and pods exchange
+no config data with each other (the 2-replica deployment in `deploy/30-keycloak.yaml` relies on
+nothing but the shared API server and database). Areas not served from CRs fall through to
+Keycloak's default JPA providers on PostgreSQL.
+
+### Out-of-band config change (the primary, read-only GitOps mode)
+
+```mermaid
+sequenceDiagram
+    participant P as Platform / GitOps
+    participant K as API server / etcd
+    participant A as Pod A informer
+    participant B as Pod B informer
+    participant R as Next request
+
+    P->>K: kubectl apply changed KeycloakClient CR
+    K->>K: validate against CRD schema, persist in etcd
+    par fan-out to every pod
+        K-->>A: watch event MODIFIED
+        A->>A: update in-memory mirror
+    and
+        K-->>B: watch event MODIFIED
+        B->>B: update in-memory mirror
+    end
+    R->>A: request on either pod
+    A-->>R: new config served from the mirror,<br/>milliseconds after the apply
+    Note over K,B: Wedge protection: each pod also re-LISTs periodically<br/>reconcile-interval-seconds, default 60s, so a silently<br/>dead watch bounds staleness instead of freezing the mirror
+```
+
+There is no invalidation protocol to get wrong: every pod observes the change independently
+through its own watch, so a CR edit is live on all replicas within watch latency — no restarts,
+no cache coordination.
+
+### Admin write in write mode (transaction semantics)
+
+```mermaid
+sequenceDiagram
+    participant Adm as Admin
+    participant KC as Keycloak pod A
+    participant M as Pod A mirror
+    participant K8s as API server
+    participant DB as PostgreSQL
+    participant B as Pod B
+
+    Adm->>KC: POST Admin API, Keycloak opens tx
+    KC->>M: model mutation updates mirror immediately,<br/>read-your-write within the tx
+    KC->>KC: write buffered per kind + realm + id,<br/>no API call yet
+    Note over KC: dozens of mutations of one spec<br/>coalesce into one apply per CR
+    KC->>K8s: tx prepare: server-side apply,<br/>exactly one per buffered CR
+    alt CR apply fails
+        K8s-->>KC: error
+        KC->>DB: database rolls back
+        KC->>K8s: re-read buffered keys, repair mirror
+        KC-->>Adm: request fails
+    else apply succeeds
+        K8s-->>KC: applied
+        KC->>DB: database commit
+        KC-->>Adm: success
+        K8s-->>B: watch echo, pod B mirror updated
+    end
+```
+
+The apply runs in the transaction manager's *prepare* phase, before the JPA commit: a rejected
+CR write fails the request and rolls the database back. This is not two-phase commit — the
+residual drift window (database commit failing *after* the CRs were applied) is described under
+[Kubernetes backing store](#kubernetes-backing-store) and
+[Known limitations](#known-limitations--open-risks).
+
 ## Why nightly + STATELESS
 
 The `stateless` feature (epic [keycloak#49469](https://github.com/keycloak/keycloak/issues/49469),
