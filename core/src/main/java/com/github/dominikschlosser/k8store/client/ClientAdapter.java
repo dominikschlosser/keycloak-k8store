@@ -134,6 +134,11 @@ public class ClientAdapter implements ClientModel {
         // this client's own scope mappings may reference its own client roles, keyed by the old
         // clientId: rekey them on the live spec so the moved CR carries the new key
         rekey(spec.getClientScopeMappings(), current, clientId);
+        // registered cluster nodes are keyed by clientId in the in-memory store: move the entry
+        Map<String, Integer> nodes = registeredNodesStore.remove(current);
+        if (nodes != null) {
+            registeredNodesStore.put(clientId, nodes);
+        }
         // the clientId is the store id: move the CR instead of mutating it in place
         ClientCrStore.delete(spec.getRealm(), current);
         spec.setClientId(clientId);
