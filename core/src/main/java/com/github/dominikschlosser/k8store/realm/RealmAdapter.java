@@ -17,6 +17,7 @@ package com.github.dominikschlosser.k8store.realm;
 
 import com.github.dominikschlosser.k8store.crd.ClientInitialAccessSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
+import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -1756,7 +1757,7 @@ public class RealmAdapter implements StorageProviderRealmModel {
      */
     private static String executionId(String flowId, int index) {
         return UUID.nameUUIDFromBytes(
-                        ("k8store-execution " + flowId + " " + index).getBytes(StandardCharsets.UTF_8))
+                        ("k8store-execution" + K8sStorageBackend.KEY_SEPARATOR + flowId + K8sStorageBackend.KEY_SEPARATOR + index).getBytes(StandardCharsets.UTF_8))
                 .toString();
     }
 
