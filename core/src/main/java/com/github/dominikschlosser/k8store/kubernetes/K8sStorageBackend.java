@@ -92,6 +92,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.jboss.logging.Logger;
 import org.keycloak.common.Profile;
 import org.keycloak.common.Version;
@@ -599,22 +600,20 @@ public final class K8sStorageBackend implements AutoCloseable {
 
     public <S> List<S> readAll(Class<S> specClass) {
         KindState<S, ?> state = state(specClass);
-        return state.byRealm.values().stream()
-                .flatMap(m -> m.values().stream())
-                .filter(s -> !state.isExpired(s))
-                .map(s -> copyOf(specClass, s))
-                .collect(Collectors.toList());
+        return liveCopies(specClass, state, state.byRealm.values().stream().flatMap(m -> m.values().stream()));
     }
 
     public <S> List<S> readAllInRealm(Class<S> specClass, String realmId) {
         KindState<S, ?> state = state(specClass);
         Map<String, S> realm = state.byRealm.get(realmId);
-        return realm == null
-                ? List.of()
-                : realm.values().stream()
-                        .filter(s -> !state.isExpired(s))
-                        .map(s -> copyOf(specClass, s))
-                        .collect(Collectors.toList());
+        return realm == null ? List.of() : liveCopies(specClass, state, realm.values().stream());
+    }
+
+    /** Drops expired entities and hands out a defensive copy of each survivor. */
+    private static <S> List<S> liveCopies(Class<S> specClass, KindState<S, ?> state, Stream<S> specs) {
+        return specs.filter(s -> !state.isExpired(s))
+                .map(s -> copyOf(specClass, s))
+                .collect(Collectors.toList());
     }
 
     // ------------------------------------------------------------------ writes
@@ -1105,19 +1104,32 @@ public final class K8sStorageBackend implements AutoCloseable {
             }
         }
 
+        /**
+         * A CR of this kind with its name/namespace, the realm and Keycloak-version labels
+         * stamped, and the spec set. {@code resourceVersion} is passed only by the optimistic
+         * reclaim path (put-if-absent) and is null everywhere else.
+         */
+        private C buildCr(String name, String namespace, String realmId, S spec, String resourceVersion) {
+            ObjectMetaBuilder meta = new ObjectMetaBuilder()
+                    .withName(name)
+                    .withNamespace(namespace)
+                    .addToLabels(REALM_LABEL, sanitizeLabel(realmId))
+                    .addToLabels(VERSION_LABEL, sanitizeLabel(Version.VERSION));
+            if (resourceVersion != null) {
+                meta.withResourceVersion(resourceVersion);
+            }
+            C cr = crFactory.get();
+            cr.setMetadata(meta.build());
+            cr.setSpec(spec);
+            return cr;
+        }
+
         /** The API-server half of a write: server-side apply of the CR, stamped with labels. */
         void applyToServer(String realmId, String id, S spec) {
             CrRef ref = refs.get(key(realmId, id));
             String name = ref != null ? ref.name() : crName(crClass, realmId, id);
             String namespace = ref != null ? ref.namespace() : writeNamespace;
-            C cr = crFactory.get();
-            cr.setMetadata(new ObjectMetaBuilder()
-                    .withName(name)
-                    .withNamespace(namespace)
-                    .addToLabels(REALM_LABEL, sanitizeLabel(realmId))
-                    .addToLabels(VERSION_LABEL, sanitizeLabel(Version.VERSION))
-                    .build());
-            cr.setSpec(spec);
+            C cr = buildCr(name, namespace, realmId, spec, null);
             try {
                 client.resource(cr).fieldManager(FIELD_MANAGER).forceConflicts().serverSideApply();
             } catch (KubernetesClientException e) {
@@ -1152,14 +1164,7 @@ public final class K8sStorageBackend implements AutoCloseable {
          */
         boolean createOnServer(String realmId, String id, S spec) {
             String name = crName(crClass, realmId, id);
-            C cr = crFactory.get();
-            cr.setMetadata(new ObjectMetaBuilder()
-                    .withName(name)
-                    .withNamespace(writeNamespace)
-                    .addToLabels(REALM_LABEL, sanitizeLabel(realmId))
-                    .addToLabels(VERSION_LABEL, sanitizeLabel(Version.VERSION))
-                    .build());
-            cr.setSpec(spec);
+            C cr = buildCr(name, writeNamespace, realmId, spec, null);
             try {
                 client.resource(cr).create();
             } catch (KubernetesClientException e) {
@@ -1193,15 +1198,7 @@ public final class K8sStorageBackend implements AutoCloseable {
             if (!isExpired(current.getSpec())) {
                 return false;
             }
-            C replacement = crFactory.get();
-            replacement.setMetadata(new ObjectMetaBuilder()
-                    .withName(name)
-                    .withNamespace(writeNamespace)
-                    .withResourceVersion(current.getMetadata().getResourceVersion())
-                    .addToLabels(REALM_LABEL, sanitizeLabel(realmId))
-                    .addToLabels(VERSION_LABEL, sanitizeLabel(Version.VERSION))
-                    .build());
-            replacement.setSpec(spec);
+            C replacement = buildCr(name, writeNamespace, realmId, spec, current.getMetadata().getResourceVersion());
             try {
                 operation().inNamespace(writeNamespace).resource(replacement).update();
             } catch (KubernetesClientException e) {
