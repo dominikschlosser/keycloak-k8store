@@ -512,6 +512,30 @@ class K8sStorageBackendTest {
     }
 
     @Test
+    void reconcileKeepsBufferedButUnflushedWrites() {
+        K8sStorageBackend backend = start(false);
+        FakeKeycloakSession session = beginSession();
+
+        RealmSpec realm = new RealmSpec();
+        realm.setRealm("in-flight");
+        realm.setDisplayName("pending");
+        RealmCrStore.save(realm);
+
+        // the write is buffered: mirror has it, the server LIST does not. A reconcile in this
+        // window must not drop it, or the transaction loses its own write before commit.
+        backend.reconcileNow();
+        assertNotNull(RealmCrStore.read("in-flight"),
+                "reconcile must not remove a buffered-but-unflushed write");
+
+        session.getTransactionManager().commit();
+        assertNotNull(client.resources(KeycloakRealmCr.class).inNamespace("test").withName("in-flight").get(),
+                "commit still flushes the write");
+        // after commit the guard is released and reconcile is a plain no-op diff
+        backend.reconcileNow();
+        assertNotNull(RealmCrStore.read("in-flight"));
+    }
+
+    @Test
     void rollbackDiscardsBufferedWritesAndRepairsTheMirror() {
         RealmSpec existing = new RealmSpec();
         existing.setRealm("keep");
