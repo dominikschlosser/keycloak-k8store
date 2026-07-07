@@ -31,7 +31,7 @@ import org.keycloak.representations.idm.ClientScopeRepresentation;
  * no field in the representation (exports keep them on the realm), so the spec adds the explicit
  * {@link ScopeMappingCarrier} fields.
  *
- * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped — a
+ * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped - a
  * real API server rejects explicit nulls in {@code map<string,string>} schema fields with 422.
  * Unknown properties are ignored on read.
  */

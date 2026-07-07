@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
- * Spec of a {@code KeycloakPermissionTicket} custom resource: one UMA permission request/grant —
+ * Spec of a {@code KeycloakPermissionTicket} custom resource: one UMA permission request/grant -
  * a requesting party ({@code requester}) asking the {@code owner} for access to a resource
  * (optionally one scope of it). Created at runtime by UMA flows and the "my resources" account
  * area, so this kind is <em>dynamic</em>: always writable, even in read-only mode. Granting sets
@@ -57,7 +57,7 @@ public class PermissionTicketSpec {
     /** Creation time, epoch millis. */
     private Long createdTimestamp;
 
-    /** Grant time, epoch millis; null while the request is pending — non-null means granted. */
+    /** Grant time, epoch millis; null while the request is pending - non-null means granted. */
     private Long grantedTimestamp;
 
     public String getId() {

@@ -22,7 +22,7 @@ import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
 /**
  * The config areas plus the opt-in {@code authorization} area, write mode: Authorization
  * Services data (resource servers, resources, authorization scopes, policies, permission
- * tickets) is served from custom resources. Users and sessions stay in the database — the
+ * tickets) is served from custom resources. Users and sessions stay in the database - the
  * bootstrap admin remains shared with the other config-mode servers, so this server uses the
  * common test namespace.
  */

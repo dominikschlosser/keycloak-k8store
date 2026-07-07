@@ -31,13 +31,13 @@ import org.keycloak.storage.user.UserLookupProvider;
 /**
  * Minimal test-only user-storage federation provider (LDAP stand-in) serving exactly one user.
  * It follows the standard import pattern: the first lookup creates a local shadow user through
- * {@code userLocalStorage()} — which is the k8store CR provider under test — and links it with
+ * {@code userLocalStorage()} - which is the k8store CR provider under test - and links it with
  * {@code setFederationLink}; password validation stays with this provider (the shadow user
  * stores no credentials), exercising the federated credential fan-out.
  *
  * <p>Lives in the tests module's <em>main</em> sources: the test framework's
  * {@code dependencyCurrentProject()} deploys {@code target/classes} (with its
- * {@code META-INF/services} entry) into the embedded server's providers — test-scope classes
+ * {@code META-INF/services} entry) into the embedded server's providers - test-scope classes
  * are not deployed.
  */
 public class TestFederationUserStorage implements UserStorageProviderFactory<TestFederationUserStorage.Provider> {
@@ -77,13 +77,13 @@ public class TestFederationUserStorage implements UserStorageProviderFactory<Tes
             if (local == null) {
                 // the import path every import-style federation provider (LDAP) uses: create
                 // the local shadow user and link it to this provider. No default required
-                // actions — the federated account is ready to log in as imported.
+                // actions - the federated account is ready to log in as imported.
                 local = UserStoragePrivateUtil.userLocalStorage(session)
                         .addUser(realm, null, USERNAME, true, false);
                 local.setEnabled(true);
                 local.setEmail(EMAIL);
                 local.setEmailVerified(true);
-                // the default user profile requires first/last name — an incomplete profile
+                // the default user profile requires first/last name - an incomplete profile
                 // would force an UPDATE_PROFILE required action and break the direct grant
                 local.setFirstName("Federated");
                 local.setLastName("Import");

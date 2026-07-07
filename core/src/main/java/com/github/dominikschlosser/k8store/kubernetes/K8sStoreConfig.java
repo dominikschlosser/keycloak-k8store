@@ -30,31 +30,31 @@ import org.keycloak.common.Profile;
  * <p>Options:
  *
  * <ul>
- *   <li>{@code read-only} (default {@code true}) — reject all writes to CRD-backed <em>config</em>
+ *   <li>{@code read-only} (default {@code true}) - reject all writes to CRD-backed <em>config</em>
  *       areas with {@link org.keycloak.storage.ReadOnlyException}; config CRs are managed
- *       out-of-band. Dynamic areas (sessions etc.), when enabled, stay writable — Keycloak owns
+ *       out-of-band. Dynamic areas (sessions etc.), when enabled, stay writable - Keycloak owns
  *       their CRs entirely and logins must work in read-only deployments.
- *   <li>{@code areas} — which storage areas are served from CRs; the rest falls through to
+ *   <li>{@code areas} - which storage areas are served from CRs; the rest falls through to
  *       Keycloak's default storage. Values: {@code config} (default, also used when the option
  *       is absent/blank) = the config areas {@code
  *       realm,client,client-scope,role,group,identity-provider}; {@code all} = config areas plus
  *       {@code authorization} (Authorization Services) and {@code organization} (Keycloak
- *       Organizations) — both config-class but opt-in — plus the <em>experimental</em> dynamic
+ *       Organizations) - both config-class but opt-in - plus the <em>experimental</em> dynamic
  *       areas {@code
  *       user,user-session,auth-session,login-failure,single-use-object,revoked-token}; or an
  *       explicit comma-separated list of area names.
- *   <li>{@code namespace} — namespace to watch; defaults to the client's current namespace (pod
+ *   <li>{@code namespace} - namespace to watch; defaults to the client's current namespace (pod
  *       serviceaccount / kubeconfig context).
- *   <li>{@code all-namespaces} (default {@code false}) — watch CRs cluster-wide.
- *   <li>{@code sync-timeout-seconds} (default {@code 120}) — max time to wait at startup for the
+ *   <li>{@code all-namespaces} (default {@code false}) - watch CRs cluster-wide.
+ *   <li>{@code sync-timeout-seconds} (default {@code 120}) - max time to wait at startup for the
  *       informer caches to sync before failing the boot.
- *   <li>{@code context} — kubeconfig context to connect with; unset (default) means in-cluster
+ *   <li>{@code context} - kubeconfig context to connect with; unset (default) means in-cluster
  *       config / current kubeconfig context. Used by the integration tests to pin the kind
  *       cluster.
- *   <li>{@code reconcile-interval-seconds} (default {@code 60}) — periodic list-based mirror
+ *   <li>{@code reconcile-interval-seconds} (default {@code 60}) - periodic list-based mirror
  *       reconciliation; bounds staleness if a watch connection silently stops delivering.
  *       {@code 0} disables it.
- *   <li>{@code expiration-sweep-seconds} (default {@code 300}) — interval of the background
+ *   <li>{@code expiration-sweep-seconds} (default {@code 300}) - interval of the background
  *       reaper deleting expired CRs of the dynamic kinds; only runs when a dynamic area is
  *       enabled. {@code 0} disables it (reads filter expired entities regardless).
  * </ul>
@@ -70,7 +70,7 @@ public final class K8sStoreConfig {
         IDENTITY_PROVIDER("identity-provider", false, true),
         /**
          * Authorization Services: resource servers, resources, authorization scopes and
-         * policies/permissions — configuration-class data that honors read-only mode — plus UMA
+         * policies/permissions - configuration-class data that honors read-only mode - plus UMA
          * permission tickets, which are runtime data and stay writable like the dynamic kinds.
          * Not part of the {@code config} default for backward compatibility (deployments that
          * predate this area keep authorization on JPA and their CRD set unchanged); joins
@@ -82,19 +82,19 @@ public final class K8sStoreConfig {
         /**
          * Keycloak Organizations: the organization definitions (name, alias, domains,
          * attributes, redirect URL) plus their invitations. Configuration-class and opt-in like
-         * {@link #AUTHORIZATION} — joins {@code all} and explicit lists, never the {@code
+         * {@link #AUTHORIZATION} - joins {@code all} and explicit lists, never the {@code
          * config} default. Requires the {@code group} area (each organization is backed by a
          * group created through {@code session.groups()}, membership is group membership) and
          * the {@code identity-provider} area (the organization linkage lives on the identity
          * provider, stored in the realm CR). Organization <em>membership</em> lives on the user
-         * side and the invitation kind is runtime data — both stay writable in read-only mode;
+         * side and the invitation kind is runtime data - both stay writable in read-only mode;
          * only the organization definitions themselves are read-only config.
          */
         ORGANIZATION("organization", false, false),
         /**
          * Users are a dynamic area even though they look config-ish: self-registration,
          * credential updates, required actions, consents and brute-force lockout flags all
-         * mutate users at runtime, so a "read-only users" mode would break logins — user CRs
+         * mutate users at runtime, so a "read-only users" mode would break logins - user CRs
          * are always writable, like the session kinds.
          */
         USER("user", true, false),
@@ -116,7 +116,7 @@ public final class K8sStoreConfig {
 
         /**
          * Dynamic areas hold volatile per-login state (sessions, login failures, single-use
-         * objects, revoked tokens) written by Keycloak at runtime — as opposed to the config
+         * objects, revoked tokens) written by Keycloak at runtime - as opposed to the config
          * areas whose CRs describe realm configuration and are typically managed out-of-band.
          * Dynamic areas are experimental, opt-in ({@code areas=all} or an explicit list) and
          * always writable regardless of read-only mode.
@@ -138,7 +138,7 @@ public final class K8sStoreConfig {
     }
 
     /**
-     * The config areas — the back-compat default when no {@code areas} option is given. Note
+     * The config areas - the back-compat default when no {@code areas} option is given. Note
      * that this is not "all non-dynamic areas": the {@code authorization} area is config-class
      * but opt-in ({@code all} or an explicit list), so enabling it never surprises existing
      * deployments with new CRD requirements.
@@ -151,7 +151,7 @@ public final class K8sStoreConfig {
 
     /**
      * Area-set grammar of the {@code areas} option: absent/blank and {@code config} mean the
-     * config areas (the back-compat default — dynamic areas never activate implicitly),
+     * config areas (the back-compat default - dynamic areas never activate implicitly),
      * {@code all} means everything including the experimental dynamic areas, anything else is
      * an explicit comma-separated list of area names.
      */
@@ -217,7 +217,7 @@ public final class K8sStoreConfig {
     /**
      * Identity providers are embedded in the realm entity: serving them from CRs while realms
      * stay on JPA would make the IdP provider delegate to the JPA realm adapter, which delegates
-     * straight back to the IdP provider — infinite recursion. Fail fast instead.
+     * straight back to the IdP provider - infinite recursion. Fail fast instead.
      */
     private static void validateAreas(Set<Area> areas) {
         if (areas.contains(Area.IDENTITY_PROVIDER) && !areas.contains(Area.REALM)) {
@@ -245,7 +245,7 @@ public final class K8sStoreConfig {
     /**
      * Boot gate for the ORGANIZATION <em>feature</em>: with the feature enabled, groups served
      * from CRs and the {@code organization} area disabled, Keycloak's built-in JPA organization
-     * store would serve organizations that reference CR-backed groups — its create path does an
+     * store would serve organizations that reference CR-backed groups - its create path does an
      * {@code em.find(GroupEntity)} on a group row that does not exist and fails with an NPE the
      * moment an organization is created. Failing the boot with a clear message beats a 500 at
      * runtime. Only checked on the server config path (not {@link #of}, which unit tests use

@@ -29,11 +29,11 @@ import io.fabric8.kubernetes.model.annotation.Version;
 
 /**
  * A Keycloak user stored as a Kubernetes custom resource (experimental {@code user} area).
- * The spec is {@link UserSpec} — Keycloak's user representation plus the realm; {@code spec.id}
+ * The spec is {@link UserSpec} - Keycloak's user representation plus the realm; {@code spec.id}
  * defaults to {@code metadata.name}.
  *
  * <p><strong>Security:</strong> these CRs carry credential hashes (and broker tokens when token
- * storage is on) — lock down RBAC read access to {@code keycloakusers}.
+ * storage is on) - lock down RBAC read access to {@code keycloakusers}.
  */
 @Group(KeycloakUserCr.GROUP)
 @Version(value = KeycloakUserCr.VERSION, served = true, storage = true)
@@ -42,12 +42,12 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @Plural("keycloakusers")
 @ShortNames("ku")
 // defense in depth: drop the representation's plaintext credential field from the schema, so a
-// real API server prunes hand-authored plaintext values at admission — they never reach etcd.
+// real API server prunes hand-authored plaintext values at admission - they never reach etcd.
 // Keycloak itself only ever writes hashed secretData/credentialData.
 @SchemaSwap(originalType = CredentialRepresentation.class, fieldName = "value")
 public class KeycloakUserCr extends CustomResource<UserSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected UserSpec initSpec() {
         return new UserSpec();

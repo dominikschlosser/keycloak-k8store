@@ -33,8 +33,8 @@ import org.keycloak.representations.idm.authorization.Logic;
 /**
  * {@link Policy} over a {@code KeycloakAuthzPolicy} spec. Associations to resources,
  * authorization scopes and other policies are id sets in the spec, resolved through the sibling
- * stores on read (stale ids — never produced by Keycloak itself, but possible in hand-edited
- * CRs — resolve to nothing instead of failing); every mutation re-persists the spec explicitly.
+ * stores on read (stale ids - never produced by Keycloak itself, but possible in hand-edited
+ * CRs - resolve to nothing instead of failing); every mutation re-persists the spec explicitly.
  */
 public class PolicyAdapter extends AbstractAuthorizationModel implements Policy {
 

@@ -30,8 +30,8 @@ import org.keycloak.models.RoleModel;
 /**
  * Shared {@link org.keycloak.models.ScopeContainerModel} logic of the client and client-scope
  * adapters, operating on the {@link ScopeMappingCarrier} fields of a spec. Mappings are stored
- * by role <em>name</em> — realm roles in {@code realmScopeMappings}, client roles in
- * {@code clientScopeMappings} keyed by the owning client's id (= clientId) — the same
+ * by role <em>name</em> - realm roles in {@code realmScopeMappings}, client roles in
+ * {@code clientScopeMappings} keyed by the owning client's id (= clientId) - the same
  * representation-style convention phase 1 established for role composites. Every mutation runs
  * the supplied {@code persist} callback.
  */
@@ -110,7 +110,7 @@ public final class ScopeMappingSupport {
     }
 
     /**
-     * Drops {@code removed} from the spec's mappings without persisting — cascade helper for
+     * Drops {@code removed} from the spec's mappings without persisting - cascade helper for
      * role removal; the caller persists when {@code true} is returned.
      */
     public static boolean removeRole(ScopeMappingCarrier spec, RoleModel removed) {

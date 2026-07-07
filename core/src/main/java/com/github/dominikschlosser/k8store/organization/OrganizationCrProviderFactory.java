@@ -30,17 +30,17 @@ import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
 
 /**
  * Registers the organization provider ({@code organization} SPI, provider id {@code k8store})
- * when the {@code organization} area AND the {@code organizations} feature are enabled — the
+ * when the {@code organization} area AND the {@code organizations} feature are enabled - the
  * SPI itself vanishes with the feature, and the {@code OrganizationProviderFactory} default
  * {@code isSupported} carries the feature check. Keycloak resolves the SPI's default provider by
  * the highest {@code order()}, so this factory outranks the built-in {@code jpa} store
- * (order 0); with the area disabled, organizations would fall through to JPA — a combination
+ * (order 0); with the area disabled, organizations would fall through to JPA - a combination
  * that cannot work with CR-backed groups and is therefore rejected at boot by
  * {@link K8sStoreConfig}.
  *
  * <p>The built-in JPA factory stays registered (both are supported when the feature is on) and
  * its {@code postInit} group-event guard keeps protecting organization groups from mutations
- * outside an organization context — it resolves the session-default organization provider, i.e.
+ * outside an organization context - it resolves the session-default organization provider, i.e.
  * this one.
  *
  * <p>Cleanup: {@code REALM_BEFORE_REMOVE} bulk-deletes the realm's organization and invitation

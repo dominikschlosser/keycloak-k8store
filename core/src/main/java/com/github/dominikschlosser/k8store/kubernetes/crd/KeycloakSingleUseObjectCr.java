@@ -28,7 +28,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 /**
  * A Keycloak single-use object (action token, nonce, code replay guard, …), stored as a
  * Kubernetes custom resource. Volatile, short-lived runtime state of the experimental dynamic
- * areas — never authored by hand. The spec is the original {@link SingleUseObjectSpec};
+ * areas - never authored by hand. The spec is the original {@link SingleUseObjectSpec};
  * {@code spec.key} is the store id.
  */
 @Group(KeycloakSingleUseObjectCr.GROUP)
@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("ksuo")
 public class KeycloakSingleUseObjectCr extends CustomResource<SingleUseObjectSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected SingleUseObjectSpec initSpec() {
         return new SingleUseObjectSpec();

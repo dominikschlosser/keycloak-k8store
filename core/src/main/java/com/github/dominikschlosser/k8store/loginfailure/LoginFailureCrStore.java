@@ -20,7 +20,7 @@ import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
- * Access to {@code KeycloakLoginFailure} custom resources, keyed by {@code (realm, user id)} —
+ * Access to {@code KeycloakLoginFailure} custom resources, keyed by {@code (realm, user id)} -
  * the user id is the store id, one CR per (realm, user). Reads come from the informer mirror;
  * every mutation must be persisted explicitly through {@link #save} (transaction-buffered, so
  * the several counter updates of one failed login coalesce into one apply).

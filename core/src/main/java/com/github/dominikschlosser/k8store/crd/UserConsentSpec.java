@@ -24,14 +24,14 @@ import org.keycloak.representations.idm.UserConsentRepresentation;
 /**
  * One client consent entry of a {@link UserSpec}: Keycloak's own consent representation
  * (client id + granted scope names + timestamps) plus the per-scope <em>parameters</em> that
- * the experimental {@code parameterized-scopes} feature attaches to granted scopes — the
+ * the experimental {@code parameterized-scopes} feature attaches to granted scopes - the
  * representation has no field for them (upstream persists them in the consent-scope join
  * table), so the spec adds {@link #getGrantedScopeParameters() grantedScopeParameters}.
  *
  * <p>The map is keyed by granted scope <em>name</em> (== scope id in this store) and holds the
  * granted parameter values of that scope; only parameterized scopes appear. A parameterized
  * scope whose name is listed in {@code grantedClientScopes} without parameters here counts as
- * not granted on read (upstream parity — the JPA store persists one row per parameter and
+ * not granted on read (upstream parity - the JPA store persists one row per parameter and
  * none without one).
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)

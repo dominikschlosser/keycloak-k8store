@@ -106,12 +106,12 @@ import org.keycloak.utils.KeycloakSessionUtil;
  * The Kubernetes side of the k8store datastore.
  *
  * <p>Runs one informer per CRD kind and mirrors all custom resources into in-memory maps indexed
- * by {@code (realmId, id)}. All model reads are served from these maps — there is no API-server
+ * by {@code (realmId, id)}. All model reads are served from these maps - there is no API-server
  * round trip on the hot path, and Kubernetes watch events keep every Keycloak node's mirror in
  * sync with out-of-band CR changes.
  *
  * <p>Writes (only permitted when {@code read-only=false}) become visible in the local mirror
- * immediately, so a transaction reads its own writes before any watch event — but the
+ * immediately, so a transaction reads its own writes before any watch event - but the
  * API-server calls are buffered per {@code KeycloakSession} and flushed once per
  * {@code (kind, realm, id)} key in the transaction's <em>prepare</em> phase, which runs before
  * the database commit: a server-side-apply failure fails the request and rolls the database
@@ -120,7 +120,7 @@ import org.keycloak.utils.KeycloakSessionUtil;
  * a resolvable session or active transaction (boot-time paths; never the informer threads) fall
  * back to the previous behavior and are applied to the cluster immediately. Every CR written by
  * Keycloak is stamped with the {@linkplain #VERSION_LABEL running Keycloak version}; at startup
- * the backend warns about CRs stamped by a different version — a drift/migration signal after
+ * the backend warns about CRs stamped by a different version - a drift/migration signal after
  * Keycloak upgrades.
  */
 public final class K8sStorageBackend implements AutoCloseable {
@@ -171,8 +171,8 @@ public final class K8sStorageBackend implements AutoCloseable {
         this.writeNamespace = ns != null ? ns : "default";
 
         // the realm kind's id (spec.realm, the realm name) doubles as its realm id, so it has
-        // no separate realm setter — a realm CR without spec.realm falls back to metadata.name,
-        // never to labels. Clients are keyed by clientId, scopes by name — both human-readable
+        // no separate realm setter - a realm CR without spec.realm falls back to metadata.name,
+        // never to labels. Clients are keyed by clientId, scopes by name - both human-readable
         // and defaulting to metadata.name in hand-authored CRs.
         register(new KindState<>(KeycloakRealmCr.class, KeycloakRealmCr::new, RealmSpec.class,
                 RealmSpec::getRealm, RealmSpec::setRealm, RealmSpec::getRealm, null));
@@ -219,7 +219,7 @@ public final class K8sStorageBackend implements AutoCloseable {
         // the organization area is opt-in like authorization. The organization kind is
         // configuration (honors read-only mode); invitations are runtime data written by the
         // invitation flows and stay writable like the dynamic kinds. Expired invitations are
-        // deliberately NOT wired into the expiry filtering/reaping — they remain listable with
+        // deliberately NOT wired into the expiry filtering/reaping - they remain listable with
         // the EXPIRED status filter, like upstream's database rows.
         if (config.getAreas().contains(Area.ORGANIZATION)) {
             register(new KindState<>(KeycloakOrganizationCr.class, KeycloakOrganizationCr::new,
@@ -236,7 +236,7 @@ public final class K8sStorageBackend implements AutoCloseable {
         // dynamic kinds are registered ONLY when their area is enabled: a deployment on the
         // default (config-only) areas must boot without the session CRDs installed and without
         // a single new watch. Dynamic kinds are always writable (read-only mode guards config
-        // CRs only — logins must work) and, where the entities expire, carry an expiresAt
+        // CRs only - logins must work) and, where the entities expire, carry an expiresAt
         // accessor for read-path filtering and the background reaper.
         if (config.getAreas().contains(Area.USER)) {
             // users are low-churn but runtime-mutated (self-registration, credential updates,
@@ -246,7 +246,7 @@ public final class K8sStorageBackend implements AutoCloseable {
                     UserSpec::getRealm, UserSpec::setRealm,
                     true, null));
             // the OID4VC verifiable-credential kinds only exist when the (experimental)
-            // oid4vc-vci feature is on — user-area deployments without it need neither the
+            // oid4vc-vci feature is on - user-area deployments without it need neither the
             // CRDs nor the watches. Issued credentials expire: reads filter them and the
             // background reaper deletes their CRs (upstream's scheduled cleanup task is not
             // registered under this datastore, the reaper is its replacement).
@@ -303,14 +303,14 @@ public final class K8sStorageBackend implements AutoCloseable {
     /**
      * Null-safe feature check: at server runtime the profile is always initialized before the
      * datastore boots (the factory checks the stateless feature first); in unit tests without a
-     * profile the feature counts as disabled — matching its experimental default.
+     * profile the feature counts as disabled - matching its experimental default.
      */
     private static boolean oid4vcFeatureEnabled() {
         return Profile.getInstance() != null && Profile.isFeatureEnabled(Profile.Feature.OID4VC_VCI);
     }
 
     /**
-     * Drops {@code null} properties and {@code null} map values from serialized specs — a real
+     * Drops {@code null} properties and {@code null} map values from serialized specs - a real
      * API server rejects explicit nulls in {@code map<string,string>} schema fields with 422.
      * The class-level {@code @JsonInclude} of the spec classes only covers properties they
      * declare themselves, not maps inherited from the representation superclasses, so the
@@ -356,7 +356,7 @@ public final class K8sStorageBackend implements AutoCloseable {
     /**
      * The serialization of the backend's own client. fabric8's {@code configureMapper} resets
      * the inclusion default to <em>keep</em> null map values ("omit null fields, but keep null
-     * map values"), so {@link #configureMapper} must be re-applied on top — a real API server
+     * map values"), so {@link #configureMapper} must be re-applied on top - a real API server
      * rejects explicit nulls in {@code map<string,string>} schema fields with 422 (e.g. the
      * "roles" scope's protocol mapper carrying {@code "rolePrefix": null} at bootstrap).
      * Package-visible for tests.
@@ -471,7 +471,7 @@ public final class K8sStorageBackend implements AutoCloseable {
     /**
      * Logs one warning listing every CR whose {@link #VERSION_LABEL} stamp differs from the
      * running Keycloak version. Such CRs were written by (or for) another Keycloak version and
-     * survived the upgrade unmigrated — model migrations do not run against CR-backed areas, so
+     * survived the upgrade unmigrated - model migrations do not run against CR-backed areas, so
      * this is the operator's signal to review the upstream migration notes and refresh the CRs.
      * CRs without a stamp (hand-authored / GitOps) are not reported.
      */
@@ -491,7 +491,7 @@ public final class K8sStorageBackend implements AutoCloseable {
         }
         if (!drifted.isEmpty()) {
             LOG.warnv("k8store: {0} custom resource(s) carry a {1} stamp different from the running Keycloak"
-                            + " version {2}. Model migrations do not run against CR-backed config — review the"
+                            + " version {2}. Model migrations do not run against CR-backed config - review the"
                             + " Keycloak migration notes and refresh these CRs: {3}",
                     drifted.size(), VERSION_LABEL, Version.VERSION, String.join(", ", drifted));
         }
@@ -555,7 +555,7 @@ public final class K8sStorageBackend implements AutoCloseable {
      * Like {@link #read}, but on a mirror miss falls back to a direct API-server GET by the
      * deterministic CR name (and feeds a hit back into the mirror). Used by the single-use and
      * revoked-token stores, whose entries written on another node must be visible before the
-     * watch event arrives — a mirror-only read could miss a fresh cross-node write for a few
+     * watch event arrives - a mirror-only read could miss a fresh cross-node write for a few
      * milliseconds, which for single-use semantics is the difference between correct and broken.
      */
     public <S> S fetch(Class<S> specClass, String realmId, String id) {
@@ -578,7 +578,7 @@ public final class K8sStorageBackend implements AutoCloseable {
 
     /**
      * Defensive copy of a mirror entry. Handing out the live instance would let a request
-     * thread mutate what every other session on this node reads — including mutations that the
+     * thread mutate what every other session on this node reads - including mutations that the
      * API server (or read-only mode) later rejects, silently corrupting the mirror.
      */
     private static <S> S copyOf(Class<S> specClass, S spec) {
@@ -618,7 +618,7 @@ public final class K8sStorageBackend implements AutoCloseable {
     private static final String SESSION_BUFFER_ATTRIBUTE = "com.github.dominikschlosser.k8store.txWriteBuffer";
 
     /**
-     * Write entry point of the providers. A no-op when no backend is running yet — a spec being
+     * Write entry point of the providers. A no-op when no backend is running yet - a spec being
      * populated outside the store is not attached to any persistence context.
      *
      * <p>With a session on the thread, the mirror is updated immediately (read-your-write) and
@@ -661,7 +661,7 @@ public final class K8sStorageBackend implements AutoCloseable {
 
     /**
      * Unbuffered write: applies to the API server immediately, bypassing the transaction
-     * buffer. Single-use objects and revoked tokens need this — their entries must be visible
+     * buffer. Single-use objects and revoked tokens need this - their entries must be visible
      * to other requests (and other nodes) the moment the call returns, not at commit time.
      */
     public static <S> S updateNow(Class<S> specClass, String realmId, String id, S spec) {
@@ -677,7 +677,7 @@ public final class K8sStorageBackend implements AutoCloseable {
     }
 
     /**
-     * Unbuffered create-if-absent: relies on the API server's create semantics for atomicity —
+     * Unbuffered create-if-absent: relies on the API server's create semantics for atomicity -
      * exactly one of any number of concurrent creators (across all nodes) wins; the others get
      * a 409 and {@code false}. The put-if-absent primitive of the single-use-object and
      * revoked-token stores.
@@ -720,8 +720,8 @@ public final class K8sStorageBackend implements AutoCloseable {
 
     /**
      * The write buffer of the current transaction, created and enlisted on first use, or
-     * {@code null} when writes cannot be buffered — no session on the thread, no active
-     * transaction, or the transaction is already completing — and must be applied to the API
+     * {@code null} when writes cannot be buffered - no session on the thread, no active
+     * transaction, or the transaction is already completing - and must be applied to the API
      * server immediately instead.
      */
     private SessionWriteBuffer sessionBuffer() {
@@ -760,8 +760,8 @@ public final class K8sStorageBackend implements AutoCloseable {
      * <ul>
      *   <li>{@link FlushOnCommit} in the <em>prepare</em> phase, which Keycloak's transaction
      *       manager commits before the main (JPA) transactions: each buffered key is applied to
-     *       the API server exactly once, and a failure rolls the whole request — including the
-     *       database — back.</li>
+     *       the API server exactly once, and a failure rolls the whole request - including the
+     *       database - back.</li>
      *   <li>{@link RepairOnRollback} in the after-completion phase, because the transaction
      *       manager never calls rollback on prepare-phase hooks: on rollback the buffer is
      *       discarded and every buffered key is re-read from the API server, so the optimistic
@@ -843,7 +843,7 @@ public final class K8sStorageBackend implements AutoCloseable {
             protected void rollbackImpl() {
                 if (flushed) {
                     // the CR writes committed but a later (database) transaction failed; CRs
-                    // cannot be un-applied — the mirror already matches the API server, the
+                    // cannot be un-applied - the mirror already matches the API server, the
                     // database rolled back
                     LOG.warn("k8store: transaction rolled back after its custom-resource writes were already"
                             + " applied; the CRs in the cluster are ahead of the database for this operation");
@@ -1053,7 +1053,7 @@ public final class K8sStorageBackend implements AutoCloseable {
         /**
          * The local-visibility half of a write. The mirror holds its own copy: the caller keeps
          * mutating its instance and each mutation is persisted explicitly by the model layer.
-         * Returns the stored copy — the write buffer keeps exactly that snapshot for the flush.
+         * Returns the stored copy - the write buffer keeps exactly that snapshot for the flush.
          */
         S mirrorPut(String realmId, String id, S spec) {
             S copy = COPY_MAPPER.convertValue(spec, specClass);
@@ -1113,7 +1113,7 @@ public final class K8sStorageBackend implements AutoCloseable {
 
         /**
          * Immediate create-if-absent through the API server's atomic create: {@code false} on a
-         * name conflict (someone — possibly another node — created it first). On success the
+         * name conflict (someone - possibly another node - created it first). On success the
          * mirror is updated so the entry is readable before the watch echo.
          */
         boolean createOnServer(String realmId, String id, S spec) {
@@ -1140,7 +1140,7 @@ public final class K8sStorageBackend implements AutoCloseable {
         }
 
         /**
-         * Immediate delete reporting whether this call removed the CR — Kubernetes answers a
+         * Immediate delete reporting whether this call removed the CR - Kubernetes answers a
          * DELETE with the deleted object exactly once and 404 for everyone else, which is the
          * atomic consume primitive of the single-use-object store. Falls back to the
          * deterministic CR name when the mirror holds no reference (e.g. the entry was written
@@ -1155,7 +1155,7 @@ public final class K8sStorageBackend implements AutoCloseable {
 
         /**
          * Rollback repair: re-reads one key's backing CR from the API server and resets the
-         * mirror entry to what the cluster actually holds — restoring it when the CR exists,
+         * mirror entry to what the cluster actually holds - restoring it when the CR exists,
          * dropping it when it does not (e.g. an entity optimistically created in the rolled-back
          * transaction).
          */
@@ -1234,7 +1234,7 @@ public final class K8sStorageBackend implements AutoCloseable {
     /**
      * Deterministic DNS-1123 name for a CR written by Keycloak. Realm CRs keep a plain readable
      * name when possible; scoped CRs are always suffixed with a hash over the exact
-     * {@code (realmId, id)} pair — the readable prefix is lossy (dots and other characters are
+     * {@code (realmId, id)} pair - the readable prefix is lossy (dots and other characters are
      * folded), so only the hash guarantees distinct pairs never collide on one CR name.
      */
     static String crName(Class<?> crClass, String realmId, String id) {

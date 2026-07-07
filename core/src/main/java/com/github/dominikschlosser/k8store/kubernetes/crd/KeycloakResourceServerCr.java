@@ -38,7 +38,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("krs")
 public class KeycloakResourceServerCr extends CustomResource<ResourceServerSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected ResourceServerSpec initSpec() {
         return new ResourceServerSpec();

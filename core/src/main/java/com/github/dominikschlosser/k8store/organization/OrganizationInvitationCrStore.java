@@ -21,7 +21,7 @@ import java.util.List;
 
 /**
  * Access to {@code KeycloakOrganizationInvitation} custom resources, keyed by
- * {@code (realm, id)}. Runtime data written by the invitation flows — the kind is always
+ * {@code (realm, id)}. Runtime data written by the invitation flows - the kind is always
  * writable, including in read-only mode.
  */
 public final class OrganizationInvitationCrStore {

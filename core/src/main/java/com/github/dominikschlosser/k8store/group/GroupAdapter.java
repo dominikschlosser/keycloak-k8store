@@ -34,11 +34,11 @@ import org.keycloak.organization.OrganizationProvider;
 
 /**
  * {@link GroupModel} over a {@link GroupSpec}. The adapter owns a defensive copy of the CR spec;
- * every mutation is persisted explicitly and as a whole — there are no dirty flags and no shared
+ * every mutation is persisted explicitly and as a whole - there are no dirty flags and no shared
  * references to rely on.
  *
  * <p>The hierarchy is flat: subgroups are separate CRs linked through {@code spec.parentId}.
- * Role grants are stored the standard representation way — {@code realmRoles} holds realm role
+ * Role grants are stored the standard representation way - {@code realmRoles} holds realm role
  * <em>names</em>, {@code clientRoles} maps a client id to its role names.
  */
 public class GroupAdapter implements GroupModel {
@@ -193,7 +193,7 @@ public class GroupAdapter implements GroupModel {
 
     /**
      * Stamps the owning organization onto this adapter's <em>live</em> spec (never a fresh
-     * store copy — an in-flight adapter would clobber it on its next persist) and persists.
+     * store copy - an in-flight adapter would clobber it on its next persist) and persists.
      * Called by the organization provider right after it creates a backing/organization group
      * through the group provider.
      */

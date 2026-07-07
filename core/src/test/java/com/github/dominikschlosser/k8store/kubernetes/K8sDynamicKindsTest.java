@@ -213,7 +213,7 @@ class K8sDynamicKindsTest {
 
         K8sStorageBackend.update(UserSpec.class, "master", "alice", spec);
 
-        // the credential entries survive the mirror round trip intact — hashes, never plaintext
+        // the credential entries survive the mirror round trip intact - hashes, never plaintext
         UserSpec read = K8sStorageBackend.get().read(UserSpec.class, "master", "alice");
         assertNotNull(read);
         assertEquals(1, read.getCredentials().size());

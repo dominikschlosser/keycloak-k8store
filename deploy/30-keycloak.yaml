@@ -40,7 +40,7 @@ spec:
           # the KC_SPI_DATASTORE__K8STORE__* env vars must be visible to it. A non-optimized
           # start re-augments in the pod when those options change (e.g. toggling AREAS=all);
           # with unchanged options the build cache baked into the image is reused. This also
-          # means every build option from the Dockerfile's kc.sh build must be repeated here —
+          # means every build option from the Dockerfile's kc.sh build must be repeated here -
           # a re-augmenting start derives the configuration from this command alone.
           args:
             - start

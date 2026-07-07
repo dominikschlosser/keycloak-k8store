@@ -47,7 +47,7 @@ import org.keycloak.testframework.annotations.KeycloakIntegrationTest;
 
 /**
  * The production pattern: Keycloak serves config entities from pre-existing custom resources
- * (written by the earlier write-mode boot in this JVM — the mock cluster outlives server
+ * (written by the earlier write-mode boot in this JVM - the mock cluster outlives server
  * restarts) and rejects every config write, while dynamic data (users) stays writable.
  */
 @Order(2)

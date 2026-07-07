@@ -20,10 +20,10 @@ import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
- * Access to {@code KeycloakClient} custom resources, keyed by {@code (realm, clientId)} — the
+ * Access to {@code KeycloakClient} custom resources, keyed by {@code (realm, clientId)} - the
  * clientId is the store id in this store. Reads come from the informer mirror and hand out
  * defensive copies; every mutation of a spec must be persisted explicitly through {@link #save}
- * — specs carry no write-through machinery.
+ * - specs carry no write-through machinery.
  */
 public final class ClientCrStore {
 

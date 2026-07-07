@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * and expiry timestamps (epoch <em>seconds</em>, upstream convention for invitations) and the
  * invitation link sent by email.
  *
- * <p>Invitations are <strong>runtime data</strong> written by the invitation flows — the kind
+ * <p>Invitations are <strong>runtime data</strong> written by the invitation flows - the kind
  * stays writable in read-only mode, like permission tickets. Expired invitations are kept (they
  * remain listable with the {@code EXPIRED} status filter, upstream parity) until removed by
  * acceptance, revocation, organization removal or realm removal.

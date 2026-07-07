@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * Spec of a {@code KeycloakLoginFailure} custom resource: the brute-force-protection counters of
- * one (realm, user) pair — the user id is the store id, so there is at most one CR per user and
+ * one (realm, user) pair - the user id is the store id, so there is at most one CR per user and
  * realm. Written by Keycloak on failed logins; has no expiration ({@code clearFailures} deletes
  * the CR). {@link #getLastFailure() lastFailure} is epoch millis;
  * {@link #getFailedLoginNotBefore() failedLoginNotBefore} is epoch <em>seconds</em>, matching

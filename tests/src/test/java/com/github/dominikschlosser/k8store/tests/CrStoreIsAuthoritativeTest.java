@@ -42,7 +42,7 @@ import org.keycloak.testframework.remote.runonserver.InjectRunOnServer;
 import org.keycloak.testframework.remote.runonserver.RunOnServerClient;
 
 /**
- * Proves the CRs are the actual storage — not a write-through veneer over the JPA database that
+ * Proves the CRs are the actual storage - not a write-through veneer over the JPA database that
  * happens to also exist (dev-mem H2 is configured for users/sessions, so Keycloak COULD silently
  * serve config entities from it if the datastore wiring were broken).
  *
@@ -52,7 +52,7 @@ import org.keycloak.testframework.remote.runonserver.RunOnServerClient;
  *   <li>Out-of-band CR mutations (which the database cannot know about) must change what the
  *       admin API returns, and out-of-band CR deletion must make entities vanish.
  *   <li>Inside the server, the JPA config tables must stay empty while the model API serves
- *       realms/clients — asserted with native queries through the server's own entity manager.
+ *       realms/clients - asserted with native queries through the server's own entity manager.
  * </ol>
  */
 @Order(1)
@@ -82,7 +82,7 @@ public class CrStoreIsAuthoritativeTest {
                 .findFirst()
                 .orElseThrow();
 
-        // mutate the CR the way a GitOps pipeline would — the database knows nothing about this
+        // mutate the CR the way a GitOps pipeline would - the database knows nothing about this
         cr.getSpec().setDescription("changed-out-of-band");
         TestKube.client().resource(cr).update();
 
@@ -135,7 +135,7 @@ public class CrStoreIsAuthoritativeTest {
     @Test
     public void componentConfigUpdatePersistsToRealmCr() {
         // the declarative-user-profile component receives its config via a component UPDATE
-        // after creation — the exact path that used to lose nested-entity mutations
+        // after creation - the exact path that used to lose nested-entity mutations
         UPConfig upConfig = realm.admin().users().userProfile().getConfiguration();
         upConfig.setUnmanagedAttributePolicy(UnmanagedAttributePolicy.ENABLED);
         realm.admin().users().userProfile().update(upConfig);

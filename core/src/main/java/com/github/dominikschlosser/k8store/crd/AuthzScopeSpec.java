@@ -20,7 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * Spec of a {@code KeycloakAuthzScope} custom resource: one authorization scope of a resource
- * server (Authorization Services — not to be confused with OAuth client scopes, which are the
+ * server (Authorization Services - not to be confused with OAuth client scopes, which are the
  * {@code KeycloakClientScope} kind). Scoped by realm + {@code resourceServer} (the owning
  * client's clientId); the id is a generated UUID, names are unique per resource server.
  */

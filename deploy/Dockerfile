@@ -7,7 +7,7 @@ FROM quay.io/keycloak/keycloak:nightly AS builder
 COPY core/target/providers/*.jar /opt/keycloak/providers/
 
 # --features-disabled=organization: with the default areas (no 'organization' area, groups in
-# CRs) the organizations feature must stay off — the built-in JPA organization store cannot
+# CRs) the organizations feature must stay off - the built-in JPA organization store cannot
 # reference CR-backed groups and the k8store boot validation rejects that combination. To use
 # organizations, enable the area (e.g. areas=all) AND the feature AND disable the infinispan
 # organization cache (--spi-organization--infinispan--enabled=false); the deployment manifest's

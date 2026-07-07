@@ -38,7 +38,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kazr")
 public class KeycloakAuthzResourceCr extends CustomResource<AuthzResourceSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected AuthzResourceSpec initSpec() {
         return new AuthzResourceSpec();

@@ -36,7 +36,7 @@ import org.keycloak.models.UserModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 
 /**
- * {@link PermissionTicketStore} over {@code KeycloakPermissionTicket} custom resources — the one
+ * {@link PermissionTicketStore} over {@code KeycloakPermissionTicket} custom resources - the one
  * always-writable authorization kind (UMA runtime data). Query semantics mirror upstream JPA,
  * including the caller restriction: server-scoped {@code find}/{@code count} queries of a
  * non-admin caller only see tickets the current user owns or requested, unless the caller is
@@ -145,7 +145,7 @@ class CrPermissionTicketStore implements PermissionTicketStore {
 
     /**
      * JPA parity: a server-scoped query of a non-admin caller is restricted to the current
-     * user's own tickets (as owner or requester) — except when the caller is the resource
+     * user's own tickets (as owner or requester) - except when the caller is the resource
      * server's service account, which sees everything. Returns the restricting user id, or null
      * for no restriction.
      */
@@ -231,7 +231,7 @@ class CrPermissionTicketStore implements PermissionTicketStore {
                 .filter(Objects::nonNull)
                 .map(Resource.class::cast);
         if (name != null) {
-            // JPA parity: lower(name) like %term% — a plain case-insensitive contains
+            // JPA parity: lower(name) like %term% - a plain case-insensitive contains
             resources = resources.filter(resource ->
                     LikePatterns.insensitiveLike(resource.getName(), "%" + name.toLowerCase() + "%"));
         }

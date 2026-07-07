@@ -23,7 +23,7 @@ import java.util.Map;
  * Spec of a {@code KeycloakUserSession} custom resource: one authenticated user session (online
  * or offline), with its client sessions {@linkplain #getClientSessions() embedded} in a map keyed
  * by the client's storage id. These CRs are volatile runtime state written by Keycloak on every
- * login/refresh — never author them by hand.
+ * login/refresh - never author them by hand.
  *
  * <p>Original shape (Keycloak has no session representation class): all timestamps are epoch
  * milliseconds. {@link #getExpiresAt() expiresAt} is maintained by the provider from the realm's

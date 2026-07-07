@@ -31,7 +31,7 @@ import java.util.function.BooleanSupplier;
 import java.util.stream.Stream;
 
 /**
- * Access to the real Kubernetes cluster behind the Keycloak server under test — the integration
+ * Access to the real Kubernetes cluster behind the Keycloak server under test - the integration
  * tests run against a kind cluster, never a mock.
  *
  * <p>Embedded mode (default): the embedded Keycloak's storage backend is pointed at the
@@ -72,7 +72,7 @@ public final class TestKube {
                         .build();
                 created.getKubernetesVersion();
             } catch (Exception e) {
-                throw new IllegalStateException("Cannot reach the '" + CONTEXT + "' kind cluster — the integration"
+                throw new IllegalStateException("Cannot reach the '" + CONTEXT + "' kind cluster - the integration"
                         + " tests run against a real cluster. Create it with scripts/kind-up.sh (or set"
                         + " K8STORE_TEST_CONTEXT to another kubeconfig context).", e);
             }
@@ -92,7 +92,7 @@ public final class TestKube {
     }
 
     /**
-     * Namespace of the dynamic-areas ({@code areas=all}) server — separate from
+     * Namespace of the dynamic-areas ({@code areas=all}) server - separate from
      * {@link #namespace()} on purpose. The embedded servers of one JVM share their dev database,
      * and the config-mode servers rely on the bootstrap admin surviving there across restarts;
      * an {@code areas=all} server stores users (incl. the bootstrap admin and the temp-admin
@@ -143,7 +143,7 @@ public final class TestKube {
         }
         if (files.isEmpty()) {
             throw new IllegalStateException("No CRD manifests found in " + crdDir.toAbsolutePath()
-                    + " — build them with scripts/update-crds.sh");
+                    + " - build them with scripts/update-crds.sh");
         }
         for (Path file : files) {
             CustomResourceDefinition crd;

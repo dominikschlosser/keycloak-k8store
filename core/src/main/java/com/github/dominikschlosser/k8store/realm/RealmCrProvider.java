@@ -62,7 +62,7 @@ public class RealmCrProvider implements RealmProvider {
             throw new IllegalArgumentException("name cannot be null or empty");
         }
         if (id != null && !id.equals(name)) {
-            // this store uses the name as the id — same convention as clients (clientId) and
+            // this store uses the name as the id - same convention as clients (clientId) and
             // client scopes (name)
             LOG.debugv("Ignoring explicit realm id {0}: this store keys realms by name ({1})", id, name);
         }

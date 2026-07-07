@@ -21,14 +21,14 @@ import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
- * Access to the two OID4VC custom-resource kinds of the {@code user} area —
+ * Access to the two OID4VC custom-resource kinds of the {@code user} area -
  * {@code KeycloakUserVerifiableCredential} (a user's registered verifiable credentials) and
  * {@code KeycloakIssuedVerifiableCredential} (issuance events, expiring). Both kinds are only
  * registered when the {@code oid4vc-vci} feature is enabled together with the area; ids are
  * generated (upstream convention), realms scope the informer indexes.
  *
  * <p>Upstream's SPI is realm-blind on this surface (methods take user/credential ids only), so
- * by-id lookups without a realm scan all realms — unambiguous because the ids are generated.
+ * by-id lookups without a realm scan all realms - unambiguous because the ids are generated.
  */
 public final class VerifiableCredentialCrStore {
 

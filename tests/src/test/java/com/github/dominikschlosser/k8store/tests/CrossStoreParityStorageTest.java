@@ -55,7 +55,7 @@ import org.keycloak.testframework.server.KeycloakUrls;
 
 /**
  * Cross-store integrity: users live in the database while roles, clients and scopes live in
- * custom resources — role mappings, composites and real token issuance must join the two stores
+ * custom resources - role mappings, composites and real token issuance must join the two stores
  * exactly like Keycloak's default storage.
  */
 @Order(1)

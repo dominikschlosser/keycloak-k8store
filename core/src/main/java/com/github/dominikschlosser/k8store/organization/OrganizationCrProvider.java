@@ -59,20 +59,20 @@ import org.keycloak.utils.StringUtil;
  *
  * <ul>
  *   <li>the organization <em>definition</em> (name, alias, enabled, description, redirect URL,
- *       domains, attributes) is the {@code KeycloakOrganization} CR — configuration, rejected in
+ *       domains, attributes) is the {@code KeycloakOrganization} CR - configuration, rejected in
  *       read-only mode;
  *   <li>the backing group and organization-scoped subgroups are created through
  *       {@code session.groups()} as {@code KeycloakGroup} CRs with {@code spec.type:
  *       organization} (backing group name = organization id, upstream convention);
  *   <li><em>membership</em> is group membership of the backing group and lives wherever users
- *       live (database rows or {@code KeycloakUser} CRs) — always runtime-writable, so
+ *       live (database rows or {@code KeycloakUser} CRs) - always runtime-writable, so
  *       invitation/registration/broker joins keep working when organization CRs are read-only.
  *       The MANAGED marker is the multi-valued user attribute
  *       {@link #MANAGED_MEMBER_ATTRIBUTE} (upstream stores it in a membership column that no
  *       model API can read back);
  *   <li>the identity-provider linkage is the {@code organizationId} field of the identity
  *       provider, stored in the realm CR;
- *   <li>invitations are {@code KeycloakOrganizationInvitation} CRs — runtime data, writable in
+ *   <li>invitations are {@code KeycloakOrganizationInvitation} CRs - runtime data, writable in
  *       read-only mode.
  * </ul>
  */
@@ -135,7 +135,7 @@ public class OrganizationCrProvider implements OrganizationProvider {
 
     /**
      * Runs an action with the session-context organization set (unless a context organization
-     * already exists) — the upstream JPA factory registers a global group-event guard that
+     * already exists) - the upstream JPA factory registers a global group-event guard that
      * rejects organization-group mutations outside an organization context, and validators
      * resolve the context organization the same way.
      */
@@ -199,7 +199,7 @@ public class OrganizationCrProvider implements OrganizationProvider {
     }
 
     /**
-     * Stamps the owning organization on a freshly created group — through the returned
+     * Stamps the owning organization on a freshly created group - through the returned
      * adapter's live spec, never a fresh store copy (an in-flight adapter would clobber a
      * concurrent mutation on its next persist).
      */

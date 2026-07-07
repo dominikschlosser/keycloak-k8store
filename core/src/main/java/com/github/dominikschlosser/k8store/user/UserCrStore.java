@@ -20,10 +20,10 @@ import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import java.util.List;
 
 /**
- * Access to {@code KeycloakUser} custom resources, keyed by {@code (realm, user id)} — the user
+ * Access to {@code KeycloakUser} custom resources, keyed by {@code (realm, user id)} - the user
  * id is the lowercased username at creation, immutable afterwards. Reads come from the informer
  * mirror and hand out defensive copies; every mutation of a spec must be persisted explicitly
- * through {@link #save}. Writes go through the per-transaction buffer — the many setter calls of
+ * through {@link #save}. Writes go through the per-transaction buffer - the many setter calls of
  * one admin update or registration coalesce into one server-side apply at commit.
  */
 public final class UserCrStore {

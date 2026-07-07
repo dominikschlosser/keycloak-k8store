@@ -21,7 +21,7 @@ import org.keycloak.models.OrganizationInvitationModel;
 
 /**
  * {@link OrganizationInvitationModel} over an {@link OrganizationInvitationSpec}. Every setter
- * persists the spec — the invitation flows mutate the model after creation (invite link).
+ * persists the spec - the invitation flows mutate the model after creation (invite link).
  */
 public class OrganizationInvitationAdapter implements OrganizationInvitationModel {
 

@@ -27,7 +27,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 
 /**
  * A Keycloak organization stored as a Kubernetes custom resource ({@code organization} area).
- * The spec is {@link OrganizationSpec} — Keycloak's organization representation plus the realm
+ * The spec is {@link OrganizationSpec} - Keycloak's organization representation plus the realm
  * and backing-group reference; {@code spec.id} defaults to {@code metadata.name}. Members,
  * organization groups and identity-provider linkage live in their own storage (users, {@code
  * KeycloakGroup} CRs with {@code type: organization}, the realm CR's identity providers).
@@ -40,7 +40,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("korg")
 public class KeycloakOrganizationCr extends CustomResource<OrganizationSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected OrganizationSpec initSpec() {
         return new OrganizationSpec();

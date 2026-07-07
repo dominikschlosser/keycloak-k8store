@@ -42,7 +42,7 @@ import org.keycloak.storage.datastore.DefaultDatastoreProvider;
  * delegates everything else (users, export/import, …) to Keycloak's default storage by
  * inheriting from {@link DefaultDatastoreProvider}. The dynamic areas (user sessions, auth
  * sessions, login failures, single-use objects, revoked tokens) delegate the same way and only
- * resolve the CR-backed providers when their area is explicitly enabled — by default they stay
+ * resolve the CR-backed providers when their area is explicitly enabled - by default they stay
  * on Keycloak's database.
  */
 public class K8sDatastoreProvider extends DefaultDatastoreProvider {
@@ -51,7 +51,7 @@ public class K8sDatastoreProvider extends DefaultDatastoreProvider {
 
     /**
      * The inherited fall-through paths (clientStorageManager(), getMigrationManager(), ...)
-     * dereference the factory, so a real {@link DefaultDatastoreProviderFactory} is required —
+     * dereference the factory, so a real {@link DefaultDatastoreProviderFactory} is required -
      * Quarkus prunes the unselected {@code legacy} factory from the registry when the datastore
      * provider is fixed, so {@link K8sDatastoreProviderFactory} supplies its own initialized
      * delegate instance.
@@ -123,13 +123,13 @@ public class K8sDatastoreProvider extends DefaultDatastoreProvider {
      * CR-backed provider as its local storage: the manager resolves
      * {@code ((DefaultDatastoreProvider) datastore).userLocalStorage()}, which the override
      * below pins to the CR provider. User-storage federation (LDAP/Kerberos components)
-     * therefore works exactly as with the JPA store — imported federated users become local
+     * therefore works exactly as with the JPA store - imported federated users become local
      * shadow users in the CR store ({@code addUser} + {@code setFederationLink}), and the
      * concrete {@code UserCredentialManager} keeps resolving credentials through
      * {@code userLocalStorage()}, which implements {@code UserCredentialStore}.
      *
      * <p>The one deliberate deviation from the inherited {@code users()} is skipping the
-     * {@code UserCache} lookup — this extension runs stateless (the user cache is disabled),
+     * {@code UserCache} lookup - this extension runs stateless (the user cache is disabled),
      * and the infinispan cache provider would delegate to the JPA store anyway.
      */
     @Override

@@ -61,9 +61,9 @@ import org.keycloak.testframework.server.KeycloakUrls;
  * The {@code authorization} area end to end: enabling Authorization Services on a client
  * materializes a {@code KeycloakResourceServer} CR with the default resource/policy CRs, the
  * authorization admin API creates resource/scope/policy/permission CRs with correct
- * cross-references, policy evaluation works through the CR store — a UMA entitlement request
+ * cross-references, policy evaluation works through the CR store - a UMA entitlement request
  * (grant {@code urn:ietf:params:oauth:grant-type:uma-ticket}) answers 200 with the granted
- * permissions for a user satisfying the role policy and 403 for one who does not — and
+ * permissions for a user satisfying the role policy and 403 for one who does not - and
  * deleting the client cascades over the whole authorization CR graph.
  */
 @Order(1)
@@ -139,7 +139,7 @@ public class AuthorizationAreaStorageTest {
         UserRepresentation user = new UserRepresentation();
         user.setUsername(username);
         user.setEnabled(true);
-        // a complete profile — an unset email/name would leave the VERIFY_PROFILE required
+        // a complete profile - an unset email/name would leave the VERIFY_PROFILE required
         // action pending and fail the password grant with "Account is not fully set up"
         user.setEmail(username + "@example.com");
         user.setFirstName("First");

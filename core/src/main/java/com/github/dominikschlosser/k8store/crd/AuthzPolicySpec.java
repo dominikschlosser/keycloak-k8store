@@ -28,10 +28,10 @@ import org.keycloak.representations.idm.authorization.Logic;
  * the id is a generated UUID, names are unique per resource server. The policy's references to
  * resources, authorization scopes and other policies are plain id sets ({@link #getResourceIds()
  * resourceIds}, {@link #getScopeIds() scopeIds}, {@link #getAssociatedPolicyIds()
- * associatedPolicyIds} — the JPA junction tables in CR shape), so there is no recursion in the
+ * associatedPolicyIds} - the JPA junction tables in CR shape), so there is no recursion in the
  * CRD schema. The type-specific settings (e.g. a role policy's roles, a client policy's
  * clients) live in the {@link #getConfig() config} map exactly as Keycloak's policy providers
- * store them — JSON-array strings of ids/names.
+ * store them - JSON-array strings of ids/names.
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

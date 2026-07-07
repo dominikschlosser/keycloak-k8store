@@ -2,7 +2,7 @@
 
 Keycloak datastore extension that stores Keycloak data as **Kubernetes Custom Resources**.
 By default the **configuration entities** (realms, clients, client scopes, roles, groups,
-identity providers) live in CRs while dynamic data (users, sessions) stays in the database —
+identity providers) live in CRs while dynamic data (users, sessions) stays in the database -
 ideal for GitOps: your platform writes `KeycloakRealm`/`KeycloakClient` manifests, Keycloak
 serves them read-only. Optionally, **every** storage area can be CR-backed.
 
@@ -22,7 +22,7 @@ spec:
 ```
 
 CRs use Keycloak's own representation JSON as their spec. Changes applied with `kubectl`/GitOps
-are served by every Keycloak node within milliseconds — no restarts, no cache invalidation.
+are served by every Keycloak node within milliseconds - no restarts, no cache invalidation.
 
 ## How it fits together
 
@@ -61,7 +61,7 @@ flowchart LR
 ```
 
 Every pod keeps its own watch-synchronized in-memory mirror of the CRs, so reads never hit the
-API server and pods need no coordination — sequence diagrams and the full design are in
+API server and pods need no coordination - sequence diagrams and the full design are in
 [ARCHITECTURE.md](ARCHITECTURE.md#how-it-works--at-a-glance).
 
 ## Quickstart (local)
@@ -77,7 +77,7 @@ scripts/kind-down.sh
 
 Write mode materializes everything an admin does as CRs (useful for bootstrapping: click it
 together in the console, then `kubectl get ... -o yaml` becomes your GitOps source). Read-only
-mode rejects all config writes through Keycloak — the CRs are the single source of truth.
+mode rejects all config writes through Keycloak - the CRs are the single source of truth.
 
 `scripts/benchmark.sh` runs a k8store-vs-vanilla load-test comparison against this cluster
 using Keycloak's official keycloak-benchmark tool; results in [docs/BENCHMARK.md](docs/BENCHMARK.md).
@@ -123,14 +123,14 @@ Datastore options (`--spi-datastore--k8store--<option>`, or env
   role, group, identity-provider`.
 - **Opt-in config areas**: `authorization` (Authorization Services; requires `client`),
   `organization` (requires `group,identity-provider`; also disable the organization Infinispan
-  cache — and the `organization` *feature* must stay disabled unless this area is on).
+  cache - and the `organization` *feature* must stay disabled unless this area is on).
 - **Dynamic areas** (always writable, even in read-only mode): `user-session, auth-session,
   login-failure, single-use-object, revoked-token, user`.
 - **`all`** = everything above.
 
 **The dynamic areas are experimental**: every login becomes CR writes (etcd churn and size
 limits apply), and CR writes are transaction-buffered but not atomic with the database. User
-CRs contain **credential hashes and broker tokens — lock down RBAC on `keycloakusers`**.
+CRs contain **credential hashes and broker tokens - lock down RBAC on `keycloakusers`**.
 
 ## CRD kinds
 
@@ -152,15 +152,15 @@ Two things happen on a Keycloak version bump, and only one of them is automatic:
 - **Schema**: `scripts/update-crds.sh` regenerates the CRD schemas from the new Keycloak;
   `scripts/crd-tools.sh` classifies the changes and applies them without downtime. Database
   (Liquibase) migrations for DB-stored data run normally.
-- **Content**: Keycloak's built-in *model migrations* — boot-time rewrites of stored config,
-  e.g. "add the new built-in `basic` client scope to every realm" (Keycloak 25) — are
+- **Content**: Keycloak's built-in *model migrations* - boot-time rewrites of stored config,
+  e.g. "add the new built-in `basic` client scope to every realm" (Keycloak 25) - are
   **deliberately skipped for CR data**. In a GitOps store, a hidden boot-time write would fight
   your manifests (the next `kubectl apply` reverts it) and read-only mode forbids it anyway.
   So on upgrades: read the upstream migration guide, and if a config-level change applies,
   express it in your CR manifests yourself. A practical shortcut: bootstrap the new version in
   write mode against a scratch namespace and diff its CRs against yours. Every CR is stamped
   with the Keycloak version that wrote it, and the server warns at boot about CRs stamped by an
-  older version — that's your prompt to check the notes.
+  older version - that's your prompt to check the notes.
 
 ## Known limitations
 

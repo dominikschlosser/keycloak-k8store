@@ -26,7 +26,7 @@ import io.fabric8.kubernetes.model.annotation.Singular;
 import io.fabric8.kubernetes.model.annotation.Version;
 
 /**
- * One authorization scope of a resource server (Authorization Services — not an OAuth client
+ * One authorization scope of a resource server (Authorization Services - not an OAuth client
  * scope), stored as a Kubernetes custom resource ({@code authorization} area). The spec is
  * {@link AuthzScopeSpec}; {@code spec.id} defaults to {@code metadata.name}.
  */
@@ -38,7 +38,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kazs")
 public class KeycloakAuthzScopeCr extends CustomResource<AuthzScopeSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected AuthzScopeSpec initSpec() {
         return new AuthzScopeSpec();

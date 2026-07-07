@@ -21,9 +21,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
  * Spec of a {@code KeycloakRevokedToken} custom resource: one explicitly revoked token id,
  * kept until the token would have expired anyway ({@link #getExpiresAt() expiresAt}, epoch
- * millis — expired CRs are filtered on read and reaped in the background). Revoked tokens are
- * not realm-scoped — the backend indexes them under a constant pseudo-realm. Written by Keycloak
- * when a token is revoked — never author these by hand.
+ * millis - expired CRs are filtered on read and reaped in the background). Revoked tokens are
+ * not realm-scoped - the backend indexes them under a constant pseudo-realm. Written by Keycloak
+ * when a token is revoked - never author these by hand.
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)

@@ -26,7 +26,7 @@ import org.keycloak.storage.StorageId;
 
 /**
  * {@link ResourceServerStore} over {@code KeycloakResourceServer} custom resources. The
- * resource-server id is the owning client's id (upstream JPA convention) — in this store that
+ * resource-server id is the owning client's id (upstream JPA convention) - in this store that
  * is the clientId, so {@code findById} without a client is scoped to the session's realm
  * (clientIds are only unique per realm), with a cross-realm scan as last resort.
  */

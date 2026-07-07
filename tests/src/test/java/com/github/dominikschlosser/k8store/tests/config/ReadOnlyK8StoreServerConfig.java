@@ -20,7 +20,7 @@ import org.keycloak.testframework.server.KeycloakServerConfig;
 import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
 
 /**
- * The production pattern of k8store: {@code read-only=true} — config entities are served from
+ * The production pattern of k8store: {@code read-only=true} - config entities are served from
  * custom resources and cannot be changed through Keycloak.
  *
  * <p>A read-only Keycloak cannot bootstrap the master realm on an empty store, so test classes

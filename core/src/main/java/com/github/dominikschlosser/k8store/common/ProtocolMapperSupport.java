@@ -29,7 +29,7 @@ import org.keycloak.representations.idm.ProtocolMapperRepresentation;
  * Shared {@link org.keycloak.models.ProtocolMapperContainerModel} logic of the client and
  * client-scope adapters, operating on the standard {@link ProtocolMapperRepresentation} lists of
  * a {@link ProtocolMapperCarrier} spec. Every mutation runs the supplied {@code persist}
- * callback — specs carry no write-through machinery.
+ * callback - specs carry no write-through machinery.
  *
  * <p>Mapper ids are generated with {@link KeycloakModelUtils#generateId()} at creation and
  * preserved on read; a mapper without an own protocol inherits the container's (defaulting to

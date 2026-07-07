@@ -22,7 +22,7 @@ import java.util.Map;
 
 /**
  * One per-browser-tab authentication session, embedded in its root session's
- * {@link AuthSessionSpec#getTabs() tabs} map — not a custom resource of its own. Carries the
+ * {@link AuthSessionSpec#getTabs() tabs} map - not a custom resource of its own. Carries the
  * complete flow state Keycloak tracks while a login is in progress. {@link #getTimestamp()
  * timestamp} (epoch millis) orders tabs for oldest-first eviction when a root session exceeds
  * the tab limit.

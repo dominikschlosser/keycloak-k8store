@@ -42,7 +42,7 @@ import org.keycloak.representations.idm.UserRepresentation;
  * CR body reads exactly like standard Keycloak realm JSON (the format of realm exports and the
  * Admin REST API).
  *
- * <p>Identity: {@code spec.realm} — the realm name, which doubles as the realm id in this store —
+ * <p>Identity: {@code spec.realm} - the realm name, which doubles as the realm id in this store -
  * defaults to {@code metadata.name} when omitted from a hand-authored CR; {@code spec.id} is kept
  * equal to it.
  *
@@ -53,16 +53,16 @@ import org.keycloak.representations.idm.UserRepresentation;
  * setting. Flow bindings ({@code browserFlow}, ...) and authenticator-config references inside
  * executions use <em>aliases</em>, exactly like realm exports.
  *
- * <p><b>Not served — per-kind CRs are the storage:</b> the embedded {@code users},
+ * <p><b>Not served - per-kind CRs are the storage:</b> the embedded {@code users},
  * {@code federatedUsers}, {@code clients}, {@code clientScopes}, {@code roles}, {@code groups}
  * and {@code clientScopeMappings}/{@code scopeMappings} collections of a realm export are
  * excluded from the CRD schema and their content is ignored (with a warning) if it reaches the
  * store. Author {@code KeycloakClient}/{@code KeycloakRole}/... CRs instead. Import/export-only
  * and unsupported fields (deprecated {@code applications}/{@code oauthClients} shapes, realm
- * key-pair import fields, {@code organizations}, client profiles/policies JSON — the latter are
+ * key-pair import fields, {@code organizations}, client profiles/policies JSON - the latter are
  * served from realm attributes at runtime) are excluded as well.
  *
- * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped — a
+ * <p>Serialization rules: {@code null} properties and {@code null} map values are dropped - a
  * real API server rejects explicit nulls in {@code map<string,string>} schema fields with 422.
  * Unknown properties are ignored on read so CRs written by a newer schema generation do not
  * break older nodes during a rolling upgrade.
@@ -190,7 +190,7 @@ public class RealmSpec extends RealmRepresentation {
 
     /**
      * Embedded per-kind collections present on this spec, by field name. Per-kind CRs are the
-     * storage — content listed here is not served and callers should warn about it.
+     * storage - content listed here is not served and callers should warn about it.
      */
     @JsonIgnore
     public List<String> ignoredEmbeddedCollections() {
@@ -303,21 +303,21 @@ public class RealmSpec extends RealmRepresentation {
         return super.getAdminPermissionsClient();
     }
 
-    /** Excluded: legacy key-pair import field — realm keys are key-provider components. */
+    /** Excluded: legacy key-pair import field - realm keys are key-provider components. */
     @JsonIgnore
     @Override
     public String getPrivateKey() {
         return super.getPrivateKey();
     }
 
-    /** Excluded: legacy key-pair import field — realm keys are key-provider components. */
+    /** Excluded: legacy key-pair import field - realm keys are key-provider components. */
     @JsonIgnore
     @Override
     public String getPublicKey() {
         return super.getPublicKey();
     }
 
-    /** Excluded: legacy key-pair import field — realm keys are key-provider components. */
+    /** Excluded: legacy key-pair import field - realm keys are key-provider components. */
     @JsonIgnore
     @Override
     public String getCertificate() {

@@ -51,7 +51,7 @@ import org.keycloak.testframework.server.KeycloakUrls;
 /**
  * The experimental {@code user} area end to end ({@code areas=all}): admin-created users become
  * {@code KeycloakUser} custom resources carrying hashed credentials (never plaintext), password
- * logins of CR users work — and still produce the D1 session CRs — admin search/list/count work
+ * logins of CR users work - and still produce the D1 session CRs - admin search/list/count work
  * against the CR store, group membership and role grants land on the user CR, and deleting the
  * user deletes its CR.
  */

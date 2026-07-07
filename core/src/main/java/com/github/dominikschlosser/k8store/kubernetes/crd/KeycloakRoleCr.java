@@ -38,7 +38,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kro")
 public class KeycloakRoleCr extends CustomResource<RoleSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected RoleSpec initSpec() {
         return new RoleSpec();

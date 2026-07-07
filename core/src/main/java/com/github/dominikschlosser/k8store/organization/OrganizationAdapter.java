@@ -43,7 +43,7 @@ import org.keycloak.utils.StringUtil;
  * organizations switch with the organization's own flag, domain updates validate the domain
  * format and cross-organization uniqueness and strip the {@code kc.org.domain} config key from
  * identity providers whose domain was removed. Attributes live in the spec (not on the backing
- * group as in JPA — the CR is the authored artifact).
+ * group as in JPA - the CR is the authored artifact).
  */
 public class OrganizationAdapter implements OrganizationModel {
 

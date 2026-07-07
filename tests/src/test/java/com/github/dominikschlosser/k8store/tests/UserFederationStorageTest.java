@@ -53,7 +53,7 @@ import org.keycloak.testframework.server.KeycloakUrls;
  * User-storage federation compatibility of the CR-backed user area: {@code session.users()} is
  * Keycloak's {@code UserStorageManager} with the CR provider as its local storage, so a
  * registered federation provider (a tiny test-classpath {@link TestFederationUserStorage}, no
- * LDAP server needed) imports its users as {@code KeycloakUser} CRs — federation link, login
+ * LDAP server needed) imports its users as {@code KeycloakUser} CRs - federation link, login
  * through the federated credential fan-out, imported-user search, unlink and remove-imported
  * all work against the CR store.
  */
@@ -136,7 +136,7 @@ public class UserFederationStorageTest {
                     "the CR must carry the federation link to the storage provider component");
             assertEquals(TestFederationUserStorage.EMAIL, imported.getSpec().getEmail());
             assertNull(imported.getSpec().getCredentials(),
-                    "the shadow user must not store credentials — validation stays federated");
+                    "the shadow user must not store credentials - validation stays federated");
 
             // wrong password: the federated validator rejects, no local fallback
             assertEquals(400, passwordGrant(TestFederationUserStorage.USERNAME, "wrong-password"));

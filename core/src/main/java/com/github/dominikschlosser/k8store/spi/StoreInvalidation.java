@@ -20,8 +20,8 @@ import org.keycloak.provider.InvalidationHandler.InvalidableObjectType;
 /**
  * Cross-provider invalidation events of the k8store model layer, sent through
  * {@link org.keycloak.models.KeycloakSession#invalidate}. A provider that removes an object
- * announces it here so that the other k8store providers can cascade — e.g. the role provider
- * dropping a deleted role from composites, the group provider dropping it from role grants —
+ * announces it here so that the other k8store providers can cascade - e.g. the role provider
+ * dropping a deleted role from composites, the group provider dropping it from role grants -
  * and so that {@code *_AFTER_REMOVE} handlers can publish Keycloak's model removal events.
  *
  * <p>Event parameters follow one convention: {@code params[0]} is the {@code RealmModel} (except

@@ -23,7 +23,7 @@ import java.util.Map;
  * Spec of a {@code KeycloakAuthSession} custom resource: one root authentication session with
  * all its browser-tab sessions {@linkplain #getTabs() embedded} (map key = tab id), so an
  * in-flight login is exactly one CR regardless of how many tabs the browser opens. Volatile
- * runtime state written by Keycloak when an authentication flow starts — never author these by
+ * runtime state written by Keycloak when an authentication flow starts - never author these by
  * hand. Timestamps are epoch millis; {@link #getExpiresAt() expiresAt} follows the realm's login
  * timeout settings, expired CRs are filtered on read and reaped in the background.
  */

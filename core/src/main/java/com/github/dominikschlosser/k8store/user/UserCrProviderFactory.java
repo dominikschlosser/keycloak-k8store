@@ -85,7 +85,7 @@ public class UserCrProviderFactory extends AbstractCrProviderFactory<UserCrProvi
 
     /**
      * Identity-provider removal is announced as a model event (the realm adapter publishes it),
-     * not through the store invalidations — listen for it to drop the removed alias's federated
+     * not through the store invalidations - listen for it to drop the removed alias's federated
      * identity links and broker tokens from the user CRs.
      */
     @Override

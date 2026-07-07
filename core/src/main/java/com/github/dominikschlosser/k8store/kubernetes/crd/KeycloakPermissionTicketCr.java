@@ -29,7 +29,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * One UMA permission request/grant, stored as a Kubernetes custom resource ({@code
  * authorization} area). The spec is {@link PermissionTicketSpec}; {@code spec.id} defaults to
  * {@code metadata.name}. Unlike the other authorization kinds these CRs are runtime data,
- * created by UMA flows — the kind stays writable in read-only mode.
+ * created by UMA flows - the kind stays writable in read-only mode.
  */
 @Group(KeycloakPermissionTicketCr.GROUP)
 @Version(value = KeycloakPermissionTicketCr.VERSION, served = true, storage = true)
@@ -39,7 +39,7 @@ import io.fabric8.kubernetes.model.annotation.Version;
 @ShortNames("kpt")
 public class KeycloakPermissionTicketCr extends CustomResource<PermissionTicketSpec, Void> implements Namespaced {
 
-    /** Explicit factories — the fabric8 default implementations use reflection. */
+    /** Explicit factories - the fabric8 default implementations use reflection. */
     @Override
     protected PermissionTicketSpec initSpec() {
         return new PermissionTicketSpec();

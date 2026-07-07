@@ -48,7 +48,7 @@ import org.keycloak.models.RoleModel;
  * {@link ClientProvider} serving clients from {@code KeycloakClient} custom resources.
  *
  * <p>Identity convention (human-readable, GitOps-friendly): the client id <em>is</em> the
- * clientId — {@code getClientById} and {@code getClientByClientId} resolve the same key.
+ * clientId - {@code getClientById} and {@code getClientByClientId} resolve the same key.
  * Default/optional client-scope assignments are stored as scope <em>names</em> in the
  * representation's standard {@code defaultClientScopes}/{@code optionalClientScopes} lists.
  */
@@ -231,7 +231,7 @@ public class ClientCrProvider implements ClientProvider {
      * The spec to mutate for a scope-assignment write against {@code client}: the adapter's own
      * live instance when the caller holds one. A client being created persists its spec after
      * every property update, so mutating a freshly read copy instead would be clobbered by the
-     * adapter's next persist — observed with the default-client-scope assignment that the
+     * adapter's next persist - observed with the default-client-scope assignment that the
      * login-protocol factories perform from the {@code ClientProtocolUpdatedEvent} fired in the
      * middle of client creation ({@code RepresentationToModel.updateClientProperties}).
      */

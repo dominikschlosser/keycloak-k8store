@@ -26,7 +26,7 @@ import java.util.Map;
  *
  * <p>Storage shape mirrors the phase-1 composite convention: {@code realmScopeMappings} holds
  * realm role <em>names</em>, {@code clientScopeMappings} maps the owning client's id
- * (= clientId in this store) to its role names — readable in hand-authored CRs.
+ * (= clientId in this store) to its role names - readable in hand-authored CRs.
  */
 public interface ScopeMappingCarrier {
 

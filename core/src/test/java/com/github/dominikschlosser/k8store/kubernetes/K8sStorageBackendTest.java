@@ -460,7 +460,7 @@ class K8sStorageBackendTest {
         start(false);
 
         // no KeycloakSession on the thread (boot-time paths, unit tests): the fallback applies
-        // the CR to the API server right away — current pre-buffering behavior
+        // the CR to the API server right away - current pre-buffering behavior
         RealmSpec realm = new RealmSpec();
         realm.setRealm("no-session");
         RealmCrStore.save(realm);
@@ -624,7 +624,7 @@ class K8sStorageBackendTest {
     }
 
     /**
-     * The slice of {@link KeycloakSession} the write buffer touches — attributes and the
+     * The slice of {@link KeycloakSession} the write buffer touches - attributes and the
      * transaction manager, which is Keycloak's real {@link DefaultKeycloakTransactionManager},
      * so the tests exercise the actual prepare/commit/rollback phase ordering of the server.
      * Everything else is unsupported.

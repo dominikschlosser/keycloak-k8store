@@ -24,7 +24,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
  * Spec of a {@code KeycloakAuthzResource} custom resource: one protected resource of a resource
  * server (Authorization Services). Scoped by realm + {@code resourceServer} (the owning
- * client's clientId); the id is a generated UUID (upstream JPA convention — resource names are
+ * client's clientId); the id is a generated UUID (upstream JPA convention - resource names are
  * only unique per (server, owner), so they cannot be the store id). Authorization scopes are
  * referenced by id in {@link #getScopeIds() scopeIds}; this is a plain string list, so the CRD
  * schema stays free of the representation classes' resource-scope recursion.

@@ -67,7 +67,7 @@ class K8sAuthzKindsTest {
     @Test
     void authorizationAreaIsOptInButJoinsAll() {
         assertFalse(K8sStoreConfig.configAreas().contains(Area.AUTHORIZATION),
-                "the config default must stay backward-compatible — authorization is opt-in");
+                "the config default must stay backward-compatible - authorization is opt-in");
         assertFalse(K8sStoreConfig.parseAreas("config").contains(Area.AUTHORIZATION));
         assertTrue(K8sStoreConfig.parseAreas("all").contains(Area.AUTHORIZATION),
                 "the authorization area joins 'all'");
@@ -81,7 +81,7 @@ class K8sAuthzKindsTest {
     void authorizationAreaRequiresTheClientArea() {
         assertThrows(IllegalArgumentException.class,
                 () -> K8sStoreConfig.of(false, EnumSet.of(Area.REALM, Area.AUTHORIZATION), "test", false, 30),
-                "resource servers are keyed by their client — the client area is required");
+                "resource servers are keyed by their client - the client area is required");
         K8sStoreConfig.reset();
         K8sStoreConfig.of(false, EnumSet.of(Area.REALM, Area.CLIENT, Area.AUTHORIZATION), "test", false, 30);
     }

@@ -31,18 +31,18 @@ import org.keycloak.representations.idm.OrganizationRepresentation;
 /**
  * Spec of a {@code KeycloakOrganization} custom resource: Keycloak's organization
  * representation plus the {@link #getRealm() realm} and the {@link #getGroupId() backing group}
- * reference. It carries the organization <em>definition</em> — name, alias, enabled flag,
+ * reference. It carries the organization <em>definition</em> - name, alias, enabled flag,
  * description, redirect URL, email domains and attributes.
  *
  * <p>What deliberately does <em>not</em> live here (the CR would only duplicate other storage):
  *
  * <ul>
- *   <li>{@code members} — membership is group membership of the backing group and lives on the
+ *   <li>{@code members} - membership is group membership of the backing group and lives on the
  *       user side (database rows or {@code KeycloakUser} CRs), so member joins keep working
  *       when organization CRs are read-only;
- *   <li>{@code groups} — the backing group and organization-scoped subgroups are {@code
+ *   <li>{@code groups} - the backing group and organization-scoped subgroups are {@code
  *       KeycloakGroup} CRs ({@code spec.type: organization}, {@code spec.organizationId});
- *   <li>{@code identityProviders} — the linkage is the {@code organizationId} field of the
+ *   <li>{@code identityProviders} - the linkage is the {@code organizationId} field of the
  *       identity provider entries in the realm CR, exactly where Keycloak's model keeps it.
  * </ul>
  *
@@ -50,7 +50,7 @@ import org.keycloak.representations.idm.OrganizationRepresentation;
  * carrying them is reported ({@link #ignoredEmbeddedCollections()}) instead of silently pruned.
  *
  * <p>Unlike upstream's JPA store (which keeps organization attributes on the backing group),
- * attributes are stored in this spec — the representation carries them and that is where a
+ * attributes are stored in this spec - the representation carries them and that is where a
  * GitOps author expects them.
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
