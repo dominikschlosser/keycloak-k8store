@@ -98,21 +98,9 @@ public class SingleUseObjectCrProvider implements SingleUseObjectProvider {
         if (lifespanSeconds <= 0) {
             throw new IllegalArgumentException("lifespanSeconds must be positive");
         }
-        SingleUseObjectSpec existing = fetch(key);
-        if (existing != null) {
-            return false;
-        }
         SingleUseObjectSpec spec = newSpec(key, lifespanSeconds, null);
-        if (K8sStorageBackend.createNow(SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key, spec)) {
-            return true;
-        }
-        // name conflict: either a live entry won the race, or an expired CR is still awaiting
-        // the reaper - an expired entry counts as absent, so claim it by overwrite
-        if (fetch(key) != null) {
-            return false;
-        }
-        K8sStorageBackend.updateNow(SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key, spec);
-        return true;
+        return K8sStorageBackend.putIfAbsentNow(
+                SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key, spec);
     }
 
     @Override

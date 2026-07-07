@@ -693,6 +693,22 @@ public final class K8sStorageBackend implements AutoCloseable {
     }
 
     /**
+     * Unbuffered atomic put-if-absent that also reclaims an expired CR: creates the spec if the
+     * key is free, and if an <em>expired</em> CR still holds the key, replaces it under optimistic
+     * concurrency so exactly one concurrent caller wins. Returns {@code false} for a live entry or
+     * a lost reclaim race. The single-use-object and revoked-token put-if-absent primitive.
+     */
+    public static <S> boolean putIfAbsentNow(Class<S> specClass, String realmId, String id, S spec) {
+        K8sStorageBackend backend = instance;
+        if (backend == null) {
+            return false;
+        }
+        KindState<S, ?> state = backend.state(specClass);
+        backend.checkWritable(state);
+        return state.putIfAbsentOnServer(realmId, id, spec);
+    }
+
+    /**
      * Unbuffered delete reporting whether <em>this</em> call deleted the CR: Kubernetes DELETE
      * answers exactly once per object across all nodes, which is what gives
      * {@code SingleUseObjectProvider.remove} its single-consumer guarantee.
@@ -1128,6 +1144,48 @@ public final class K8sStorageBackend implements AutoCloseable {
             cr.setSpec(spec);
             try {
                 client.resource(cr).create();
+            } catch (KubernetesClientException e) {
+                if (e.getCode() == 409) {
+                    return false;
+                }
+                throw e;
+            }
+            refs.put(key(realmId, id), new CrRef(name, writeNamespace));
+            mirrorPut(realmId, id, spec);
+            return true;
+        }
+
+        /**
+         * Atomic put-if-absent that also reclaims an expired CR. Tries an ordinary create first;
+         * on a name conflict it inspects the existing CR and, only if it is expired, replaces it
+         * under its {@code resourceVersion} so exactly one concurrent reclaimer wins (the losers
+         * get a 409 and {@code false}). A live (unexpired) entry, or a lost race, yields
+         * {@code false}; a create win or a reclaim win yields {@code true}.
+         */
+        boolean putIfAbsentOnServer(String realmId, String id, S spec) {
+            if (createOnServer(realmId, id, spec)) {
+                return true;
+            }
+            String name = crName(crClass, realmId, id);
+            C current = operation().inNamespace(writeNamespace).withName(name).get();
+            if (current == null) {
+                // the conflicting CR vanished between the create and this read; create can win now
+                return createOnServer(realmId, id, spec);
+            }
+            if (!isExpired(current.getSpec())) {
+                return false;
+            }
+            C replacement = crFactory.get();
+            replacement.setMetadata(new ObjectMetaBuilder()
+                    .withName(name)
+                    .withNamespace(writeNamespace)
+                    .withResourceVersion(current.getMetadata().getResourceVersion())
+                    .addToLabels(REALM_LABEL, sanitizeLabel(realmId))
+                    .addToLabels(VERSION_LABEL, sanitizeLabel(Version.VERSION))
+                    .build());
+            replacement.setSpec(spec);
+            try {
+                operation().inNamespace(writeNamespace).resource(replacement).update();
             } catch (KubernetesClientException e) {
                 if (e.getCode() == 409) {
                     return false;

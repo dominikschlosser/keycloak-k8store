@@ -30,30 +30,13 @@ import org.keycloak.models.RevokedTokenProvider;
  */
 public class RevokedTokenCrProvider implements RevokedTokenProvider {
 
-    private static RevokedTokenSpec fetch(String tokenId) {
-        return K8sStorageBackend.get().fetch(
-                RevokedTokenSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, tokenId);
-    }
-
     @Override
     public boolean put(String tokenId, long lifespanSeconds) {
-        if (fetch(tokenId) != null) {
-            return false;
-        }
         RevokedTokenSpec spec = new RevokedTokenSpec();
         spec.setTokenId(tokenId);
         spec.setExpiresAt(Time.currentTimeMillis() + lifespanSeconds * 1000L);
-        if (K8sStorageBackend.createNow(RevokedTokenSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM,
-                tokenId, spec)) {
-            return true;
-        }
-        // name conflict: a live entry won the race (report absent-insert failed), or an expired
-        // CR is still awaiting the reaper - expired counts as absent, so claim it by overwrite
-        if (fetch(tokenId) != null) {
-            return false;
-        }
-        K8sStorageBackend.updateNow(RevokedTokenSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, tokenId, spec);
-        return true;
+        return K8sStorageBackend.putIfAbsentNow(
+                RevokedTokenSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, tokenId, spec);
     }
 
     @Override
