@@ -19,6 +19,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.dominikschlosser.k8store.client.ClientAdapter;
+import com.github.dominikschlosser.k8store.crd.ClientSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
 import com.github.dominikschlosser.k8store.crd.UserConsentSpec;
@@ -35,8 +37,10 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.utils.KeycloakSessionUtil;
@@ -81,6 +85,46 @@ class UserCrProviderRenameTest {
         spec.setClientRole(true);
         spec.setContainerId(clientInternalId);
         return new RoleAdapter(null, realm, spec);
+    }
+
+    private ClientModel client(RealmModel realm, String clientId) {
+        ClientSpec spec = new ClientSpec();
+        spec.setId(clientId);
+        spec.setClientId(clientId);
+        spec.setRealm(realm.getId());
+        return new ClientAdapter(null, realm, spec, new ConcurrentHashMap<>());
+    }
+
+    @Test
+    void clientRenameRekeysGrantsRewritesConsentAndServiceAccount() {
+        start();
+        RealmModel realm = realm("master");
+
+        UserConsentSpec consent = new UserConsentSpec();
+        consent.setClientId("web");
+
+        UserSpec user = new UserSpec();
+        user.setId("carol");
+        user.setUsername("carol");
+        user.setRealm("master");
+        Map<String, List<String>> byClient = new HashMap<>();
+        byClient.put("web", new ArrayList<>(List.of("view", "edit")));
+        user.setClientRoles(byClient);
+        user.setConsents(new ArrayList<>(List.of(consent)));
+        user.setServiceAccountClientId("web");
+        UserCrStore.save(user);
+
+        new UserCrProvider(null).clientRenamed(realm, client(realm, "web"), "portal");
+
+        UserSpec read = UserCrStore.read("master", "carol");
+        assertTrue(read.getClientRoles().containsKey("portal"), "grant map is rekeyed to the new clientId");
+        assertFalse(read.getClientRoles().containsKey("web"), "the old clientId grant key is gone");
+        assertEquals(List.of("view", "edit"), read.getClientRoles().get("portal"),
+                "the grant names are preserved under the new key");
+        assertEquals("portal", read.getConsents().get(0).getClientId(),
+                "the consent client reference moves to the new clientId");
+        assertEquals("portal", read.getServiceAccountClientId(),
+                "the service-account link moves to the new clientId");
     }
 
     @Test

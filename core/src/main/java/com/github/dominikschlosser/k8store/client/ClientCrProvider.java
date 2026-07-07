@@ -223,6 +223,30 @@ public class ClientCrProvider implements ClientProvider {
         });
     }
 
+    /**
+     * Client-rename cascade: the client id keys the client section of every client's scope
+     * mappings. Rekey it from the old client id to the new one. The renamed client's own spec is
+     * skipped - its own CR (with its self-referencing scope mappings already rekeyed) is moved by
+     * the adapter.
+     */
+    void clientRenamed(RealmModel realm, ClientModel renamed, String newClientId) {
+        String oldClientId = renamed.getClientId();
+        specs(realm).forEach(spec -> {
+            if (oldClientId.equals(spec.getClientId())) {
+                return;
+            }
+            Map<String, List<String>> byClient = spec.getClientScopeMappings();
+            if (byClient == null) {
+                return;
+            }
+            List<String> names = byClient.remove(oldClientId);
+            if (names != null) {
+                byClient.put(newClientId, names);
+                ClientCrStore.save(spec);
+            }
+        });
+    }
+
     /** Client-scope removal cascade: purge the scope from every client's assignment lists. */
     void clientScopeRemoved(RealmModel realm, ClientScopeModel scope) {
         specs(realm).forEach(spec -> {

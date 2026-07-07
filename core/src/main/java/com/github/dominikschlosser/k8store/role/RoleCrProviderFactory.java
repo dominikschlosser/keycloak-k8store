@@ -16,6 +16,7 @@
 package com.github.dominikschlosser.k8store.role;
 
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_BEFORE_REMOVE;
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_BEFORE_REMOVE;
@@ -56,6 +57,8 @@ public class RoleCrProviderFactory extends AbstractCrProviderFactory<RoleCrProvi
             create(session).realmRemoved((RealmModel) params[0]);
         } else if (type == CLIENT_BEFORE_REMOVE) {
             create(session).removeRoles((ClientModel) params[1]);
+        } else if (type == CLIENT_RENAMED) {
+            create(session).clientRenamed((RealmModel) params[0], (ClientModel) params[1], (String) params[2]);
         } else if (type == ROLE_BEFORE_REMOVE) {
             create(session).roleRemoved((RealmModel) params[0], (RoleModel) params[1]);
         } else if (type == ROLE_RENAMED) {

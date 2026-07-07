@@ -16,6 +16,7 @@
 package com.github.dominikschlosser.k8store.authz;
 
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_BEFORE_REMOVE;
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
 
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
@@ -41,7 +42,9 @@ import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
  *
  * <ul>
  *   <li>k8store invalidation events: {@code CLIENT_BEFORE_REMOVE} deletes the removed client's
- *       whole authorization graph (tickets, policies, resources, scopes, resource server) and
+ *       whole authorization graph (tickets, policies, resources, scopes, resource server),
+ *       {@code CLIENT_RENAMED} rewrites that same graph onto the new clientId (the resource
+ *       server and its back-references are keyed by the clientId), and
  *       {@code REALM_BEFORE_REMOVE} bulk-deletes every authorization CR of the realm - the
  *       realm path matters because the k8store realm removal deletes client CRs in bulk without
  *       per-client events, so upstream's realm synchronizer would find no clients left to
@@ -94,6 +97,9 @@ public class AuthzCrStoreProviderFactory extends AbstractCrProviderFactory<Store
     public void invalidate(KeycloakSession session, InvalidableObjectType type, Object... params) {
         if (type == CLIENT_BEFORE_REMOVE) {
             ((CrStoreFactory) create(session)).clientRemoved((RealmModel) params[0], (ClientModel) params[1]);
+        } else if (type == CLIENT_RENAMED) {
+            ((CrStoreFactory) create(session)).clientRenamed(
+                    (RealmModel) params[0], (ClientModel) params[1], (String) params[2]);
         } else if (type == REALM_BEFORE_REMOVE) {
             ((CrStoreFactory) create(session)).realmRemoved((RealmModel) params[0]);
         }

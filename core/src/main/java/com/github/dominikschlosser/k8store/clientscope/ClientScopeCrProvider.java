@@ -21,11 +21,13 @@ import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_S
 import com.github.dominikschlosser.k8store.common.ScopeMappingSupport;
 import com.github.dominikschlosser.k8store.crd.ClientScopeSpec;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jboss.logging.Logger;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientScopeModel;
 import org.keycloak.models.ClientScopeProvider;
 import org.keycloak.models.KeycloakSession;
@@ -177,6 +179,25 @@ public class ClientScopeCrProvider implements ClientScopeProvider {
             if (ScopeMappingSupport.renameRole(spec, renamed, newName)) {
                 LOG.tracef("Rewriting renamed role %s to %s in scope mappings of client scope %s",
                         renamed.getName(), newName, spec.getName());
+                ClientScopeCrStore.save(spec);
+            }
+        });
+    }
+
+    /**
+     * Client-rename cascade: the client id keys the client section of every scope's scope
+     * mappings. Rekey it from the old client id to the new one.
+     */
+    void clientRenamed(RealmModel realm, ClientModel renamed, String newClientId) {
+        String oldClientId = renamed.getClientId();
+        specs(realm).forEach(spec -> {
+            Map<String, List<String>> byClient = spec.getClientScopeMappings();
+            if (byClient == null) {
+                return;
+            }
+            List<String> names = byClient.remove(oldClientId);
+            if (names != null) {
+                byClient.put(newClientId, names);
                 ClientScopeCrStore.save(spec);
             }
         });

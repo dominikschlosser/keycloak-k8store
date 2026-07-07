@@ -22,10 +22,12 @@ import static org.keycloak.utils.StreamsUtil.paginatedStream;
 import com.github.dominikschlosser.k8store.common.LikePatterns;
 import com.github.dominikschlosser.k8store.crd.GroupSpec;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.GroupProvider;
 import org.keycloak.models.KeycloakSession;
@@ -360,6 +362,25 @@ public class GroupCrProvider implements GroupProvider {
                 .map(spec -> new GroupAdapter(session, realm, spec))
                 .filter(group -> group.hasDirectRole(renamed))
                 .forEach(group -> group.renameRoleMapping(renamed, newName));
+    }
+
+    /**
+     * Client-rename cascade: the client id keys the client section of every group's role grants.
+     * Rekey the grant map from the old client id to the new one.
+     */
+    void clientRenamed(RealmModel realm, ClientModel renamed, String newClientId) {
+        String oldClientId = renamed.getClientId();
+        specs(realm).forEach(spec -> {
+            Map<String, List<String>> byClient = spec.getClientRoles();
+            if (byClient == null) {
+                return;
+            }
+            List<String> names = byClient.remove(oldClientId);
+            if (names != null) {
+                byClient.put(newClientId, names);
+                GroupCrStore.save(spec);
+            }
+        });
     }
 
     @Override
