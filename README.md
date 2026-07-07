@@ -79,6 +79,9 @@ Write mode materializes everything an admin does as CRs (useful for bootstrappin
 together in the console, then `kubectl get ... -o yaml` becomes your GitOps source). Read-only
 mode rejects all config writes through Keycloak — the CRs are the single source of truth.
 
+`scripts/benchmark.sh` runs a k8store-vs-vanilla load-test comparison against this cluster
+using Keycloak's official keycloak-benchmark tool; results in [docs/BENCHMARK.md](docs/BENCHMARK.md).
+
 ## Deploying elsewhere
 
 Build `core/target/providers/` (`mvn -pl core -DskipTests package`) and copy all its jars into
