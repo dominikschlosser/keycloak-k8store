@@ -439,6 +439,18 @@ class K8sStorageBackendTest {
         // consecutive dots must never survive into a CR name (invalid DNS-1123)
         assertTrue(!K8sStorageBackend.crName(KeycloakClientCr.class, "master", "my..app").contains(".."));
         assertTrue(!K8sStorageBackend.crName(KeycloakRealmCr.class, "a..b", "a..b").contains(".."));
+
+        // a very long id whose truncation boundary lands on a hyphen must not leave a trailing
+        // hyphen on any label, and every dot-separated label must stay within 63 characters
+        String longId = "a".repeat(53) + "-" + "b".repeat(40);
+        for (String name : List.of(
+                K8sStorageBackend.crName(KeycloakClientCr.class, longId, longId),
+                K8sStorageBackend.crName(KeycloakRealmCr.class, longId, longId))) {
+            for (String label : name.split("\\.")) {
+                assertTrue(label.length() <= 63, name);
+                assertTrue(label.matches("[a-z0-9]([-a-z0-9]*[a-z0-9])?"), name);
+            }
+        }
     }
 
     // ------------------------------------------------------------- transaction buffering
