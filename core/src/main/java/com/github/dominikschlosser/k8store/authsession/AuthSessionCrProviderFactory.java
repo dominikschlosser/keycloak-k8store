@@ -40,7 +40,7 @@ public class AuthSessionCrProviderFactory extends AbstractCrProviderFactory<Auth
         return "Authentication session provider backed by KeycloakAuthSession custom resources (experimental)";
     }
 
-    /** Beats the cacheless JPA default in {@code getProvider(Class)} resolution. */
+    /** Beats the stateless JPA default in {@code getProvider(Class)} resolution. */
     @Override
     public int order() {
         return DeclarativeUserProfileProviderFactory.PROVIDER_PRIORITY + 1;
