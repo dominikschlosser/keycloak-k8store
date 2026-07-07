@@ -31,7 +31,9 @@ import com.github.dominikschlosser.k8store.crd.UserSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserSessionCr;
+import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakSingleUseObjectCr;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import java.time.Duration;
@@ -335,6 +337,61 @@ class K8sDynamicKindsTest {
         assertTrue(K8sStorageBackend.deleteNow(SingleUseObjectSpec.class, realm, "token-key"));
         assertFalse(K8sStorageBackend.deleteNow(SingleUseObjectSpec.class, realm, "token-key"),
                 "the second deleter must observe that the object is gone");
+    }
+
+    @Test
+    void putIfAbsentReclaimsAnExpiredCrButRejectsALiveOne() {
+        start(false, EnumSet.allOf(Area.class));
+        String realm = K8sStorageBackend.GLOBAL_PSEUDO_REALM;
+
+        SingleUseObjectSpec expired = new SingleUseObjectSpec();
+        expired.setKey("reuse-key");
+        expired.setExpiresAt(Time.currentTimeMillis() - 1000);
+        assertTrue(K8sStorageBackend.createNow(SingleUseObjectSpec.class, realm, "reuse-key", expired));
+
+        SingleUseObjectSpec fresh = new SingleUseObjectSpec();
+        fresh.setKey("reuse-key");
+        fresh.setExpiresAt(Time.currentTimeMillis() + 60_000);
+        // the expired CR still occupies the key; the reclaim must succeed for exactly one caller
+        assertTrue(K8sStorageBackend.putIfAbsentNow(SingleUseObjectSpec.class, realm, "reuse-key", fresh),
+                "an expired entry counts as absent and must be reclaimed");
+        // now a live entry holds the key: a second put-if-absent must fail
+        assertFalse(K8sStorageBackend.putIfAbsentNow(SingleUseObjectSpec.class, realm, "reuse-key", fresh),
+                "a live entry must reject put-if-absent");
+    }
+
+    @Test
+    void expiredReclaimIsGuardedByResourceVersion() {
+        // the atomic-reclaim guarantee rests on the API server rejecting a replace whose
+        // resourceVersion is stale; assert the mock honors that so two concurrent reclaimers
+        // cannot both win
+        start(false, EnumSet.allOf(Area.class));
+        SingleUseObjectSpec spec = new SingleUseObjectSpec();
+        spec.setKey("cas-key");
+        spec.setExpiresAt(Time.currentTimeMillis() + 60_000);
+        var created = client.resource(singleUseCr("cas-key", spec)).create();
+        String staleVersion = created.getMetadata().getResourceVersion();
+
+        // bump the object once so the captured version is stale
+        created.getSpec().setExpiresAt(Time.currentTimeMillis() + 120_000);
+        client.resource(created).update();
+
+        var staleUpdate = singleUseCr("cas-key", spec);
+        staleUpdate.getMetadata().setResourceVersion(staleVersion);
+        assertThrows(KubernetesClientException.class,
+                () -> client.resource(staleUpdate).update(),
+                "a replace with a stale resourceVersion must be rejected");
+    }
+
+    private KeycloakSingleUseObjectCr singleUseCr(String key, SingleUseObjectSpec spec) {
+        KeycloakSingleUseObjectCr cr = new KeycloakSingleUseObjectCr();
+        cr.setMetadata(new ObjectMetaBuilder()
+                .withName(K8sStorageBackend.crName(KeycloakSingleUseObjectCr.class,
+                        K8sStorageBackend.GLOBAL_PSEUDO_REALM, key))
+                .withNamespace("test")
+                .build());
+        cr.setSpec(spec);
+        return cr;
     }
 
     private static void await(BooleanSupplier condition) {
