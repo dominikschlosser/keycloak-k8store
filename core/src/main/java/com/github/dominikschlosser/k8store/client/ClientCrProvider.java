@@ -225,6 +225,32 @@ public class ClientCrProvider implements ClientProvider {
         });
     }
 
+    /**
+     * Client-scope rename cascade: swap the old scope name for the new one in every client's
+     * assignment lists, preserving list position so the assignment ordering stays stable.
+     */
+    void clientScopeRenamed(RealmModel realm, String oldName, String newName) {
+        specs(realm).forEach(spec -> {
+            boolean changed = replaceInList(spec.getDefaultClientScopes(), oldName, newName);
+            changed |= replaceInList(spec.getOptionalClientScopes(), oldName, newName);
+            if (changed) {
+                ClientCrStore.save(spec);
+            }
+        });
+    }
+
+    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
+        if (names == null) {
+            return false;
+        }
+        int index = names.indexOf(oldValue);
+        if (index < 0) {
+            return false;
+        }
+        names.set(index, newValue);
+        return true;
+    }
+
     // ------------------------------------------------------------------ client scope assignment
 
     /**

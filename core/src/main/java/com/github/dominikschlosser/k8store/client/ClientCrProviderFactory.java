@@ -17,6 +17,7 @@ package com.github.dominikschlosser.k8store.client;
 
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_SCOPE_BEFORE_REMOVE;
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_SCOPE_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_BEFORE_REMOVE;
 
@@ -65,6 +66,8 @@ public class ClientCrProviderFactory extends AbstractCrProviderFactory<ClientCrP
             create(session).roleRemoved((RealmModel) params[0], (RoleModel) params[1]);
         } else if (type == CLIENT_SCOPE_BEFORE_REMOVE) {
             create(session).clientScopeRemoved((RealmModel) params[0], (ClientScopeModel) params[1]);
+        } else if (type == CLIENT_SCOPE_RENAMED) {
+            create(session).clientScopeRenamed((RealmModel) params[0], (String) params[1], (String) params[2]);
         } else if (type == CLIENT_AFTER_REMOVE) {
             session.getKeycloakSessionFactory().publish(new ClientModel.ClientRemovedEvent() {
                 @Override

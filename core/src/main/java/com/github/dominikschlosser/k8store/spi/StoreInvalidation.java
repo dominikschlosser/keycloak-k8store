@@ -27,6 +27,12 @@ import org.keycloak.provider.InvalidationHandler.InvalidableObjectType;
  * <p>Event parameters follow one convention: {@code params[0]} is the {@code RealmModel} (except
  * for {@code CLIENT_AFTER_REMOVE} and {@code CLIENT_SCOPE_AFTER_REMOVE}, where {@code params[0]}
  * is the removed model itself) and {@code params[1]} is the affected model, where applicable.
+ *
+ * <p>The {@code *_RENAMED} events cascade a rename the same way the {@code *_BEFORE_REMOVE} events
+ * cascade a removal, but they rewrite name-keyed references instead of dropping them. They are sent
+ * before the renamed object's own CR is moved, so handlers still see the old references. For these
+ * events {@code params[0]} is the {@code RealmModel}, {@code params[1]} is the affected model still
+ * reporting its old name (or the old name itself), and the last parameter is the new name.
  */
 public enum StoreInvalidation implements InvalidableObjectType {
     REALM_BEFORE_REMOVE,
@@ -35,6 +41,7 @@ public enum StoreInvalidation implements InvalidableObjectType {
     CLIENT_AFTER_REMOVE,
     CLIENT_SCOPE_BEFORE_REMOVE,
     CLIENT_SCOPE_AFTER_REMOVE,
+    CLIENT_SCOPE_RENAMED,
     ROLE_BEFORE_REMOVE,
     ROLE_AFTER_REMOVE,
     GROUP_BEFORE_REMOVE,

@@ -1219,6 +1219,30 @@ public class RealmAdapter implements StorageProviderRealmModel {
         }
     }
 
+    /**
+     * Client-scope rename cascade: swap the old scope name for the new one in both realm-default
+     * lists, preserving list position so the default-scope ordering stays stable.
+     */
+    public void renameDefaultClientScope(String oldName, String newName) {
+        boolean changed = replaceInList(spec.getDefaultDefaultClientScopes(), oldName, newName);
+        changed |= replaceInList(spec.getDefaultOptionalClientScopes(), oldName, newName);
+        if (changed) {
+            persist();
+        }
+    }
+
+    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
+        if (names == null) {
+            return false;
+        }
+        int index = names.indexOf(oldValue);
+        if (index < 0) {
+            return false;
+        }
+        names.set(index, newValue);
+        return true;
+    }
+
     @Override
     public Stream<ClientScopeModel> getDefaultClientScopesStream(boolean defaultScope) {
         List<String> names = defaultScope ? spec.getDefaultDefaultClientScopes() : spec.getDefaultOptionalClientScopes();
