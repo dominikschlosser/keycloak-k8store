@@ -21,6 +21,7 @@ import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_S
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.GROUP_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_BEFORE_REMOVE;
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_RENAMED;
 
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.spi.AbstractCrProviderFactory;
@@ -75,6 +76,8 @@ public class UserCrProviderFactory extends AbstractCrProviderFactory<UserCrProvi
             create(session).realmRemoved((RealmModel) params[0]);
         } else if (type == ROLE_BEFORE_REMOVE) {
             create(session).roleRemoved((RealmModel) params[0], (RoleModel) params[1]);
+        } else if (type == ROLE_RENAMED) {
+            create(session).roleRenamed((RealmModel) params[0], (RoleModel) params[1], (String) params[2]);
         } else if (type == GROUP_BEFORE_REMOVE) {
             create(session).groupRemoved((RealmModel) params[0], (GroupModel) params[1]);
         } else if (type == CLIENT_BEFORE_REMOVE) {

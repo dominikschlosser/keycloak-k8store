@@ -128,6 +128,33 @@ public final class ScopeMappingSupport {
         return spec.getRealmScopeMappings() != null && spec.getRealmScopeMappings().remove(removed.getName());
     }
 
+    /**
+     * Swaps {@code renamed}'s old name for {@code newName} in the spec's mappings without
+     * persisting - cascade helper for role rename; the caller persists when {@code true} is
+     * returned. The client-section list keeps its position on swap.
+     */
+    public static boolean renameRole(ScopeMappingCarrier spec, RoleModel renamed, String newName) {
+        String oldName = renamed.getName();
+        if (renamed.isClientRole()) {
+            Map<String, List<String>> byClient = spec.getClientScopeMappings();
+            List<String> names = byClient == null ? null : byClient.get(renamed.getContainerId());
+            return replaceInList(names, oldName, newName);
+        }
+        return replaceInList(spec.getRealmScopeMappings(), oldName, newName);
+    }
+
+    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
+        if (names == null) {
+            return false;
+        }
+        int index = names.indexOf(oldValue);
+        if (index < 0) {
+            return false;
+        }
+        names.set(index, newValue);
+        return true;
+    }
+
     /** Scope-mapping client keys are client ids (= clientIds in this store); resolve either way. */
     private static ClientModel resolveClient(KeycloakSession session, RealmModel realm, String clientKey) {
         ClientModel client = session.clients().getClientById(realm, clientKey);

@@ -15,10 +15,12 @@
  */
 package com.github.dominikschlosser.k8store.role;
 
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_RENAMED;
 import static org.keycloak.utils.StreamsUtil.paginatedStream;
 
 import com.github.dominikschlosser.k8store.common.LikePatterns;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
+import com.github.dominikschlosser.k8store.realm.RealmAdapter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,8 +78,42 @@ public class RoleAdapter implements RoleModel {
 
     @Override
     public void setName(String name) {
+        String oldName = spec.getName();
+        if (Objects.equals(oldName, name)) {
+            persist();
+            return;
+        }
+        // rewrite name-keyed references (composites, grants, scope mappings, realm default role)
+        // before the CR moves - the cascade reads this adapter, which still reports the old name,
+        // container and client-role flag at this point
+        session.invalidate(ROLE_RENAMED, realm, this, name);
+        if (!isClientRole() && realm instanceof RealmAdapter ra) {
+            ra.renameDefaultRole(oldName, name);
+        }
+        // the role id encodes the name (realm role id = name, client role id = clientId:name):
+        // move the CR to the new id instead of mutating it in place
+        String oldId = spec.getId();
+        String newId = renamedId(name);
+        RoleCrStore.delete(realm.getId(), oldId);
+        spec.setId(newId);
         spec.setName(name);
         persist();
+    }
+
+    /** The store id the role takes after being renamed to {@code newName}. */
+    private String renamedId(String newName) {
+        if (!isClientRole()) {
+            return newName;
+        }
+        ClientModel client = session.clients().getClientById(realm, spec.getContainerId());
+        String clientId = client != null ? client.getClientId() : clientIdPrefixOf(spec.getId());
+        return clientId + ":" + newName;
+    }
+
+    /** Recover the {@code clientId} prefix from a client-role id of the form {@code clientId:name}. */
+    private String clientIdPrefixOf(String roleId) {
+        int separator = roleId.lastIndexOf(':');
+        return separator < 0 ? roleId : roleId.substring(0, separator);
     }
 
     @Override

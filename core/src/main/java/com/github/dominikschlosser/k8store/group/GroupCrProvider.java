@@ -354,6 +354,14 @@ public class GroupCrProvider implements GroupProvider {
                 .forEach(group -> group.deleteRoleMapping(role));
     }
 
+    /** Role rename cascade: rewrite the renamed role in every group's role grants. */
+    void roleRenamed(RealmModel realm, RoleModel renamed, String newName) {
+        specs(realm)
+                .map(spec -> new GroupAdapter(session, realm, spec))
+                .filter(group -> group.hasDirectRole(renamed))
+                .forEach(group -> group.renameRoleMapping(renamed, newName));
+    }
+
     @Override
     public void close() {
         // stateless facade over the informer-backed store

@@ -28,6 +28,7 @@ import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.utils.KeycloakSessionUtil;
 
 @EnableKubernetesMockClient(crud = true)
@@ -65,5 +66,46 @@ class RealmAdapterRenameTest {
                 "the realm default-scope list keeps position and swaps the renamed scope");
         assertEquals(List.of("address", "mail", "phone"), read.getDefaultOptionalClientScopes(),
                 "the realm optional-scope list keeps position and swaps the renamed scope");
+    }
+
+    @Test
+    void renameDefaultRoleRewritesTheReferenceWhenItMatches() {
+        start();
+
+        RealmSpec spec = new RealmSpec();
+        spec.setRealm("master");
+        RoleRepresentation defaultRole = new RoleRepresentation();
+        defaultRole.setId("default-roles-master");
+        defaultRole.setName("default-roles-master");
+        spec.setDefaultRole(defaultRole);
+        RealmCrStore.save(spec);
+
+        RealmAdapter realm = new RealmAdapter(null, spec);
+        realm.renameDefaultRole("default-roles-master", "default-roles-primary");
+
+        RealmSpec read = RealmCrStore.read("master");
+        assertEquals("default-roles-primary", read.getDefaultRole().getName(),
+                "the default-role reference name moves to the new name");
+        assertEquals("default-roles-primary", read.getDefaultRole().getId(),
+                "the default-role reference id (= name for realm roles) moves too");
+    }
+
+    @Test
+    void renameDefaultRoleIgnoresANonMatchingReference() {
+        start();
+
+        RealmSpec spec = new RealmSpec();
+        spec.setRealm("master");
+        RoleRepresentation defaultRole = new RoleRepresentation();
+        defaultRole.setId("default-roles-master");
+        defaultRole.setName("default-roles-master");
+        spec.setDefaultRole(defaultRole);
+        RealmCrStore.save(spec);
+
+        RealmAdapter realm = new RealmAdapter(null, spec);
+        realm.renameDefaultRole("some-other-role", "renamed");
+
+        assertEquals("default-roles-master", RealmCrStore.read("master").getDefaultRole().getName(),
+                "a rename of an unrelated role leaves the default-role reference untouched");
     }
 }

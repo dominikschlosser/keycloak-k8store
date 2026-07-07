@@ -19,20 +19,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.github.dominikschlosser.k8store.crd.ClientSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
+import com.github.dominikschlosser.k8store.crd.RoleSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
 import com.github.dominikschlosser.k8store.realm.RealmAdapter;
+import com.github.dominikschlosser.k8store.role.RoleAdapter;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
 import org.keycloak.utils.KeycloakSessionUtil;
 
 @EnableKubernetesMockClient(crud = true)
@@ -61,6 +65,25 @@ class ClientCrProviderRenameTest {
     private ClientCrProvider provider() {
         Map<String, Map<String, Integer>> registeredNodesStore = new ConcurrentHashMap<>();
         return new ClientCrProvider(null, registeredNodesStore);
+    }
+
+    private RoleModel realmRole(RealmModel realm, String name) {
+        RoleSpec spec = new RoleSpec();
+        spec.setId(name);
+        spec.setName(name);
+        spec.setRealm(realm.getId());
+        spec.setContainerId(realm.getId());
+        return new RoleAdapter(null, realm, spec);
+    }
+
+    private RoleModel clientRole(RealmModel realm, String clientInternalId, String name) {
+        RoleSpec spec = new RoleSpec();
+        spec.setId("web:" + name);
+        spec.setName(name);
+        spec.setRealm(realm.getId());
+        spec.setClientRole(true);
+        spec.setContainerId(clientInternalId);
+        return new RoleAdapter(null, realm, spec);
     }
 
     @Test
@@ -99,5 +122,30 @@ class ClientCrProviderRenameTest {
         assertEquals(List.of("profile"),
                 ClientCrStore.read("master", "other").getDefaultClientScopes(),
                 "a client that does not reference the scope is untouched");
+    }
+
+    @Test
+    void roleRenameRewritesScopeMappingsInPlace() {
+        start();
+        RealmModel realm = realm("master");
+
+        ClientSpec web = new ClientSpec();
+        web.setId("web");
+        web.setClientId("web");
+        web.setRealm("master");
+        web.setRealmScopeMappings(new ArrayList<>(List.of("viewer", "admin", "editor")));
+        Map<String, List<String>> byClient = new HashMap<>();
+        byClient.put("api-internal", new ArrayList<>(List.of("create", "view", "delete")));
+        web.setClientScopeMappings(byClient);
+        ClientCrStore.save(web);
+
+        provider().roleRenamed(realm, realmRole(realm, "admin"), "administrator");
+        provider().roleRenamed(realm, clientRole(realm, "api-internal", "view"), "read");
+
+        ClientSpec read = ClientCrStore.read("master", "web");
+        assertEquals(List.of("viewer", "administrator", "editor"), read.getRealmScopeMappings(),
+                "realm scope mapping keeps position and swaps the renamed role");
+        assertEquals(List.of("create", "read", "delete"), read.getClientScopeMappings().get("api-internal"),
+                "client scope mapping keeps position and swaps the renamed role, key unchanged");
     }
 }

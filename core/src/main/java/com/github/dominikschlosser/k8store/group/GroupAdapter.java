@@ -251,6 +251,38 @@ public class GroupAdapter implements GroupModel {
         }
     }
 
+    /**
+     * Role rename cascade: swap the old role name for the new one in this group's grants,
+     * preserving list position so the grant ordering stays stable. The role's container id is
+     * unchanged by a rename, so the client-section key stays the same.
+     */
+    public void renameRoleMapping(RoleModel renamed, String newName) {
+        String oldName = renamed.getName();
+        boolean changed;
+        if (renamed.isClientRole()) {
+            Map<String, List<String>> byClient = spec.getClientRoles();
+            List<String> names = byClient == null ? null : byClient.get(renamed.getContainerId());
+            changed = replaceInList(names, oldName, newName);
+        } else {
+            changed = replaceInList(spec.getRealmRoles(), oldName, newName);
+        }
+        if (changed) {
+            persist();
+        }
+    }
+
+    private static boolean replaceInList(List<String> names, String oldValue, String newValue) {
+        if (names == null) {
+            return false;
+        }
+        int index = names.indexOf(oldValue);
+        if (index < 0) {
+            return false;
+        }
+        names.set(index, newValue);
+        return true;
+    }
+
     @Override
     public Stream<RoleModel> getRoleMappingsStream() {
         Stream<RoleModel> realmRoles = spec.getRealmRoles() == null
