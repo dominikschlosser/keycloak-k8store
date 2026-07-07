@@ -22,10 +22,13 @@ import com.github.dominikschlosser.k8store.crd.AuthzResourceSpec;
 import com.github.dominikschlosser.k8store.crd.AuthzScopeSpec;
 import com.github.dominikschlosser.k8store.crd.PermissionTicketSpec;
 import com.github.dominikschlosser.k8store.crd.ResourceServerSpec;
+import com.github.dominikschlosser.k8store.role.RoleCrStore;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.jboss.logging.Logger;
 import org.keycloak.authorization.model.ResourceServer;
 import org.keycloak.authorization.store.PermissionTicketStore;
@@ -368,9 +371,20 @@ public class CrStoreFactory implements StoreFactory {
      * Rewrites client-id references inside every policy's config in the realm: the {@code clients}
      * array of client policies (a client id equals the clientId here) and, for the renamed
      * client's own roles, the {@code <clientId>:<name>} ids in role policies' {@code roles} array.
+     *
+     * <p>The role ids to rewrite are resolved from the client's actual roles rather than by
+     * prefix, so a realm role whose name merely begins with {@code <oldClientId>:} (realm role ids
+     * are the role name, which may contain a colon) is never touched. Role names do not change on a
+     * client rename, and the client-role CRs may be pre- or post-move depending on the order the
+     * invalidation handlers run, so both container ids are accepted when building the id set.
      */
     private void rewriteClientInPolicies(String realmId, String oldClientId, String newClientId) {
-        String oldRolePrefix = oldClientId + ":";
+        Set<String> renamedRoleIds = RoleCrStore.allInRealm(realmId).stream()
+                .filter(role -> Boolean.TRUE.equals(role.getClientRole()))
+                .filter(role -> oldClientId.equals(role.getContainerId())
+                        || newClientId.equals(role.getContainerId()))
+                .map(role -> oldClientId + ":" + role.getName())
+                .collect(Collectors.toSet());
         for (AuthzPolicySpec policy : AuthzCrStore.policies(realmId)) {
             Map<String, String> config = policy.getConfig();
             boolean changed = false;
@@ -391,8 +405,8 @@ public class CrStoreFactory implements StoreFactory {
             if (roles != null) {
                 boolean rewritten = false;
                 for (Map<String, Object> entry : roles) {
-                    if (entry.get("id") instanceof String id && id.startsWith(oldRolePrefix)) {
-                        entry.put("id", newClientId + ":" + id.substring(oldRolePrefix.length()));
+                    if (entry.get("id") instanceof String id && renamedRoleIds.contains(id)) {
+                        entry.put("id", newClientId + ":" + id.substring(oldClientId.length() + 1));
                         rewritten = true;
                     }
                 }

@@ -312,6 +312,9 @@ public class UserSessionCrProvider implements UserSessionProvider {
         for (UserSessionSpec spec : UserSessionCrStore.allInRealm(realm.getId())) {
             Map<String, ClientSessionSpec> clientSessions = spec.getClientSessions();
             if (clientSessions != null && clientSessions.remove(client.getId()) != null) {
+                // drop any adapter memoized on the pre-edit spec, so a later persist in the same
+                // request cannot re-add the removed client session from its stale copy
+                knownAdapters.remove(spec.getId());
                 UserSessionCrStore.save(spec);
             }
         }
@@ -335,6 +338,9 @@ public class UserSessionCrProvider implements UserSessionProvider {
             if (clientSession != null) {
                 clientSession.setClientId(newClientId);
                 clientSessions.put(newClientId, clientSession);
+                // drop any adapter memoized on the pre-rename spec, so a later persist in the same
+                // request cannot re-write the old clientId key from its stale copy
+                knownAdapters.remove(spec.getId());
                 UserSessionCrStore.save(spec);
             }
         }
