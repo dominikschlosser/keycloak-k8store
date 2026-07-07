@@ -314,7 +314,7 @@ public final class K8sStoreConfig {
 
     /**
      * Interval of the periodic list-based mirror reconciliation that bounds staleness when a
-     * watch connection wedges silently; {@code 0} disables it.
+     * watch connection silently stops delivering events; {@code 0} disables it.
      */
     public int getReconcileIntervalSeconds() {
         return reconcileIntervalSeconds;
