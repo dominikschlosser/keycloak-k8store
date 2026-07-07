@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.keycloak.models.ClientModel;
+import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleContainerModel;
@@ -82,6 +83,13 @@ public class RoleAdapter implements RoleModel {
         if (Objects.equals(oldName, name)) {
             persist();
             return;
+        }
+        // the role id encodes the name, so a rename moves the CR: reject a target already taken
+        // by another role instead of overwriting it (the JPA store's unique (realm,name)
+        // constraint does the same)
+        if (RoleCrStore.exists(realm.getId(), renamedId(name))) {
+            throw new ModelDuplicateException(
+                    "Role with the same name exists: " + name + " in realm " + realm.getName());
         }
         // rewrite name-keyed references (composites, grants, scope mappings, realm default role)
         // before the CR moves - the cascade reads this adapter, which still reports the old name,

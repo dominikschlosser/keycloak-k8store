@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.keycloak.models.ClientScopeModel;
+import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.RealmModel;
@@ -77,6 +78,12 @@ public class ClientScopeAdapter implements ClientScopeModel {
         String current = spec.getName();
         if (Objects.equals(current, normalized)) {
             return;
+        }
+        // the scope name is the store id, so a rename moves the CR: reject a target already taken
+        // by another scope instead of overwriting it
+        if (ClientScopeCrStore.exists(spec.getRealm(), normalized)) {
+            throw new ModelDuplicateException(
+                    "Client scope with name " + normalized + " already exists in realm " + spec.getRealm());
         }
         // rewrite name-keyed references (client assignment lists, user consents) before the CR
         // moves, so the handlers still resolve the old name
