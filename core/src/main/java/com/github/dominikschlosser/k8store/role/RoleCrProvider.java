@@ -371,6 +371,38 @@ public class RoleCrProvider implements RoleProvider {
         return true;
     }
 
+    /**
+     * Client-rename cascade: the client id is this store's container id, so it appears both as the
+     * key of the client section of every role's composites and inside the renamed client's own
+     * client-role CR ids ({@code <clientId>:<name>}) and container ids. Rekey the composite maps
+     * and move the renamed client's role CRs to their new ids.
+     */
+    void clientRenamed(RealmModel realm, ClientModel renamed, String newClientId) {
+        String oldClientId = renamed.getClientId();
+        specs(realm).forEach(spec -> {
+            boolean changed = false;
+            Composites composites = spec.getComposites();
+            if (composites != null && composites.getClient() != null) {
+                List<String> names = composites.getClient().remove(oldClientId);
+                if (names != null) {
+                    composites.getClient().put(newClientId, names);
+                    changed = true;
+                }
+            }
+            boolean isRenamedClientRole = Boolean.TRUE.equals(spec.getClientRole())
+                    && oldClientId.equals(spec.getContainerId());
+            if (isRenamedClientRole) {
+                String oldId = spec.getId();
+                spec.setContainerId(newClientId);
+                spec.setId(newClientId + ":" + spec.getName());
+                RoleCrStore.delete(realm.getId(), oldId);
+                RoleCrStore.save(spec);
+            } else if (changed) {
+                RoleCrStore.save(spec);
+            }
+        });
+    }
+
     @Override
     public void close() {
         // stateless facade over the informer-backed store

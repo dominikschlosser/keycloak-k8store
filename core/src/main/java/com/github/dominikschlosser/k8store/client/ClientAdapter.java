@@ -15,6 +15,8 @@
  */
 package com.github.dominikschlosser.k8store.client;
 
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
+
 import com.github.dominikschlosser.k8store.common.ProtocolMapperSupport;
 import com.github.dominikschlosser.k8store.common.ScopeMappingSupport;
 import com.github.dominikschlosser.k8store.crd.ClientSpec;
@@ -44,7 +46,9 @@ import org.keycloak.models.RoleModel;
  *
  * <p>Identity: the model id <em>is</em> the clientId (human-readable, GitOps-friendly). Renaming
  * the clientId moves the CR - the old resource is deleted and the spec is re-persisted under the
- * new id; name-based references from other stores keep the usual staleness caveat of this store.
+ * new id - and cascades the new clientId into every client-keyed reference across the other
+ * stores (client-role CR ids, role composites, user and group grants, scope mappings, consents,
+ * the authorization resource-server graph).
  *
  * <p>Registered cluster nodes are runtime information and deliberately never persisted to the
  * custom resource; they live in a per-factory in-memory map.
@@ -114,11 +118,31 @@ public class ClientAdapter implements ClientModel {
         if (Objects.equals(current, clientId)) {
             return;
         }
+        // the clientId is this store's client id: every client-keyed reference (client-role CR
+        // ids, role composites, user/group grants, scope mappings, consents, the authorization
+        // resource-server graph) is keyed by it. Cascade the rename to those references before the
+        // client's own CR moves - the cascade reads this adapter, which still reports the old
+        // clientId at this point
+        session.invalidate(CLIENT_RENAMED, realm, this, clientId);
+        // this client's own scope mappings may reference its own client roles, keyed by the old
+        // clientId: rekey them on the live spec so the moved CR carries the new key
+        rekey(spec.getClientScopeMappings(), current, clientId);
         // the clientId is the store id: move the CR instead of mutating it in place
         ClientCrStore.delete(spec.getRealm(), current);
         spec.setClientId(clientId);
         spec.setId(clientId);
         persist();
+    }
+
+    /** Moves a client-keyed map entry from {@code oldKey} to {@code newKey}, if present. */
+    private static void rekey(Map<String, List<String>> byClient, String oldKey, String newKey) {
+        if (byClient == null) {
+            return;
+        }
+        List<String> value = byClient.remove(oldKey);
+        if (value != null) {
+            byClient.put(newKey, value);
+        }
     }
 
     @Override

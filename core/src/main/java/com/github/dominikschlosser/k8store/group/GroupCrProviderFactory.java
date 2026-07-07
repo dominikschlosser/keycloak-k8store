@@ -17,6 +17,7 @@ package com.github.dominikschlosser.k8store.group;
 
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.GROUP_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.GROUP_BEFORE_REMOVE;
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_RENAMED;
@@ -26,6 +27,7 @@ import com.github.dominikschlosser.k8store.spi.AbstractCrProviderFactory;
 import com.google.auto.service.AutoService;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.GroupModel;
 import org.keycloak.models.GroupProviderFactory;
 import org.keycloak.models.KeycloakSession;
@@ -59,6 +61,8 @@ public class GroupCrProviderFactory extends AbstractCrProviderFactory<GroupCrPro
             create(session).roleRemoved((RealmModel) params[0], (RoleModel) params[1]);
         } else if (type == ROLE_RENAMED) {
             create(session).roleRenamed((RealmModel) params[0], (RoleModel) params[1], (String) params[2]);
+        } else if (type == CLIENT_RENAMED) {
+            create(session).clientRenamed((RealmModel) params[0], (ClientModel) params[1], (String) params[2]);
         } else if (type == GROUP_BEFORE_REMOVE) {
             RealmModel realm = (RealmModel) params[0];
             GroupModel group = (GroupModel) params[1];

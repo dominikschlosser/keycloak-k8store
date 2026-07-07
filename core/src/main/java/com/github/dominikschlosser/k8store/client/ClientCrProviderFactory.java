@@ -16,6 +16,7 @@
 package com.github.dominikschlosser.k8store.client;
 
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_AFTER_REMOVE;
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_SCOPE_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_SCOPE_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
@@ -67,6 +68,8 @@ public class ClientCrProviderFactory extends AbstractCrProviderFactory<ClientCrP
             create(session).roleRemoved((RealmModel) params[0], (RoleModel) params[1]);
         } else if (type == ROLE_RENAMED) {
             create(session).roleRenamed((RealmModel) params[0], (RoleModel) params[1], (String) params[2]);
+        } else if (type == CLIENT_RENAMED) {
+            create(session).clientRenamed((RealmModel) params[0], (ClientModel) params[1], (String) params[2]);
         } else if (type == CLIENT_SCOPE_BEFORE_REMOVE) {
             create(session).clientScopeRemoved((RealmModel) params[0], (ClientScopeModel) params[1]);
         } else if (type == CLIENT_SCOPE_RENAMED) {

@@ -16,7 +16,11 @@
 package com.github.dominikschlosser.k8store.group;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.dominikschlosser.k8store.client.ClientAdapter;
+import com.github.dominikschlosser.k8store.crd.ClientSpec;
 import com.github.dominikschlosser.k8store.crd.GroupSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
@@ -32,8 +36,10 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
 import org.keycloak.utils.KeycloakSessionUtil;
@@ -78,6 +84,37 @@ class GroupCrProviderRenameTest {
         spec.setClientRole(true);
         spec.setContainerId(clientInternalId);
         return new RoleAdapter(null, realm, spec);
+    }
+
+    private ClientModel client(RealmModel realm, String clientId) {
+        ClientSpec spec = new ClientSpec();
+        spec.setId(clientId);
+        spec.setClientId(clientId);
+        spec.setRealm(realm.getId());
+        return new ClientAdapter(null, realm, spec, new ConcurrentHashMap<>());
+    }
+
+    @Test
+    void clientRenameRekeysGroupClientGrants() {
+        start();
+        RealmModel realm = realm("master");
+
+        GroupSpec group = new GroupSpec();
+        group.setId("team");
+        group.setName("team");
+        group.setRealm("master");
+        Map<String, List<String>> byClient = new HashMap<>();
+        byClient.put("web", new ArrayList<>(List.of("view", "edit")));
+        group.setClientRoles(byClient);
+        GroupCrStore.save(group);
+
+        new GroupCrProvider(null).clientRenamed(realm, client(realm, "web"), "portal");
+
+        GroupSpec read = GroupCrStore.read("master", "team");
+        assertTrue(read.getClientRoles().containsKey("portal"), "grant map is rekeyed to the new clientId");
+        assertFalse(read.getClientRoles().containsKey("web"), "the old clientId grant key is gone");
+        assertEquals(List.of("view", "edit"), read.getClientRoles().get("portal"),
+                "the grant names are preserved under the new key");
     }
 
     @Test

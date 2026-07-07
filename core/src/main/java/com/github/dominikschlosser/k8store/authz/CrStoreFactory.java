@@ -245,6 +245,51 @@ public class CrStoreFactory implements StoreFactory {
         deleteResourceServerGraph(realm.getId(), client.getId());
     }
 
+    /**
+     * Client-rename cascade (k8store {@code CLIENT_RENAMED}): the resource server is keyed by the
+     * clientId and its whole graph back-references that clientId through {@code resourceServer}.
+     * Rewrite the back-references, then move the resource-server CR to the new clientId - the
+     * rewrite mirror of {@link #deleteResourceServerGraph}.
+     */
+    void clientRenamed(RealmModel realm, ClientModel client, String newClientId) {
+        String realmId = realm.getId();
+        String oldClientId = client.getId();
+        if (realmId == null || oldClientId == null || newClientId == null) {
+            return;
+        }
+        ResourceServerSpec resourceServer = AuthzCrStore.resourceServer(realmId, oldClientId);
+        if (resourceServer == null) {
+            return;
+        }
+        AuthzCrStore.tickets(realmId).stream()
+                .filter(spec -> oldClientId.equals(spec.getResourceServer()))
+                .forEach(spec -> {
+                    spec.setResourceServer(newClientId);
+                    AuthzCrStore.save(spec);
+                });
+        AuthzCrStore.policies(realmId).stream()
+                .filter(spec -> oldClientId.equals(spec.getResourceServer()))
+                .forEach(spec -> {
+                    spec.setResourceServer(newClientId);
+                    AuthzCrStore.save(spec);
+                });
+        AuthzCrStore.resources(realmId).stream()
+                .filter(spec -> oldClientId.equals(spec.getResourceServer()))
+                .forEach(spec -> {
+                    spec.setResourceServer(newClientId);
+                    AuthzCrStore.save(spec);
+                });
+        AuthzCrStore.scopes(realmId).stream()
+                .filter(spec -> oldClientId.equals(spec.getResourceServer()))
+                .forEach(spec -> {
+                    spec.setResourceServer(newClientId);
+                    AuthzCrStore.save(spec);
+                });
+        resourceServer.setClientId(newClientId);
+        AuthzCrStore.deleteResourceServer(realmId, oldClientId);
+        AuthzCrStore.save(resourceServer);
+    }
+
     /** Realm removal cascade (k8store {@code REALM_BEFORE_REMOVE}): drop every authz CR. */
     void realmRemoved(RealmModel realm) {
         String realmId = realm.getId();

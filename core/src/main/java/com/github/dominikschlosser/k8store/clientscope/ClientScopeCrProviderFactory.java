@@ -15,6 +15,7 @@
  */
 package com.github.dominikschlosser.k8store.clientscope;
 
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_SCOPE_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_SCOPE_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
@@ -24,6 +25,7 @@ import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_REN
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.spi.AbstractCrProviderFactory;
 import com.google.auto.service.AutoService;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientScopeModel;
 import org.keycloak.models.ClientScopeProviderFactory;
 import org.keycloak.models.KeycloakSession;
@@ -57,6 +59,8 @@ public class ClientScopeCrProviderFactory extends AbstractCrProviderFactory<Clie
             create(session).roleRemoved((RealmModel) params[0], (RoleModel) params[1]);
         } else if (type == ROLE_RENAMED) {
             create(session).roleRenamed((RealmModel) params[0], (RoleModel) params[1], (String) params[2]);
+        } else if (type == CLIENT_RENAMED) {
+            create(session).clientRenamed((RealmModel) params[0], (ClientModel) params[1], (String) params[2]);
         } else if (type == CLIENT_SCOPE_BEFORE_REMOVE) {
             ((RealmModel) params[0]).removeDefaultClientScope((ClientScopeModel) params[1]);
         } else if (type == CLIENT_SCOPE_AFTER_REMOVE) {
