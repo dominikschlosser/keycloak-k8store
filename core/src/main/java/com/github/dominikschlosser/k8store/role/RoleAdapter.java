@@ -95,6 +95,9 @@ public class RoleAdapter implements RoleModel {
         // before the CR moves - the cascade reads this adapter, which still reports the old name,
         // container and client-role flag at this point
         session.invalidate(ROLE_RENAMED, realm, this, name);
+        // the realm CR holds its default lists by name; rewrite them on the CR-backed realm.
+        // A JPA-backed realm keeps id-based references that need no rewrite, and this
+        // extension disables the realm cache, so the realm is never a cache wrapper here.
         if (!isClientRole() && realm instanceof RealmAdapter ra) {
             ra.renameDefaultRole(oldName, name);
         }
