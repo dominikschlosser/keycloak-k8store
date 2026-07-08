@@ -56,8 +56,7 @@ public class RealmConfigStorageTest {
     ManagedRealm realm;
 
     private KeycloakRealmCr realmCr() {
-        return kube.client().resources(KeycloakRealmCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
+        return kube.client().resources(KeycloakRealmCr.class).inNamespace(namespace.name()).list().getItems().stream()
                 .filter(cr -> realm.getName().equals(cr.getSpec().getRealm()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakRealm CR for " + realm.getName()));
@@ -91,8 +90,11 @@ public class RealmConfigStorageTest {
         rep.setPasswordPolicy("length(12) and digits(2)");
         realm.admin().update(rep);
 
-        assertEquals("length(12) and digits(2)", realm.admin().toRepresentation().getPasswordPolicy());
-        assertEquals("length(12) and digits(2)", realmCr().getSpec().getPasswordPolicy(),
+        assertEquals(
+                "length(12) and digits(2)", realm.admin().toRepresentation().getPasswordPolicy());
+        assertEquals(
+                "length(12) and digits(2)",
+                realmCr().getSpec().getPasswordPolicy(),
                 "password policy must be stored in the realm CR");
     }
 
@@ -110,7 +112,9 @@ public class RealmConfigStorageTest {
         assertEquals(90, readBack.getWaitIncrementSeconds());
 
         KeycloakRealmCr cr = realmCr();
-        assertEquals(Boolean.TRUE, cr.getSpec().isBruteForceProtected(),
+        assertEquals(
+                Boolean.TRUE,
+                cr.getSpec().isBruteForceProtected(),
                 "brute-force settings must be stored as first-class representation fields");
         assertEquals(7, cr.getSpec().getFailureFactor());
         assertEquals(90, cr.getSpec().getWaitIncrementSeconds());
@@ -123,8 +127,9 @@ public class RealmConfigStorageTest {
         rep.setSupportedLocales(Set.of("en", "de"));
         realm.admin().update(rep);
 
-        realm.admin().localization().createOrUpdateRealmLocalizationTexts("de",
-                Map.of("welcome", "Willkommen", "logout", "Abmelden"));
+        realm.admin()
+                .localization()
+                .createOrUpdateRealmLocalizationTexts("de", Map.of("welcome", "Willkommen", "logout", "Abmelden"));
 
         Map<String, String> readBack = realm.admin().localization().getRealmLocalizationTexts("de");
         assertEquals("Willkommen", readBack.get("welcome"));
@@ -141,9 +146,11 @@ public class RealmConfigStorageTest {
 
     @Test
     public void requiredActionToggleRoundTripsThroughRealmCustomResource() {
-        assertFalse(realm.admin().flows().getRequiredActions().isEmpty(),
+        assertFalse(
+                realm.admin().flows().getRequiredActions().isEmpty(),
                 "a freshly created realm must expose its registered required actions");
-        assertFalse(realmCr().getSpec().getRequiredActions().isEmpty(),
+        assertFalse(
+                realmCr().getSpec().getRequiredActions().isEmpty(),
                 "required action providers must be embedded in the realm CR");
 
         RequiredActionProviderRepresentation totp = realm.admin().flows().getRequiredAction("CONFIGURE_TOTP");
@@ -151,8 +158,12 @@ public class RealmConfigStorageTest {
         totp.setEnabled(toggled);
         realm.admin().flows().updateRequiredAction("CONFIGURE_TOTP", totp);
 
-        assertEquals(toggled, realm.admin().flows().getRequiredAction("CONFIGURE_TOTP").isEnabled());
-        assertEquals(toggled, realmCr().getSpec().getRequiredActions().stream()
+        assertEquals(
+                toggled,
+                realm.admin().flows().getRequiredAction("CONFIGURE_TOTP").isEnabled());
+        assertEquals(
+                toggled,
+                realmCr().getSpec().getRequiredActions().stream()
                         .filter(a -> "CONFIGURE_TOTP".equals(a.getAlias()))
                         .findFirst()
                         .orElseThrow(() -> new AssertionError("CONFIGURE_TOTP missing from realm CR"))
@@ -162,18 +173,20 @@ public class RealmConfigStorageTest {
 
     @Test
     public void authenticationFlowsFromBootArePresentInRealmCustomResource() {
-        assertTrue(realm.admin().flows().getFlows().stream()
-                        .anyMatch(f -> "browser".equals(f.getAlias())),
+        assertTrue(
+                realm.admin().flows().getFlows().stream().anyMatch(f -> "browser".equals(f.getAlias())),
                 "built-in browser flow must exist");
 
         KeycloakRealmCr cr = realmCr();
-        assertFalse(cr.getSpec().getAuthenticationFlows().isEmpty(),
+        assertFalse(
+                cr.getSpec().getAuthenticationFlows().isEmpty(),
                 "authentication flows must be embedded in the realm CR");
-        assertTrue(cr.getSpec().getAuthenticationFlows().stream()
-                        .anyMatch(f -> "browser".equals(f.getAlias())),
+        assertTrue(
+                cr.getSpec().getAuthenticationFlows().stream().anyMatch(f -> "browser".equals(f.getAlias())),
                 "browser flow must be embedded in the realm CR");
         assertNotNull(cr.getSpec().getBrowserFlow(), "flow bindings must be stored in the realm CR");
-        assertFalse(cr.getSpec().getAuthenticationFlows().stream()
+        assertFalse(
+                cr.getSpec().getAuthenticationFlows().stream()
                         .filter(f -> "browser".equals(f.getAlias()))
                         .findFirst()
                         .orElseThrow()

@@ -129,11 +129,9 @@ public final class K8sStoreConfig {
             return Arrays.stream(values())
                     .filter(a -> a.configName.equals(name.trim().toLowerCase(Locale.ROOT)))
                     .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Unknown k8store area '" + name + "', supported: " + Arrays.stream(values())
-                                    .map(a -> a.configName)
-                                    .collect(Collectors.joining(", "))
-                                    + " (or the shorthands 'config' and 'all')"));
+                    .orElseThrow(() -> new IllegalArgumentException("Unknown k8store area '" + name + "', supported: "
+                            + Arrays.stream(values()).map(a -> a.configName).collect(Collectors.joining(", "))
+                            + " (or the shorthands 'config' and 'all')"));
         }
     }
 

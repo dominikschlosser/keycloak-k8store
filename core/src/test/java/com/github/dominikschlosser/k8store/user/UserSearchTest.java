@@ -45,32 +45,38 @@ class UserSearchTest {
     @Test
     void searchTermsMatchCaseInsensitivelyAsPrefixes() {
         UserSpec alice = alice();
-        assertTrue(UserSearch.predicate(Map.of(UserModel.SEARCH, "ALICE")).test(alice),
+        assertTrue(
+                UserSearch.predicate(Map.of(UserModel.SEARCH, "ALICE")).test(alice),
                 "mixed-case queries must find the lowercased stored username");
         assertTrue(UserSearch.predicate(Map.of(UserModel.SEARCH, "ali")).test(alice), "prefix match");
         assertTrue(UserSearch.predicate(Map.of(UserModel.SEARCH, "SMI")).test(alice), "last-name prefix");
-        assertFalse(UserSearch.predicate(Map.of(UserModel.SEARCH, "lice")).test(alice),
+        assertFalse(
+                UserSearch.predicate(Map.of(UserModel.SEARCH, "lice")).test(alice),
                 "plain terms are prefixes, not infixes (JPA parity)");
-        assertTrue(UserSearch.predicate(Map.of(UserModel.SEARCH, "*lice")).test(alice),
+        assertTrue(
+                UserSearch.predicate(Map.of(UserModel.SEARCH, "*lice")).test(alice),
                 "* wildcards make it an infix match");
-        assertTrue(UserSearch.predicate(Map.of(UserModel.SEARCH, "\"Alice\"")).test(alice),
+        assertTrue(
+                UserSearch.predicate(Map.of(UserModel.SEARCH, "\"Alice\"")).test(alice),
                 "quoted terms match exactly, still case-insensitively");
         assertFalse(UserSearch.predicate(Map.of(UserModel.SEARCH, "\"Ali\"")).test(alice));
-        assertTrue(UserSearch.predicate(Map.of(UserModel.SEARCH, "alice smith")).test(alice),
+        assertTrue(
+                UserSearch.predicate(Map.of(UserModel.SEARCH, "alice smith")).test(alice),
                 "every whitespace-separated term must match some field");
-        assertFalse(UserSearch.predicate(Map.of(UserModel.SEARCH, "alice jones")).test(alice));
+        assertFalse(
+                UserSearch.predicate(Map.of(UserModel.SEARCH, "alice jones")).test(alice));
     }
 
     @Test
     void fieldParametersMatchInfixOrExactCaseInsensitively() {
         UserSpec alice = alice();
-        assertTrue(UserSearch.predicate(Map.of(UserModel.USERNAME, "LIC")).test(alice),
-                "field parameters match infix");
-        assertTrue(UserSearch.predicate(Map.of(UserModel.EMAIL, "Alice.Smith@Example.com")).test(alice));
-        assertTrue(UserSearch.predicate(
-                Map.of(UserModel.USERNAME, "ALICE", UserModel.EXACT, "true")).test(alice));
-        assertFalse(UserSearch.predicate(
-                Map.of(UserModel.USERNAME, "LIC", UserModel.EXACT, "true")).test(alice));
+        assertTrue(UserSearch.predicate(Map.of(UserModel.USERNAME, "LIC")).test(alice), "field parameters match infix");
+        assertTrue(UserSearch.predicate(Map.of(UserModel.EMAIL, "Alice.Smith@Example.com"))
+                .test(alice));
+        assertTrue(UserSearch.predicate(Map.of(UserModel.USERNAME, "ALICE", UserModel.EXACT, "true"))
+                .test(alice));
+        assertFalse(UserSearch.predicate(Map.of(UserModel.USERNAME, "LIC", UserModel.EXACT, "true"))
+                .test(alice));
         assertTrue(UserSearch.predicate(Map.of(UserModel.ENABLED, "true")).test(alice));
         assertFalse(UserSearch.predicate(Map.of(UserModel.ENABLED, "false")).test(alice));
     }
@@ -79,10 +85,11 @@ class UserSearchTest {
     void serviceAccountsAreExcludedUnlessRequested() {
         UserSpec serviceAccount = alice();
         serviceAccount.setServiceAccountClientId("my-client");
-        assertFalse(UserSearch.predicate(Map.of(UserModel.SEARCH, "alice")).test(serviceAccount),
+        assertFalse(
+                UserSearch.predicate(Map.of(UserModel.SEARCH, "alice")).test(serviceAccount),
                 "the admin console's user list never shows service accounts by default");
-        assertTrue(UserSearch.predicate(Map.of(UserModel.SEARCH, "alice",
-                UserModel.INCLUDE_SERVICE_ACCOUNT, "true")).test(serviceAccount));
+        assertTrue(UserSearch.predicate(Map.of(UserModel.SEARCH, "alice", UserModel.INCLUDE_SERVICE_ACCOUNT, "true"))
+                .test(serviceAccount));
     }
 
     @Test

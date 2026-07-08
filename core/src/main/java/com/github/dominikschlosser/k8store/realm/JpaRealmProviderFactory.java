@@ -38,7 +38,8 @@ import org.keycloak.provider.EnvironmentDependentProviderFactory;
  * and never listens. Only active when the realm area is CR-backed.
  */
 @AutoService(RealmProviderFactory.class)
-public class JpaRealmProviderFactory implements RealmProviderFactory<RealmProvider>, EnvironmentDependentProviderFactory {
+public class JpaRealmProviderFactory
+        implements RealmProviderFactory<RealmProvider>, EnvironmentDependentProviderFactory {
 
     public static final String PROVIDER_ID = "jpa";
 

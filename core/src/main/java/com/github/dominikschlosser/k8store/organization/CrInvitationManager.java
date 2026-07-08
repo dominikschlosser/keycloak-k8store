@@ -56,8 +56,8 @@ public class CrInvitationManager implements InvitationManager {
     }
 
     @Override
-    public OrganizationInvitationModel create(OrganizationModel organization, String email, String firstName,
-            String lastName) {
+    public OrganizationInvitationModel create(
+            OrganizationModel organization, String email, String firstName, String lastName) {
         OrganizationInvitationSpec spec = new OrganizationInvitationSpec();
         spec.setId(KeycloakModelUtils.generateId());
         spec.setRealm(realm().getId());
@@ -78,30 +78,33 @@ public class CrInvitationManager implements InvitationManager {
     }
 
     @Override
-    public Stream<OrganizationInvitationModel> getAllStream(OrganizationModel organization,
-            Map<OrganizationInvitationModel.Filter, String> filters, Integer first, Integer max) {
-        Stream<OrganizationInvitationSpec> specs = OrganizationInvitationCrStore.allInRealm(realm().getId())
-                .stream()
+    public Stream<OrganizationInvitationModel> getAllStream(
+            OrganizationModel organization,
+            Map<OrganizationInvitationModel.Filter, String> filters,
+            Integer first,
+            Integer max) {
+        Stream<OrganizationInvitationSpec> specs = OrganizationInvitationCrStore.allInRealm(realm().getId()).stream()
                 .filter(spec -> organization.getId().equals(spec.getOrganizationId()));
         if (filters != null) {
             for (Map.Entry<OrganizationInvitationModel.Filter, String> filter : filters.entrySet()) {
                 specs = specs.filter(matches(filter.getKey(), filter.getValue()));
             }
         }
-        Stream<OrganizationInvitationModel> models = specs
-                .sorted(Comparator.comparing(OrganizationInvitationSpec::getId))
+        Stream<OrganizationInvitationModel> models = specs.sorted(
+                        Comparator.comparing(OrganizationInvitationSpec::getId))
                 .map(OrganizationInvitationAdapter::new)
                 .map(OrganizationInvitationModel.class::cast);
         return StreamsUtil.paginatedStream(models, first, max);
     }
 
-    private static Predicate<OrganizationInvitationSpec> matches(OrganizationInvitationModel.Filter filter,
-            String value) {
+    private static Predicate<OrganizationInvitationSpec> matches(
+            OrganizationInvitationModel.Filter filter, String value) {
         switch (filter) {
             case EMAIL:
                 return spec -> spec.getEmail() != null && spec.getEmail().equalsIgnoreCase(value);
             case FIRST_NAME:
-                return spec -> spec.getFirstName() != null && spec.getFirstName().equalsIgnoreCase(value);
+                return spec ->
+                        spec.getFirstName() != null && spec.getFirstName().equalsIgnoreCase(value);
             case LAST_NAME:
                 return spec -> spec.getLastName() != null && spec.getLastName().equalsIgnoreCase(value);
             case STATUS:

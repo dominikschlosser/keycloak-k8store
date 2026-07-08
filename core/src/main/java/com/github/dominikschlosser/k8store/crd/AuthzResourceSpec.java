@@ -15,11 +15,11 @@
  */
 package com.github.dominikschlosser.k8store.crd;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * Spec of a {@code KeycloakAuthzResource} custom resource: one protected resource of a resource

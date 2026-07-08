@@ -81,8 +81,11 @@ public class UserAreaStorageTest {
     KeycloakUrls urls;
 
     private List<KeycloakUserCr> userCrs() {
-        return kube.client().resources(KeycloakUserCr.class)
-                .inNamespace(namespace.name()).list().getItems();
+        return kube.client()
+                .resources(KeycloakUserCr.class)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems();
     }
 
     private KeycloakUserCr userCr(String username) {
@@ -91,7 +94,9 @@ public class UserAreaStorageTest {
                         && realm.getName().equals(cr.getSpec().getRealm()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakUser CR with username " + username + "; have: "
-                        + userCrs().stream().map(cr -> cr.getSpec().getUsername()).toList()));
+                        + userCrs().stream()
+                                .map(cr -> cr.getSpec().getUsername())
+                                .toList()));
     }
 
     private String createUser(String username, String password) {
@@ -119,8 +124,8 @@ public class UserAreaStorageTest {
         String form = "grant_type=password&client_id=admin-cli"
                 + "&username=" + URLEncoder.encode(username, StandardCharsets.UTF_8)
                 + "&password=" + URLEncoder.encode(password, StandardCharsets.UTF_8);
-        HttpRequest request = HttpRequest.newBuilder(URI.create(
-                        urls.getBase() + "/realms/" + realm.getName() + "/protocol/openid-connect/token"))
+        HttpRequest request = HttpRequest.newBuilder(
+                        URI.create(urls.getBase() + "/realms/" + realm.getName() + "/protocol/openid-connect/token"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(form))
                 .build();
@@ -160,11 +165,16 @@ public class UserAreaStorageTest {
         // mixed-case login name: usernames are stored lowercased, lookups are case-insensitive
         passwordGrant("CR-Login-USER", "cr-login-password", 200);
 
-        Await.await("user session CR of the CR-backed user's login", () -> kube.client()
-                .resources(KeycloakUserSessionCr.class).inNamespace(namespace.name()).list().getItems()
-                .stream()
-                .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())
-                        && userId.equals(cr.getSpec().getUserId())));
+        Await.await(
+                "user session CR of the CR-backed user's login", () -> kube
+                        .client()
+                        .resources(KeycloakUserSessionCr.class)
+                        .inNamespace(namespace.name())
+                        .list()
+                        .getItems()
+                        .stream()
+                        .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())
+                                && userId.equals(cr.getSpec().getUserId())));
 
         // wrong password must fail (same status the D1 brute-force test pinned)
         passwordGrant("cr-login-user", "definitely-wrong", 400);
@@ -179,8 +189,7 @@ public class UserAreaStorageTest {
         assertTrue(byPrefix.stream().anyMatch(u -> "cr-search-alpha".equals(u.getUsername())), "prefix search");
         assertTrue(byPrefix.stream().anyMatch(u -> "cr-search-beta".equals(u.getUsername())));
 
-        List<UserRepresentation> byEmail = realm.admin().users()
-                .searchByEmail("cr-search-alpha@example.com", true);
+        List<UserRepresentation> byEmail = realm.admin().users().searchByEmail("cr-search-alpha@example.com", true);
         assertEquals(1, byEmail.size(), "exact email search");
         assertEquals("cr-search-alpha", byEmail.get(0).getUsername());
 
@@ -209,19 +218,22 @@ public class UserAreaStorageTest {
 
         KeycloakUserCr cr = userCr("cr-member-user");
         assertNotNull(cr.getSpec().getGroups(), "group membership must land on the user CR");
-        assertTrue(cr.getSpec().getGroups().contains(groupId),
+        assertTrue(
+                cr.getSpec().getGroups().contains(groupId),
                 "membership is stored as the group id: " + cr.getSpec().getGroups());
         assertNotNull(cr.getSpec().getRealmRoles(), "role grants must land on the user CR");
-        assertTrue(cr.getSpec().getRealmRoles().contains("cr-user-role"),
+        assertTrue(
+                cr.getSpec().getRealmRoles().contains("cr-user-role"),
                 "grants are stored by role name: " + cr.getSpec().getRealmRoles());
 
         // and the admin API reads both back through the CR store
-        assertTrue(realm.admin().users().get(userId).groups().stream()
-                .anyMatch(g -> "cr-user-group".equals(g.getName())));
+        assertTrue(
+                realm.admin().users().get(userId).groups().stream().anyMatch(g -> "cr-user-group".equals(g.getName())));
         assertTrue(realm.admin().users().get(userId).roles().realmLevel().listAll().stream()
                 .anyMatch(r -> "cr-user-role".equals(r.getName())));
-        assertTrue(realm.admin().groups().group(groupId).members().stream()
-                .anyMatch(u -> "cr-member-user".equals(u.getUsername())),
+        assertTrue(
+                realm.admin().groups().group(groupId).members().stream()
+                        .anyMatch(u -> "cr-member-user".equals(u.getUsername())),
                 "group members listing must resolve through the CR-backed membership");
 
         realm.admin().users().get(userId).leaveGroup(groupId);

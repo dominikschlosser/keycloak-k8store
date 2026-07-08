@@ -89,7 +89,11 @@ public class DynamicAreasStorageTest {
     KeycloakUrls urls;
 
     private <T extends CustomResource<?, ?>> List<T> crs(Class<T> type) {
-        return kube.client().resources(type).inNamespace(namespace.name()).list().getItems();
+        return kube.client()
+                .resources(type)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems();
     }
 
     private String tokenEndpoint() {
@@ -124,7 +128,9 @@ public class DynamicAreasStorageTest {
     public void loginCreatesUserSessionCrWithEmbeddedClientSessionAndLogoutDeletesIt() throws Exception {
         JsonNode tokens = passwordGrant(user.getPassword(), 200);
         String sessionId = JSON.readTree(Base64.getUrlDecoder()
-                .decode(tokens.get("access_token").asText().split("\\.")[1])).get("sid").asText();
+                        .decode(tokens.get("access_token").asText().split("\\.")[1]))
+                .get("sid")
+                .asText();
 
         Await.await("user session CR of the password-grant login", () -> sessionsOfTestUser().stream()
                 .anyMatch(cr -> sessionId.equals(cr.getSpec().getId())));
@@ -137,29 +143,34 @@ public class DynamicAreasStorageTest {
         assertNotNull(spec.getStarted(), "the session CR must carry timestamps");
         assertNotNull(spec.getExpiresAt(), "the session CR must carry a computed expiration");
         assertNotNull(spec.getClientSessions(), "the client session must be embedded in the session CR");
-        assertTrue(spec.getClientSessions().containsKey("admin-cli"),
+        assertTrue(
+                spec.getClientSessions().containsKey("admin-cli"),
                 "the embedded client session is keyed by the client's storage id; got: "
                         + spec.getClientSessions().keySet());
-        assertNotNull(spec.getClientSessions().get("admin-cli").getExpiresAt(),
+        assertNotNull(
+                spec.getClientSessions().get("admin-cli").getExpiresAt(),
                 "the embedded client session must carry its own expiration");
 
         String userId = realm.admin().users().search(user.getUsername()).get(0).getId();
         realm.admin().users().get(userId).logout();
-        Await.await("user session CRs to be deleted on logout", () -> sessionsOfTestUser().isEmpty());
+        Await.await("user session CRs to be deleted on logout", () -> sessionsOfTestUser()
+                .isEmpty());
     }
 
     @Test
     public void startingAnAuthorizationCodeFlowCreatesAnAuthSessionCr() throws Exception {
         String redirect = urls.getBase() + "/realms/" + realm.getName() + "/account/";
         // account-console enforces PKCE; any well-formed S256 challenge starts the flow
-        String challenge = Base64.getUrlEncoder().withoutPadding().encodeToString(
-                MessageDigest.getInstance("SHA-256").digest("test-verifier".getBytes(StandardCharsets.UTF_8)));
+        String challenge = Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(
+                        MessageDigest.getInstance("SHA-256").digest("test-verifier".getBytes(StandardCharsets.UTF_8)));
         String authUrl = urls.getBase() + "/realms/" + realm.getName() + "/protocol/openid-connect/auth"
                 + "?client_id=account-console&response_type=code&scope=openid"
                 + "&code_challenge_method=S256&code_challenge=" + challenge
                 + "&redirect_uri=" + URLEncoder.encode(redirect, StandardCharsets.UTF_8);
-        HttpResponse<String> response = HTTP.send(HttpRequest.newBuilder(URI.create(authUrl)).GET().build(),
-                HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HTTP.send(
+                HttpRequest.newBuilder(URI.create(authUrl)).GET().build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), () -> "auth endpoint answered: " + response.body());
 
         Await.await("auth session CR of the started flow", () -> crs(KeycloakAuthSessionCr.class).stream()
@@ -176,7 +187,8 @@ public class DynamicAreasStorageTest {
         realm.admin().update(rep);
         try {
             passwordGrant("definitely-wrong-password", 400);
-            String userId = realm.admin().users().search(user.getUsername()).get(0).getId();
+            String userId =
+                    realm.admin().users().search(user.getUsername()).get(0).getId();
             Await.await("login failure CR of the failed login", () -> crs(KeycloakLoginFailureCr.class).stream()
                     .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())
                             && userId.equals(cr.getSpec().getUserId())
@@ -192,11 +204,13 @@ public class DynamicAreasStorageTest {
     public void revokingAnAccessTokenCreatesARevokedTokenCr() throws Exception {
         JsonNode tokens = passwordGrant(user.getPassword(), 200);
         String accessToken = tokens.get("access_token").asText();
-        String jti = JSON.readTree(Base64.getUrlDecoder().decode(accessToken.split("\\.")[1])).get("jti").asText();
+        String jti = JSON.readTree(Base64.getUrlDecoder().decode(accessToken.split("\\.")[1]))
+                .get("jti")
+                .asText();
 
         String revokeUrl = urls.getBase() + "/realms/" + realm.getName() + "/protocol/openid-connect/revoke";
-        HttpResponse<String> response = postForm(revokeUrl,
-                "client_id=admin-cli&token=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8));
+        HttpResponse<String> response = postForm(
+                revokeUrl, "client_id=admin-cli&token=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8));
         assertEquals(200, response.statusCode(), () -> "revocation endpoint answered: " + response.body());
 
         Await.await("revoked token CR", () -> crs(KeycloakRevokedTokenCr.class).stream()

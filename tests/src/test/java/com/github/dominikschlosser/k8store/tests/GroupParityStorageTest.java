@@ -59,8 +59,11 @@ public class GroupParityStorageTest {
     ManagedRealm realm;
 
     private List<KeycloakGroupCr> groupCrs() {
-        return kube.client().resources(KeycloakGroupCr.class)
-                .inNamespace(namespace.name()).list().getItems();
+        return kube.client()
+                .resources(KeycloakGroupCr.class)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems();
     }
 
     private KeycloakGroupCr groupCr(String name) {
@@ -98,13 +101,14 @@ public class GroupParityStorageTest {
             childId = CreatedResponseUtil.getCreatedId(response);
         }
 
-        List<GroupRepresentation> subGroups = realm.admin().groups().group(parentId).getSubGroups(0, 10, true);
+        List<GroupRepresentation> subGroups =
+                realm.admin().groups().group(parentId).getSubGroups(0, 10, true);
         assertEquals(1, subGroups.size());
         assertEquals("hier-child", subGroups.get(0).getName());
         assertEquals("/hier-parent/hier-child", subGroups.get(0).getPath());
 
-        assertEquals(parentId, groupCr("hier-child").getSpec().getParentId(),
-                "child CR must reference the parent group id");
+        assertEquals(
+                parentId, groupCr("hier-child").getSpec().getParentId(), "child CR must reference the parent group id");
         assertNull(groupCr("hier-parent").getSpec().getParentId(), "top-level group CR must have no parent");
         assertEquals(childId, groupCr("hier-child").getSpec().getId());
     }
@@ -116,10 +120,11 @@ public class GroupParityStorageTest {
 
         realm.admin().users().get(userId).joinGroup(groupId);
 
-        assertTrue(realm.admin().users().get(userId).groups().stream()
-                        .anyMatch(g -> "member-group".equals(g.getName())),
+        assertTrue(
+                realm.admin().users().get(userId).groups().stream().anyMatch(g -> "member-group".equals(g.getName())),
                 "user (JPA) must see the CR-backed group membership");
-        assertTrue(realm.admin().groups().group(groupId).members().stream()
+        assertTrue(
+                realm.admin().groups().group(groupId).members().stream()
                         .anyMatch(u -> "grp-member-user".equals(u.getUsername())),
                 "group members listing must join back to the JPA user");
 
@@ -151,7 +156,9 @@ public class GroupParityStorageTest {
 
         GroupRepresentation readBack = realm.admin().groups().group(groupId).toRepresentation();
         assertEquals(List.of("eu", "us"), readBack.getAttributes().get("regions"));
-        assertEquals(List.of("eu", "us"), groupCr("multi-attr-group").getSpec().getAttributes().get("regions"));
+        assertEquals(
+                List.of("eu", "us"),
+                groupCr("multi-attr-group").getSpec().getAttributes().get("regions"));
     }
 
     @Test
@@ -165,10 +172,12 @@ public class GroupParityStorageTest {
 
         List<GroupRepresentation> exact = realm.admin().groups().groups("search-grp-alpha", 0, 10);
         assertTrue(exact.stream().anyMatch(g -> "search-grp-alpha".equals(g.getName())));
-        assertTrue(exact.stream().noneMatch(g -> "search-grp-beta".equals(g.getName())),
+        assertTrue(
+                exact.stream().noneMatch(g -> "search-grp-beta".equals(g.getName())),
                 "narrower search must not return the sibling group");
 
-        assertEquals(0, realm.admin().groups().groups("search-grp-nothing", 0, 10).size());
+        assertEquals(
+                0, realm.admin().groups().groups("search-grp-nothing", 0, 10).size());
     }
 
     @Test
@@ -180,9 +189,13 @@ public class GroupParityStorageTest {
 
         realm.admin().groups().group(groupId).remove();
 
-        assertTrue(groupCrs().stream().noneMatch(cr -> "cascade-group".equals(cr.getSpec().getName())),
+        assertTrue(
+                groupCrs().stream()
+                        .noneMatch(cr -> "cascade-group".equals(cr.getSpec().getName())),
                 "deleted group must disappear from the cluster");
-        assertEquals(0, realm.admin().users().get(userId).groups().size(),
+        assertEquals(
+                0,
+                realm.admin().users().get(userId).groups().size(),
                 "JPA-side membership must be cascaded away when the CR-backed group is deleted");
     }
 
@@ -192,11 +205,13 @@ public class GroupParityStorageTest {
         RoleRepresentation role = new RoleRepresentation();
         role.setName("group-granted-role");
         realm.admin().roles().create(role);
-        RoleRepresentation roleRep = realm.admin().roles().get("group-granted-role").toRepresentation();
+        RoleRepresentation roleRep =
+                realm.admin().roles().get("group-granted-role").toRepresentation();
 
         realm.admin().groups().group(groupId).roles().realmLevel().add(List.of(roleRep));
 
-        assertTrue(realm.admin().groups().group(groupId).roles().realmLevel().listAll().stream()
+        assertTrue(
+                realm.admin().groups().group(groupId).roles().realmLevel().listAll().stream()
                         .anyMatch(r -> "group-granted-role".equals(r.getName())),
                 "role mapping must be readable through the admin API");
         List<String> granted = groupCr("role-grant-group").getSpec().getRealmRoles();
@@ -205,7 +220,8 @@ public class GroupParityStorageTest {
 
         realm.admin().groups().group(groupId).roles().realmLevel().remove(List.of(roleRep));
         List<String> afterRemove = groupCr("role-grant-group").getSpec().getRealmRoles();
-        assertTrue(afterRemove == null || !afterRemove.contains("group-granted-role"),
+        assertTrue(
+                afterRemove == null || !afterRemove.contains("group-granted-role"),
                 "removed role mapping must leave the group CR");
     }
 }

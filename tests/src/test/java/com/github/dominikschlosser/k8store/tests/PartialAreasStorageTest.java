@@ -53,8 +53,8 @@ public class PartialAreasStorageTest {
 
     @Test
     public void realmsAreCustomResourcesButGroupsStayInDatabase() {
-        assertTrue(kube.client().resources(KeycloakRealmCr.class)
-                        .inNamespace(namespace.name()).list().getItems().stream()
+        assertTrue(
+                kube.client().resources(KeycloakRealmCr.class).inNamespace(namespace.name()).list().getItems().stream()
                         .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())),
                 "realm area is CR-backed");
 
@@ -64,10 +64,11 @@ public class PartialAreasStorageTest {
             assertEquals(201, response.getStatus());
         }
 
-        assertTrue(realm.admin().groups().groups("jpa-group", 0, 10).size() > 0,
+        assertTrue(
+                realm.admin().groups().groups("jpa-group", 0, 10).size() > 0,
                 "group is served through the default JPA storage");
-        assertTrue(kube.client().resources(KeycloakGroupCr.class)
-                        .inNamespace(namespace.name()).list().getItems().stream()
+        assertTrue(
+                kube.client().resources(KeycloakGroupCr.class).inNamespace(namespace.name()).list().getItems().stream()
                         .noneMatch(cr -> "jpa-group".equals(cr.getSpec().getName())),
                 "no KeycloakGroup CR may be created for a JPA-backed group");
     }

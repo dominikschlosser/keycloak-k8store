@@ -116,9 +116,13 @@ class ClientScopeCrProviderRenameTest {
         new ClientScopeCrProvider(null).roleRenamed(realm, clientRole(realm, "web", "view"), "read");
 
         ClientScopeSpec read = ClientScopeCrStore.read("master", "roles");
-        assertEquals(List.of("viewer", "administrator", "editor"), read.getRealmScopeMappings(),
+        assertEquals(
+                List.of("viewer", "administrator", "editor"),
+                read.getRealmScopeMappings(),
                 "realm scope mapping keeps position and swaps the renamed role");
-        assertEquals(List.of("create", "read", "delete"), read.getClientScopeMappings().get("web"),
+        assertEquals(
+                List.of("create", "read", "delete"),
+                read.getClientScopeMappings().get("web"),
                 "client scope mapping keeps position and swaps the renamed role, key unchanged");
     }
 
@@ -131,11 +135,13 @@ class ClientScopeCrProviderRenameTest {
         new ClientScopeCrProvider(null).clientRenamed(realm, clientModel(realm, "web"), "portal");
 
         ClientScopeSpec read = ClientScopeCrStore.read("master", "roles");
-        assertTrue(read.getClientScopeMappings().containsKey("portal"),
+        assertTrue(
+                read.getClientScopeMappings().containsKey("portal"),
                 "the scope-mapping map is rekeyed to the new clientId");
-        assertFalse(read.getClientScopeMappings().containsKey("web"),
-                "the old clientId scope-mapping key is gone");
-        assertEquals(List.of("create", "view", "delete"), read.getClientScopeMappings().get("portal"),
+        assertFalse(read.getClientScopeMappings().containsKey("web"), "the old clientId scope-mapping key is gone");
+        assertEquals(
+                List.of("create", "view", "delete"),
+                read.getClientScopeMappings().get("portal"),
                 "the mapped role names are preserved under the new key");
     }
 }

@@ -77,7 +77,8 @@ public final class RealmCrStore {
         }
         List<String> ignored = spec.ignoredEmbeddedCollections();
         if (!ignored.isEmpty() && WARNED_REALMS.add(spec.getRealm())) {
-            LOG.warnv("KeycloakRealm CR for realm {0} embeds the collections {1}; they are ignored -"
+            LOG.warnv(
+                    "KeycloakRealm CR for realm {0} embeds the collections {1}; they are ignored -"
                             + " per-kind custom resources (KeycloakClient, KeycloakRole, KeycloakGroup,"
                             + " KeycloakClientScope) are the storage for those entities",
                     spec.getRealm(), String.join(", ", ignored));

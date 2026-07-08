@@ -56,8 +56,8 @@ class CrScopeStore implements ScopeStore {
     @Override
     public Scope create(ResourceServer resourceServer, String id, String name) {
         if (findByName(resourceServer, name) != null) {
-            throw new ModelDuplicateException(
-                    "Scope with name [" + name + "] already exists in resource server [" + resourceServer.getId() + "]");
+            throw new ModelDuplicateException("Scope with name [" + name + "] already exists in resource server ["
+                    + resourceServer.getId() + "]");
         }
         AuthzScopeSpec spec = new AuthzScopeSpec();
         spec.setId(id != null ? id : KeycloakModelUtils.generateId());
@@ -81,8 +81,9 @@ class CrScopeStore implements ScopeStore {
             return null;
         }
         ScopeAdapter scope = factory.scopeById(factory.realmOf(resourceServer), id);
-        if (scope == null || (resourceServer != null
-                && !resourceServer.getId().equals(scope.spec().getResourceServer()))) {
+        if (scope == null
+                || (resourceServer != null
+                        && !resourceServer.getId().equals(scope.spec().getResourceServer()))) {
             return null;
         }
         return scope;
@@ -103,12 +104,17 @@ class CrScopeStore implements ScopeStore {
     }
 
     @Override
-    public List<Scope> findByResourceServer(ResourceServer resourceServer,
-                                            Map<Scope.FilterOption, String[]> attributes,
-                                            Integer firstResult, Integer maxResults) {
+    public List<Scope> findByResourceServer(
+            ResourceServer resourceServer,
+            Map<Scope.FilterOption, String[]> attributes,
+            Integer firstResult,
+            Integer maxResults) {
         Stream<AuthzScopeSpec> matches = specs(resourceServer).filter(spec -> matchesFilters(spec, attributes));
-        return paginatedStream(matches.sorted(Comparator.comparing(AuthzScopeSpec::getName,
-                        Comparator.nullsFirst(Comparator.naturalOrder()))), firstResult, maxResults)
+        return paginatedStream(
+                        matches.sorted(Comparator.comparing(
+                                AuthzScopeSpec::getName, Comparator.nullsFirst(Comparator.naturalOrder()))),
+                        firstResult,
+                        maxResults)
                 .map(factory::wrap)
                 .map(Scope.class::cast)
                 .toList();
@@ -117,10 +123,11 @@ class CrScopeStore implements ScopeStore {
     private boolean matchesFilters(AuthzScopeSpec spec, Map<Scope.FilterOption, String[]> attributes) {
         for (Map.Entry<Scope.FilterOption, String[]> filter : attributes.entrySet()) {
             String[] value = filter.getValue();
-            boolean matches = switch (filter.getKey()) {
-                case ID -> List.of(value).contains(spec.getId());
-                case NAME -> LikePatterns.containsTerm(spec.getName(), value[0], false);
-            };
+            boolean matches =
+                    switch (filter.getKey()) {
+                        case ID -> List.of(value).contains(spec.getId());
+                        case NAME -> LikePatterns.containsTerm(spec.getName(), value[0], false);
+                    };
             if (!matches) {
                 return false;
             }

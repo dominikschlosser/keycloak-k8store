@@ -29,12 +29,12 @@ import com.github.dominikschlosser.k8store.crd.UserConsentSpec;
 import com.github.dominikschlosser.k8store.crd.UserSessionSpec;
 import com.github.dominikschlosser.k8store.crd.UserSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
+import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakSingleUseObjectCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserSessionCr;
-import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakSingleUseObjectCr;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import java.time.Duration;
 import java.time.Instant;
@@ -79,22 +79,23 @@ class K8sDynamicKindsTest {
         assertEquals(expected, K8sStoreConfig.parseAreas("  "));
         assertEquals(expected, K8sStoreConfig.parseAreas("config"));
         assertEquals(expected, K8sStoreConfig.parseAreas("CONFIG"));
-        assertTrue(expected.stream().noneMatch(Area::isDynamic),
-                "the default areas must never activate a dynamic area");
+        assertTrue(
+                expected.stream().noneMatch(Area::isDynamic), "the default areas must never activate a dynamic area");
     }
 
     @Test
     void allAreaValueMeansEverythingIncludingDynamicAreas() {
         assertEquals(EnumSet.allOf(Area.class), K8sStoreConfig.parseAreas("all"));
-        assertTrue(K8sStoreConfig.parseAreas("all").contains(Area.USER),
-                "the user area joins 'all'");
-        assertFalse(K8sStoreConfig.configAreas().contains(Area.USER),
+        assertTrue(K8sStoreConfig.parseAreas("all").contains(Area.USER), "the user area joins 'all'");
+        assertFalse(
+                K8sStoreConfig.configAreas().contains(Area.USER),
                 "users are a dynamic area (runtime-mutated), never part of the config default");
     }
 
     @Test
     void explicitAreaListsAreParsedVerbatim() {
-        assertEquals(EnumSet.of(Area.REALM, Area.USER_SESSION, Area.SINGLE_USE_OBJECT),
+        assertEquals(
+                EnumSet.of(Area.REALM, Area.USER_SESSION, Area.SINGLE_USE_OBJECT),
                 K8sStoreConfig.parseAreas("realm, user-session,single-use-object"));
         assertThrows(IllegalArgumentException.class, () -> K8sStoreConfig.parseAreas("realm,bogus"));
     }
@@ -104,10 +105,12 @@ class K8sDynamicKindsTest {
     @Test
     void configOnlyAreasRegisterNoDynamicKinds() {
         K8sStorageBackend backend = start(false, K8sStoreConfig.configAreas());
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> backend.read(UserSessionSpec.class, "master", "some-id"),
                 "with config-only areas the dynamic kinds must not be registered (no informers, no CRDs needed)");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> backend.read(UserSpec.class, "master", "some-user"),
                 "the user kind is dynamic too: not registered without the user area");
     }
@@ -123,16 +126,27 @@ class K8sDynamicKindsTest {
         session.setRealm("master");
         session.setUserId("user-1");
         K8sStorageBackend.update(UserSessionSpec.class, "master", "session-1", session);
-        assertEquals(1, client.resources(KeycloakUserSessionCr.class).inNamespace("test").list().getItems().size(),
+        assertEquals(
+                1,
+                client.resources(KeycloakUserSessionCr.class)
+                        .inNamespace("test")
+                        .list()
+                        .getItems()
+                        .size(),
                 "dynamic-kind writes must reach the API server despite read-only mode");
         K8sStorageBackend.delete(UserSessionSpec.class, "master", "session-1");
-        assertTrue(client.resources(KeycloakUserSessionCr.class).inNamespace("test").list().getItems().isEmpty());
+        assertTrue(client.resources(KeycloakUserSessionCr.class)
+                .inNamespace("test")
+                .list()
+                .getItems()
+                .isEmpty());
 
         RoleSpec role = new RoleSpec();
         role.setId("role-1");
         role.setRealm("master");
         role.setName("role-1");
-        assertThrows(ReadOnlyException.class,
+        assertThrows(
+                ReadOnlyException.class,
                 () -> K8sStorageBackend.update(RoleSpec.class, "master", "role-1", role),
                 "config-kind writes must still be rejected in read-only mode");
     }
@@ -146,7 +160,8 @@ class K8sDynamicKindsTest {
         spec.setUserId("user-1");
         spec.setExpiresAt(expiresAt);
         KeycloakUserSessionCr cr = new KeycloakUserSessionCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName(id).withNamespace("test").build());
+        cr.setMetadata(
+                new ObjectMetaBuilder().withName(id).withNamespace("test").build());
         cr.setSpec(spec);
         return cr;
     }
@@ -159,7 +174,8 @@ class K8sDynamicKindsTest {
         client.resource(userSessionCr("live", now + 60_000)).create();
 
         await(() -> backend.read(UserSessionSpec.class, "master", "live") != null);
-        assertNull(backend.read(UserSessionSpec.class, "master", "expired"),
+        assertNull(
+                backend.read(UserSessionSpec.class, "master", "expired"),
                 "an expired entity must never be handed to the model layer");
         assertEquals(1, backend.readAllInRealm(UserSessionSpec.class, "master").size());
         assertNull(backend.fetch(UserSessionSpec.class, "master", "expired"));
@@ -170,7 +186,8 @@ class K8sDynamicKindsTest {
         K8sStorageBackend backend = start(false, EnumSet.allOf(Area.class));
         client.resource(userSessionCr("forever", 0)).create();
         await(() -> backend.read(UserSessionSpec.class, "master", "forever") != null);
-        assertNotNull(backend.read(UserSessionSpec.class, "master", "forever"),
+        assertNotNull(
+                backend.read(UserSessionSpec.class, "master", "forever"),
                 "expiresAt of 0 means the entity never expires");
     }
 
@@ -185,7 +202,10 @@ class K8sDynamicKindsTest {
 
         backend.sweepExpired();
 
-        var remaining = client.resources(KeycloakUserSessionCr.class).inNamespace("test").list().getItems();
+        var remaining = client.resources(KeycloakUserSessionCr.class)
+                .inNamespace("test")
+                .list()
+                .getItems();
         assertEquals(1, remaining.size(), "the reaper must delete expired CRs and only those");
         assertEquals("live", remaining.get(0).getSpec().getId());
     }
@@ -222,12 +242,19 @@ class K8sDynamicKindsTest {
         assertEquals("password", read.getCredentials().get(0).getType());
         assertEquals(password.getSecretData(), read.getCredentials().get(0).getSecretData());
         assertEquals(password.getCredentialData(), read.getCredentials().get(0).getCredentialData());
-        assertEquals(1, client.resources(KeycloakUserCr.class).inNamespace("test").list().getItems().size());
+        assertEquals(
+                1,
+                client.resources(KeycloakUserCr.class)
+                        .inNamespace("test")
+                        .list()
+                        .getItems()
+                        .size());
 
         // the write client's serialization drops null properties and null map values (422 on a
         // real API server otherwise) and never carries the excluded runtime/import-only fields
         KeycloakUserCr cr = new KeycloakUserCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName("alice").withNamespace("test").build());
+        cr.setMetadata(
+                new ObjectMetaBuilder().withName("alice").withNamespace("test").build());
         cr.setSpec(spec);
         String wireJson = K8sStorageBackend.buildSerialization().asJson(cr);
         assertTrue(wireJson.contains("engineering"), wireJson);
@@ -286,7 +313,8 @@ class K8sDynamicKindsTest {
         // read side: authored/mirrored JSON binds into the typed property, parameters included
         UserSpec parsed = K8sStorageBackend.configureMapper(new ObjectMapper()).readValue(json, UserSpec.class);
         assertEquals(1, parsed.getConsents().size());
-        assertEquals(List.of("acme", "globex"),
+        assertEquals(
+                List.of("acme", "globex"),
                 parsed.getConsents().get(0).getGrantedScopeParameters().get("tenant"));
         assertEquals(List.of("profile", "tenant"), parsed.getConsents().get(0).getGrantedClientScopes());
 
@@ -294,7 +322,8 @@ class K8sDynamicKindsTest {
         start(true, EnumSet.allOf(Area.class));
         K8sStorageBackend.update(UserSpec.class, "master", "carol", spec);
         UserSpec read = K8sStorageBackend.get().read(UserSpec.class, "master", "carol");
-        assertEquals(List.of("acme", "globex"),
+        assertEquals(
+                List.of("acme", "globex"),
                 read.getConsents().get(0).getGrantedScopeParameters().get("tenant"));
     }
 
@@ -330,12 +359,14 @@ class K8sDynamicKindsTest {
         spec.setExpiresAt(Time.currentTimeMillis() + 60_000);
 
         assertTrue(K8sStorageBackend.createNow(SingleUseObjectSpec.class, realm, "token-key", spec));
-        assertFalse(K8sStorageBackend.createNow(SingleUseObjectSpec.class, realm, "token-key", spec),
+        assertFalse(
+                K8sStorageBackend.createNow(SingleUseObjectSpec.class, realm, "token-key", spec),
                 "the second creator must lose the atomic create");
         assertNotNull(K8sStorageBackend.get().fetch(SingleUseObjectSpec.class, realm, "token-key"));
 
         assertTrue(K8sStorageBackend.deleteNow(SingleUseObjectSpec.class, realm, "token-key"));
-        assertFalse(K8sStorageBackend.deleteNow(SingleUseObjectSpec.class, realm, "token-key"),
+        assertFalse(
+                K8sStorageBackend.deleteNow(SingleUseObjectSpec.class, realm, "token-key"),
                 "the second deleter must observe that the object is gone");
     }
 
@@ -353,10 +384,12 @@ class K8sDynamicKindsTest {
         fresh.setKey("reuse-key");
         fresh.setExpiresAt(Time.currentTimeMillis() + 60_000);
         // the expired CR still occupies the key; the reclaim must succeed for exactly one caller
-        assertTrue(K8sStorageBackend.putIfAbsentNow(SingleUseObjectSpec.class, realm, "reuse-key", fresh),
+        assertTrue(
+                K8sStorageBackend.putIfAbsentNow(SingleUseObjectSpec.class, realm, "reuse-key", fresh),
                 "an expired entry counts as absent and must be reclaimed");
         // now a live entry holds the key: a second put-if-absent must fail
-        assertFalse(K8sStorageBackend.putIfAbsentNow(SingleUseObjectSpec.class, realm, "reuse-key", fresh),
+        assertFalse(
+                K8sStorageBackend.putIfAbsentNow(SingleUseObjectSpec.class, realm, "reuse-key", fresh),
                 "a live entry must reject put-if-absent");
     }
 
@@ -378,7 +411,8 @@ class K8sDynamicKindsTest {
 
         var staleUpdate = singleUseCr("cas-key", spec);
         staleUpdate.getMetadata().setResourceVersion(staleVersion);
-        assertThrows(KubernetesClientException.class,
+        assertThrows(
+                KubernetesClientException.class,
                 () -> client.resource(staleUpdate).update(),
                 "a replace with a stale resourceVersion must be rejected");
     }
@@ -386,8 +420,8 @@ class K8sDynamicKindsTest {
     private KeycloakSingleUseObjectCr singleUseCr(String key, SingleUseObjectSpec spec) {
         KeycloakSingleUseObjectCr cr = new KeycloakSingleUseObjectCr();
         cr.setMetadata(new ObjectMetaBuilder()
-                .withName(K8sStorageBackend.crName(KeycloakSingleUseObjectCr.class,
-                        K8sStorageBackend.GLOBAL_PSEUDO_REALM, key))
+                .withName(K8sStorageBackend.crName(
+                        KeycloakSingleUseObjectCr.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key))
                 .withNamespace("test")
                 .build());
         cr.setSpec(spec);

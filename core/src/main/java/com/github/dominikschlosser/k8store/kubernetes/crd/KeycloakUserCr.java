@@ -18,7 +18,6 @@ package com.github.dominikschlosser.k8store.kubernetes.crd;
 import com.github.dominikschlosser.k8store.crd.UserSpec;
 import io.fabric8.crd.generator.annotation.SchemaSwap;
 import io.fabric8.kubernetes.api.model.Namespaced;
-import org.keycloak.representations.idm.CredentialRepresentation;
 import io.fabric8.kubernetes.client.CustomResource;
 import io.fabric8.kubernetes.model.annotation.Group;
 import io.fabric8.kubernetes.model.annotation.Kind;
@@ -26,6 +25,7 @@ import io.fabric8.kubernetes.model.annotation.Plural;
 import io.fabric8.kubernetes.model.annotation.ShortNames;
 import io.fabric8.kubernetes.model.annotation.Singular;
 import io.fabric8.kubernetes.model.annotation.Version;
+import org.keycloak.representations.idm.CredentialRepresentation;
 
 /**
  * A Keycloak user stored as a Kubernetes custom resource (experimental {@code user} area).

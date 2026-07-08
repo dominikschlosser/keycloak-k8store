@@ -30,11 +30,11 @@ import com.github.dominikschlosser.k8store.crd.PermissionTicketSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.ResourceServerSpec;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
-import com.github.dominikschlosser.k8store.role.RoleCrStore;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
 import com.github.dominikschlosser.k8store.realm.RealmAdapter;
+import com.github.dominikschlosser.k8store.role.RoleCrStore;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import java.util.EnumSet;
@@ -114,17 +114,24 @@ class AuthzClientRenameTest {
 
         new CrStoreFactory(null).clientRenamed(realm, client(realm, "web"), "portal");
 
-        assertNull(AuthzCrStore.resourceServer("master", "web"),
-                "the resource server keyed by the old clientId is gone");
-        assertNotNull(AuthzCrStore.resourceServer("master", "portal"),
-                "the resource server moved to the new clientId");
-        assertEquals("portal", AuthzCrStore.resource("master", "resource-1").getResourceServer(),
+        assertNull(
+                AuthzCrStore.resourceServer("master", "web"), "the resource server keyed by the old clientId is gone");
+        assertNotNull(AuthzCrStore.resourceServer("master", "portal"), "the resource server moved to the new clientId");
+        assertEquals(
+                "portal",
+                AuthzCrStore.resource("master", "resource-1").getResourceServer(),
                 "the resource back-reference points at the new clientId");
-        assertEquals("portal", AuthzCrStore.scope("master", "scope-1").getResourceServer(),
+        assertEquals(
+                "portal",
+                AuthzCrStore.scope("master", "scope-1").getResourceServer(),
                 "the scope back-reference points at the new clientId");
-        assertEquals("portal", AuthzCrStore.policy("master", "policy-1").getResourceServer(),
+        assertEquals(
+                "portal",
+                AuthzCrStore.policy("master", "policy-1").getResourceServer(),
                 "the policy back-reference points at the new clientId");
-        assertEquals("portal", AuthzCrStore.ticket("master", "ticket-1").getResourceServer(),
+        assertEquals(
+                "portal",
+                AuthzCrStore.ticket("master", "ticket-1").getResourceServer(),
                 "the permission-ticket back-reference points at the new clientId");
     }
 
@@ -135,7 +142,8 @@ class AuthzClientRenameTest {
 
         new CrStoreFactory(null).clientRenamed(realm, client(realm, "web"), "portal");
 
-        assertNull(AuthzCrStore.resourceServer("master", "portal"),
+        assertNull(
+                AuthzCrStore.resourceServer("master", "portal"),
                 "a client without an authorization graph produces no resource server");
     }
 
@@ -149,7 +157,8 @@ class AuthzClientRenameTest {
 
         new CrStoreFactory(null).clientRenamed(realm, client(realm, "web"), "portal");
 
-        String clients = AuthzCrStore.policy("master", "client-policy").getConfig().get("clients");
+        String clients =
+                AuthzCrStore.policy("master", "client-policy").getConfig().get("clients");
         assertEquals("[\"portal\",\"other\"]", clients);
     }
 
@@ -159,7 +168,9 @@ class AuthzClientRenameTest {
         RealmModel realm = realm("master");
         // role ids are <clientId>:<name> for client roles; the client rename changes them
         saveClientRole("web", "view");
-        savePolicyConfig("role-policy", "roles",
+        savePolicyConfig(
+                "role-policy",
+                "roles",
                 "[{\"id\":\"web:view\",\"required\":false},{\"id\":\"realm-admin\",\"required\":true}]");
 
         new CrStoreFactory(null).clientRenamed(realm, client(realm, "web"), "portal");
@@ -182,7 +193,8 @@ class AuthzClientRenameTest {
         new CrStoreFactory(null).clientRenamed(realm, client(realm, "web"), "portal");
 
         String roles = AuthzCrStore.policy("master", "role-policy").getConfig().get("roles");
-        assertTrue(roles.contains("\"web:reports\""),
+        assertTrue(
+                roles.contains("\"web:reports\""),
                 "the realm role reference is not a client role of the renamed client: " + roles);
         assertFalse(roles.contains("\"portal:reports\""), roles);
     }

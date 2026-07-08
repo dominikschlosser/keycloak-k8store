@@ -62,9 +62,7 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
                     // CR-backed organization provider wins default resolution
                     .spiOption("organization", "infinispan", "enabled", "false");
         } else {
-            config.featuresDisabled(
-                    Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2,
-                    Profile.Feature.ORGANIZATION);
+            config.featuresDisabled(Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2, Profile.Feature.ORGANIZATION);
         }
         return config.features(Profile.Feature.STATELESS)
                 .cache(CacheType.LOCAL)

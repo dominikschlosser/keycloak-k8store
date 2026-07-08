@@ -151,8 +151,10 @@ public class RealmAdapter implements StorageProviderRealmModel {
             return;
         }
         // the name is the store id: move the CR instead of mutating it in place
-        LOG.warnv("Renaming realm {0} to {1}: custom resources of other kinds referencing the old"
-                + " realm name are not rewritten", current, name);
+        LOG.warnv(
+                "Renaming realm {0} to {1}: custom resources of other kinds referencing the old"
+                        + " realm name are not rewritten",
+                current, name);
         RealmCrStore.delete(current);
         spec.setRealm(name);
         spec.setId(name);
@@ -839,9 +841,10 @@ public class RealmAdapter implements StorageProviderRealmModel {
         policy.setDigits(orZero(spec.getOtpPolicyDigits()));
         policy.setLookAheadWindow(orZero(spec.getOtpPolicyLookAheadWindow()));
         policy.setPeriod(orZero(spec.getOtpPolicyPeriod()));
-        policy.setCodeReusable(spec.isOtpPolicyCodeReusable() == null
-                ? OTPPolicy.DEFAULT_IS_REUSABLE
-                : spec.isOtpPolicyCodeReusable());
+        policy.setCodeReusable(
+                spec.isOtpPolicyCodeReusable() == null
+                        ? OTPPolicy.DEFAULT_IS_REUSABLE
+                        : spec.isOtpPolicyCodeReusable());
         return policy;
     }
 
@@ -860,20 +863,21 @@ public class RealmAdapter implements StorageProviderRealmModel {
     @Override
     public WebAuthnPolicy getWebAuthnPolicy() {
         WebAuthnPolicy policy = new WebAuthnPolicy();
-        policy.setRpEntityName(orDefault(
-                spec.getWebAuthnPolicyRpEntityName(), Constants.DEFAULT_WEBAUTHN_POLICY_RP_ENTITY_NAME));
+        policy.setRpEntityName(
+                orDefault(spec.getWebAuthnPolicyRpEntityName(), Constants.DEFAULT_WEBAUTHN_POLICY_RP_ENTITY_NAME));
         List<String> algorithms = spec.getWebAuthnPolicySignatureAlgorithms();
-        policy.setSignatureAlgorithm(algorithms == null || algorithms.isEmpty()
-                ? List.of(Constants.DEFAULT_WEBAUTHN_POLICY_SIGNATURE_ALGORITHMS.split(","))
-                : algorithms);
+        policy.setSignatureAlgorithm(
+                algorithms == null || algorithms.isEmpty()
+                        ? List.of(Constants.DEFAULT_WEBAUTHN_POLICY_SIGNATURE_ALGORITHMS.split(","))
+                        : algorithms);
         policy.setRpId(orDefault(spec.getWebAuthnPolicyRpId(), ""));
         policy.setAttestationConveyancePreference(orDefault(
                 spec.getWebAuthnPolicyAttestationConveyancePreference(),
                 Constants.DEFAULT_WEBAUTHN_POLICY_NOT_SPECIFIED));
         policy.setAuthenticatorAttachment(orDefault(
                 spec.getWebAuthnPolicyAuthenticatorAttachment(), Constants.DEFAULT_WEBAUTHN_POLICY_NOT_SPECIFIED));
-        policy.setRequireResidentKey(orDefault(
-                spec.getWebAuthnPolicyRequireResidentKey(), Constants.DEFAULT_WEBAUTHN_POLICY_NOT_SPECIFIED));
+        policy.setRequireResidentKey(
+                orDefault(spec.getWebAuthnPolicyRequireResidentKey(), Constants.DEFAULT_WEBAUTHN_POLICY_NOT_SPECIFIED));
         policy.setUserVerificationRequirement(orDefault(
                 spec.getWebAuthnPolicyUserVerificationRequirement(), Constants.DEFAULT_WEBAUTHN_POLICY_NOT_SPECIFIED));
         policy.setCreateTimeout(orZero(spec.getWebAuthnPolicyCreateTimeout()));
@@ -908,9 +912,10 @@ public class RealmAdapter implements StorageProviderRealmModel {
         policy.setRpEntityName(orDefault(
                 spec.getWebAuthnPolicyPasswordlessRpEntityName(), Constants.DEFAULT_WEBAUTHN_POLICY_RP_ENTITY_NAME));
         List<String> algorithms = spec.getWebAuthnPolicyPasswordlessSignatureAlgorithms();
-        policy.setSignatureAlgorithm(algorithms == null || algorithms.isEmpty()
-                ? List.of(Constants.DEFAULT_WEBAUTHN_POLICY_SIGNATURE_ALGORITHMS.split(","))
-                : algorithms);
+        policy.setSignatureAlgorithm(
+                algorithms == null || algorithms.isEmpty()
+                        ? List.of(Constants.DEFAULT_WEBAUTHN_POLICY_SIGNATURE_ALGORITHMS.split(","))
+                        : algorithms);
         policy.setRpId(orDefault(spec.getWebAuthnPolicyPasswordlessRpId(), ""));
         policy.setAttestationConveyancePreference(orDefault(
                 spec.getWebAuthnPolicyPasswordlessAttestationConveyancePreference(),
@@ -940,8 +945,7 @@ public class RealmAdapter implements StorageProviderRealmModel {
         spec.setWebAuthnPolicyPasswordlessRpEntityName(policy.getRpEntityName());
         spec.setWebAuthnPolicyPasswordlessSignatureAlgorithms(policy.getSignatureAlgorithm());
         spec.setWebAuthnPolicyPasswordlessRpId(policy.getRpId());
-        spec.setWebAuthnPolicyPasswordlessAttestationConveyancePreference(
-                policy.getAttestationConveyancePreference());
+        spec.setWebAuthnPolicyPasswordlessAttestationConveyancePreference(policy.getAttestationConveyancePreference());
         spec.setWebAuthnPolicyPasswordlessAuthenticatorAttachment(policy.getAuthenticatorAttachment());
         spec.setWebAuthnPolicyPasswordlessRequireResidentKey(policy.getRequireResidentKey());
         spec.setWebAuthnPolicyPasswordlessUserVerificationRequirement(policy.getUserVerificationRequirement());
@@ -1210,7 +1214,8 @@ public class RealmAdapter implements StorageProviderRealmModel {
 
     @Override
     public void addDefaultClientScope(ClientScopeModel clientScope, boolean defaultScope) {
-        List<String> names = defaultScope ? spec.getDefaultDefaultClientScopes() : spec.getDefaultOptionalClientScopes();
+        List<String> names =
+                defaultScope ? spec.getDefaultDefaultClientScopes() : spec.getDefaultOptionalClientScopes();
         if (names == null) {
             names = new ArrayList<>();
             if (defaultScope) {
@@ -1250,14 +1255,14 @@ public class RealmAdapter implements StorageProviderRealmModel {
 
     @Override
     public Stream<ClientScopeModel> getDefaultClientScopesStream(boolean defaultScope) {
-        List<String> names = defaultScope ? spec.getDefaultDefaultClientScopes() : spec.getDefaultOptionalClientScopes();
+        List<String> names =
+                defaultScope ? spec.getDefaultDefaultClientScopes() : spec.getDefaultOptionalClientScopes();
         if (names == null || names.isEmpty()) {
             return Stream.empty();
         }
         // resolve by name so this works when the client-scope area is database-backed
         Set<String> wanted = Set.copyOf(names);
-        return session.clientScopes().getClientScopesStream(this)
-                .filter(scope -> wanted.contains(scope.getName()));
+        return session.clientScopes().getClientScopesStream(this).filter(scope -> wanted.contains(scope.getName()));
     }
 
     // ------------------------------------------------------------------ smtp / themes / headers
@@ -1511,7 +1516,9 @@ public class RealmAdapter implements StorageProviderRealmModel {
 
     @Override
     public Map<String, String> getRealmLocalizationTextsByLocale(String locale) {
-        Map<String, String> texts = spec.getLocalizationTexts() == null ? null : spec.getLocalizationTexts().get(locale);
+        Map<String, String> texts = spec.getLocalizationTexts() == null
+                ? null
+                : spec.getLocalizationTexts().get(locale);
         return texts == null ? Map.of() : texts;
     }
 
@@ -1525,14 +1532,20 @@ public class RealmAdapter implements StorageProviderRealmModel {
         if (flowId == null) {
             return null;
         }
-        return flowReps().stream().filter(flow -> flowId.equals(flow.getId())).findFirst().orElse(null);
+        return flowReps().stream()
+                .filter(flow -> flowId.equals(flow.getId()))
+                .findFirst()
+                .orElse(null);
     }
 
     private AuthenticationFlowRepresentation flowRepByAlias(String alias) {
         if (alias == null) {
             return null;
         }
-        return flowReps().stream().filter(flow -> alias.equals(flow.getAlias())).findFirst().orElse(null);
+        return flowReps().stream()
+                .filter(flow -> alias.equals(flow.getAlias()))
+                .findFirst()
+                .orElse(null);
     }
 
     private static AuthenticationFlowModel toFlowModel(AuthenticationFlowRepresentation rep) {
@@ -1745,8 +1758,9 @@ public class RealmAdapter implements StorageProviderRealmModel {
      * admin API re-reads the flow after each mutation.
      */
     private static String executionId(String flowId, int index) {
-        return UUID.nameUUIDFromBytes(
-                        ("k8store-execution" + K8sStorageBackend.KEY_SEPARATOR + flowId + K8sStorageBackend.KEY_SEPARATOR + index).getBytes(StandardCharsets.UTF_8))
+        return UUID.nameUUIDFromBytes(("k8store-execution" + K8sStorageBackend.KEY_SEPARATOR + flowId
+                                + K8sStorageBackend.KEY_SEPARATOR + index)
+                        .getBytes(StandardCharsets.UTF_8))
                 .toString();
     }
 
@@ -1763,9 +1777,10 @@ public class RealmAdapter implements StorageProviderRealmModel {
         model.setId(executionId(flow.getId(), index));
         model.setParentFlow(flow.getId());
         model.setAuthenticator(rep.getAuthenticator());
-        model.setRequirement(rep.getRequirement() == null
-                ? null
-                : AuthenticationExecutionModel.Requirement.valueOf(rep.getRequirement()));
+        model.setRequirement(
+                rep.getRequirement() == null
+                        ? null
+                        : AuthenticationExecutionModel.Requirement.valueOf(rep.getRequirement()));
         model.setPriority(rep.getPriority() == null ? 0 : rep.getPriority());
         model.setAuthenticatorFlow(rep.isAuthenticatorFlow());
         if (rep.getFlowAlias() != null) {
@@ -1782,7 +1797,8 @@ public class RealmAdapter implements StorageProviderRealmModel {
     private AuthenticationExecutionExportRepresentation toExecutionRep(AuthenticationExecutionModel model) {
         AuthenticationExecutionExportRepresentation rep = new AuthenticationExecutionExportRepresentation();
         rep.setAuthenticator(model.getAuthenticator());
-        rep.setRequirement(model.getRequirement() == null ? null : model.getRequirement().name());
+        rep.setRequirement(
+                model.getRequirement() == null ? null : model.getRequirement().name());
         rep.setPriority(model.getPriority());
         rep.setAuthenticatorFlow(model.isAuthenticatorFlow());
         if (model.getFlowId() != null) {
@@ -1802,8 +1818,7 @@ public class RealmAdapter implements StorageProviderRealmModel {
         if (flow == null || flow.getAuthenticationExecutions() == null) {
             return Stream.empty();
         }
-        List<AuthenticationExecutionExportRepresentation> executions =
-                List.copyOf(flow.getAuthenticationExecutions());
+        List<AuthenticationExecutionExportRepresentation> executions = List.copyOf(flow.getAuthenticationExecutions());
         List<AuthenticationExecutionModel> models = new ArrayList<>(executions.size());
         for (int i = 0; i < executions.size(); i++) {
             models.add(toExecutionModel(flow, i, executions.get(i)));
@@ -1907,14 +1922,20 @@ public class RealmAdapter implements StorageProviderRealmModel {
         if (id == null) {
             return null;
         }
-        return configReps().stream().filter(config -> id.equals(config.getId())).findFirst().orElse(null);
+        return configReps().stream()
+                .filter(config -> id.equals(config.getId()))
+                .findFirst()
+                .orElse(null);
     }
 
     private AuthenticatorConfigRepresentation configRepByAlias(String alias) {
         if (alias == null) {
             return null;
         }
-        return configReps().stream().filter(config -> alias.equals(config.getAlias())).findFirst().orElse(null);
+        return configReps().stream()
+                .filter(config -> alias.equals(config.getAlias()))
+                .findFirst()
+                .orElse(null);
     }
 
     private static AuthenticatorConfigModel toConfigModel(AuthenticatorConfigRepresentation rep) {
@@ -2044,9 +2065,8 @@ public class RealmAdapter implements StorageProviderRealmModel {
         rep.setEnabled(model.isEnabled());
         rep.setDefaultAction(model.isDefaultAction());
         rep.setPriority(model.getPriority());
-        rep.setConfig(model.getConfig() == null || model.getConfig().isEmpty()
-                ? null
-                : new HashMap<>(model.getConfig()));
+        rep.setConfig(
+                model.getConfig() == null || model.getConfig().isEmpty() ? null : new HashMap<>(model.getConfig()));
         if (spec.getRequiredActions() == null) {
             spec.setRequiredActions(new ArrayList<>());
         }
@@ -2068,9 +2088,8 @@ public class RealmAdapter implements StorageProviderRealmModel {
         rep.setEnabled(model.isEnabled());
         rep.setDefaultAction(model.isDefaultAction());
         rep.setPriority(model.getPriority());
-        rep.setConfig(model.getConfig() == null || model.getConfig().isEmpty()
-                ? null
-                : new HashMap<>(model.getConfig()));
+        rep.setConfig(
+                model.getConfig() == null || model.getConfig().isEmpty() ? null : new HashMap<>(model.getConfig()));
         persist();
     }
 
@@ -2131,9 +2150,8 @@ public class RealmAdapter implements StorageProviderRealmModel {
         if (rep == null) {
             return;
         }
-        rep.setConfig(model.getConfig() == null || model.getConfig().isEmpty()
-                ? null
-                : new HashMap<>(model.getConfig()));
+        rep.setConfig(
+                model.getConfig() == null || model.getConfig().isEmpty() ? null : new HashMap<>(model.getConfig()));
         persist();
     }
 
@@ -2257,7 +2275,8 @@ public class RealmAdapter implements StorageProviderRealmModel {
         spec.getIdentityProviders().removeIf(rep -> Objects.equals(rep.getAlias(), alias));
         // mappers of a removed identity provider are cascaded out with it
         if (spec.getIdentityProviderMappers() != null) {
-            spec.getIdentityProviderMappers().removeIf(mapper -> Objects.equals(mapper.getIdentityProviderAlias(), alias));
+            spec.getIdentityProviderMappers()
+                    .removeIf(mapper -> Objects.equals(mapper.getIdentityProviderAlias(), alias));
         }
         persist();
         session.getKeycloakSessionFactory().publish(new RealmModel.IdentityProviderRemovedEvent() {
@@ -2437,9 +2456,10 @@ public class RealmAdapter implements StorageProviderRealmModel {
                 model.setProviderType(entry.getKey());
                 model.setSubType(rep.getSubType());
                 model.setParentId(parentId);
-                model.setConfig(rep.getConfig() == null
-                        ? new MultivaluedHashMap<>()
-                        : new MultivaluedHashMap<>(rep.getConfig()));
+                model.setConfig(
+                        rep.getConfig() == null
+                                ? new MultivaluedHashMap<>()
+                                : new MultivaluedHashMap<>(rep.getConfig()));
                 out.add(model);
                 if (rep.getSubComponents() != null && !rep.getSubComponents().isEmpty()) {
                     collectComponents(rep.getSubComponents(), rep.getId(), out);
@@ -2456,9 +2476,7 @@ public class RealmAdapter implements StorageProviderRealmModel {
             rep.setName(model.getName());
             rep.setProviderId(model.getProviderId());
             rep.setSubType(model.getSubType());
-            rep.setConfig(model.getConfig() == null
-                    ? null
-                    : new MultivaluedHashMap<>(model.getConfig()));
+            rep.setConfig(model.getConfig() == null ? null : new MultivaluedHashMap<>(model.getConfig()));
             byId.put(model.getId(), rep);
         }
         MultivaluedHashMap<String, ComponentExportRepresentation> root = new MultivaluedHashMap<>();
@@ -2473,7 +2491,8 @@ public class RealmAdapter implements StorageProviderRealmModel {
                 parent.getSubComponents().add(model.getProviderType(), rep);
             } else {
                 if (parentId != null && !parentId.equals(getId())) {
-                    LOG.debugv("Component {0} has unknown parent {1}; storing it at the top level",
+                    LOG.debugv(
+                            "Component {0} has unknown parent {1}; storing it at the top level",
                             model.getId(), parentId);
                 }
                 root.add(model.getProviderType(), rep);

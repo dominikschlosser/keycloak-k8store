@@ -33,8 +33,8 @@ public class LoginFailureCrProvider implements UserLoginFailureProvider {
     private final Map<String, LoginFailureAdapter> knownAdapters = new HashMap<>();
 
     private LoginFailureAdapter adapt(LoginFailureSpec spec) {
-        return knownAdapters.computeIfAbsent(K8sStorageBackend.key(spec.getRealm(), spec.getUserId()),
-                key -> new LoginFailureAdapter(spec));
+        return knownAdapters.computeIfAbsent(
+                K8sStorageBackend.key(spec.getRealm(), spec.getUserId()), key -> new LoginFailureAdapter(spec));
     }
 
     @Override
@@ -67,8 +67,7 @@ public class LoginFailureCrProvider implements UserLoginFailureProvider {
 
     @Override
     public void removeAllUserLoginFailures(RealmModel realm) {
-        LoginFailureCrStore.allInRealm(realm.getId())
-                .forEach(spec -> removeUserLoginFailure(realm, spec.getUserId()));
+        LoginFailureCrStore.allInRealm(realm.getId()).forEach(spec -> removeUserLoginFailure(realm, spec.getUserId()));
     }
 
     @Override

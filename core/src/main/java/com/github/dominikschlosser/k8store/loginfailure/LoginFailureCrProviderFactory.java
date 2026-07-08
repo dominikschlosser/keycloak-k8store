@@ -23,8 +23,8 @@ import com.google.auto.service.AutoService;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
 import org.keycloak.models.RealmModel;
-import org.keycloak.models.UserModel;
 import org.keycloak.models.UserLoginFailureProviderFactory;
+import org.keycloak.models.UserModel;
 import org.keycloak.provider.InvalidationHandler;
 import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
 
@@ -57,8 +57,9 @@ public class LoginFailureCrProviderFactory extends AbstractCrProviderFactory<Log
     public void postInit(KeycloakSessionFactory factory) {
         factory.register(event -> {
             if (event instanceof UserModel.UserRemovedEvent userRemoved) {
-                create(userRemoved.getKeycloakSession()).removeUserLoginFailure(
-                        userRemoved.getRealm(), userRemoved.getUser().getId());
+                create(userRemoved.getKeycloakSession())
+                        .removeUserLoginFailure(
+                                userRemoved.getRealm(), userRemoved.getUser().getId());
             }
         });
     }

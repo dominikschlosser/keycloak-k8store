@@ -15,22 +15,21 @@
  */
 package com.github.dominikschlosser.k8store.crdtools;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.github.dominikschlosser.k8store.crdtools.SchemaDiff.Change;
 import com.github.dominikschlosser.k8store.crdtools.SchemaDiff.Severity;
-import org.junit.jupiter.api.Test;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import org.junit.jupiter.api.Test;
 
 class SchemaDiffTest {
 
@@ -201,8 +200,8 @@ class SchemaDiffTest {
                 """, """
                 type: object
                 """);
-        assertTrue(changes.stream().anyMatch(c -> c.isBreaking()
-                && c.path().equals("spec.x-kubernetes-preserve-unknown-fields")));
+        assertTrue(changes.stream()
+                .anyMatch(c -> c.isBreaking() && c.path().equals("spec.x-kubernetes-preserve-unknown-fields")));
     }
 
     @Test
@@ -215,7 +214,8 @@ class SchemaDiffTest {
                 """, """
                 x-kubernetes-preserve-unknown-fields: true
                 """);
-        assertTrue(changes.stream().noneMatch(Change::isBreaking),
+        assertTrue(
+                changes.stream().noneMatch(Change::isBreaking),
                 "relaxing a typed schema to preserve-unknown-fields must be compatible, got: " + changes);
     }
 

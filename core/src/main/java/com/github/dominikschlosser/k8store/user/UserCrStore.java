@@ -28,8 +28,7 @@ import java.util.List;
  */
 public final class UserCrStore {
 
-    private static final CrStore<UserSpec> STORE =
-            new CrStore<>(UserSpec.class, UserSpec::getRealm, UserSpec::getId);
+    private static final CrStore<UserSpec> STORE = new CrStore<>(UserSpec.class, UserSpec::getRealm, UserSpec::getId);
 
     private UserCrStore() {}
 

@@ -283,7 +283,8 @@ public class GroupAdapter implements GroupModel {
                     ClientModel client = resolveClient(entry.getKey());
                     return client == null || entry.getValue() == null
                             ? Stream.empty()
-                            : entry.getValue().stream().map(name -> session.roles().getClientRole(client, name));
+                            : entry.getValue().stream()
+                                    .map(name -> session.roles().getClientRole(client, name));
                 });
         return Stream.concat(realmRoles, clientRoles).filter(Objects::nonNull);
     }
@@ -295,9 +296,8 @@ public class GroupAdapter implements GroupModel {
 
     @Override
     public Stream<RoleModel> getClientRoleMappingsStream(ClientModel client) {
-        return getRoleMappingsStream()
-                .filter(RoleModel::isClientRole)
-                .filter(role -> client.getId().equals(role.getContainerId()));
+        return getRoleMappingsStream().filter(RoleModel::isClientRole).filter(role -> client.getId()
+                .equals(role.getContainerId()));
     }
 
     @Override

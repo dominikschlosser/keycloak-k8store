@@ -62,9 +62,13 @@ class RealmAdapterRenameTest {
         realm.renameDefaultClientScope("email", "mail");
 
         RealmSpec read = RealmCrStore.read("master");
-        assertEquals(List.of("profile", "mail", "roles"), read.getDefaultDefaultClientScopes(),
+        assertEquals(
+                List.of("profile", "mail", "roles"),
+                read.getDefaultDefaultClientScopes(),
                 "the realm default-scope list keeps position and swaps the renamed scope");
-        assertEquals(List.of("address", "mail", "phone"), read.getDefaultOptionalClientScopes(),
+        assertEquals(
+                List.of("address", "mail", "phone"),
+                read.getDefaultOptionalClientScopes(),
                 "the realm optional-scope list keeps position and swaps the renamed scope");
     }
 
@@ -84,9 +88,13 @@ class RealmAdapterRenameTest {
         realm.renameDefaultRole("default-roles-master", "default-roles-primary");
 
         RealmSpec read = RealmCrStore.read("master");
-        assertEquals("default-roles-primary", read.getDefaultRole().getName(),
+        assertEquals(
+                "default-roles-primary",
+                read.getDefaultRole().getName(),
                 "the default-role reference name moves to the new name");
-        assertEquals("default-roles-primary", read.getDefaultRole().getId(),
+        assertEquals(
+                "default-roles-primary",
+                read.getDefaultRole().getId(),
                 "the default-role reference id (= name for realm roles) moves too");
     }
 
@@ -105,7 +113,9 @@ class RealmAdapterRenameTest {
         RealmAdapter realm = new RealmAdapter(null, spec);
         realm.renameDefaultRole("some-other-role", "renamed");
 
-        assertEquals("default-roles-master", RealmCrStore.read("master").getDefaultRole().getName(),
+        assertEquals(
+                "default-roles-master",
+                RealmCrStore.read("master").getDefaultRole().getName(),
                 "a rename of an unrelated role leaves the default-role reference untouched");
     }
 }

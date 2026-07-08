@@ -28,17 +28,17 @@ import com.github.dominikschlosser.k8store.tests.framework.InjectTestNamespace;
 import com.github.dominikschlosser.k8store.tests.framework.KindCluster;
 import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import jakarta.ws.rs.core.Response;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.keycloak.connections.jpa.JpaConnectionProvider;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.keycloak.connections.jpa.JpaConnectionProvider;
 import org.keycloak.representations.idm.ClientRepresentation;
 import org.keycloak.representations.idm.ProtocolMapperRepresentation;
+import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.userprofile.config.UPConfig;
 import org.keycloak.representations.userprofile.config.UPConfig.UnmanagedAttributePolicy;
-import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.testframework.annotations.InjectRealm;
 import org.keycloak.testframework.annotations.KeycloakIntegrationTest;
 import org.keycloak.testframework.injection.LifeCycle;
@@ -86,25 +86,29 @@ public class CrStoreIsAuthoritativeTest {
             assertEquals(201, response.getStatus());
         }
 
-        KeycloakClientCr cr = kube.client().resources(KeycloakClientCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
-                .filter(c -> "authority-client".equals(c.getSpec().getClientId())
-                        && realm.getName().equals(c.getSpec().getRealm()))
-                .findFirst()
-                .orElseThrow();
+        KeycloakClientCr cr =
+                kube.client().resources(KeycloakClientCr.class).inNamespace(namespace.name()).list().getItems().stream()
+                        .filter(c -> "authority-client".equals(c.getSpec().getClientId())
+                                && realm.getName().equals(c.getSpec().getRealm()))
+                        .findFirst()
+                        .orElseThrow();
 
         // mutate the CR the way a GitOps pipeline would - the database knows nothing about this
         cr.getSpec().setDescription("changed-out-of-band");
         kube.client().resource(cr).update();
 
-        Await.await("admin API to serve the out-of-band client change", () ->
-                "changed-out-of-band".equals(
-                        realm.admin().clients().findByClientId("authority-client").get(0).getDescription()));
+        Await.await("admin API to serve the out-of-band client change", () -> "changed-out-of-band"
+                .equals(realm.admin()
+                        .clients()
+                        .findByClientId("authority-client")
+                        .get(0)
+                        .getDescription()));
 
         // out-of-band deletion must make the client vanish from Keycloak
         kube.client().resource(cr).delete();
-        Await.await("admin API to stop serving the deleted client", () ->
-                realm.admin().clients().findByClientId("authority-client").isEmpty());
+        Await.await(
+                "admin API to stop serving the deleted client",
+                () -> realm.admin().clients().findByClientId("authority-client").isEmpty());
     }
 
     @Test
@@ -114,33 +118,37 @@ public class CrStoreIsAuthoritativeTest {
         role.setDescription("original");
         realm.admin().roles().create(role);
 
-        KeycloakRoleCr cr = kube.client().resources(KeycloakRoleCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
-                .filter(r -> "authority-role".equals(r.getSpec().getName())
-                        && realm.getName().equals(r.getSpec().getRealm()))
-                .findFirst()
-                .orElseThrow();
+        KeycloakRoleCr cr =
+                kube.client().resources(KeycloakRoleCr.class).inNamespace(namespace.name()).list().getItems().stream()
+                        .filter(r -> "authority-role".equals(r.getSpec().getName())
+                                && realm.getName().equals(r.getSpec().getRealm()))
+                        .findFirst()
+                        .orElseThrow();
 
         cr.getSpec().setDescription("changed-out-of-band");
         kube.client().resource(cr).update();
 
-        Await.await("admin API to serve the out-of-band role change", () ->
-                "changed-out-of-band".equals(realm.admin().roles().get("authority-role").toRepresentation().getDescription()));
+        Await.await("admin API to serve the out-of-band role change", () -> "changed-out-of-band"
+                .equals(realm.admin()
+                        .roles()
+                        .get("authority-role")
+                        .toRepresentation()
+                        .getDescription()));
     }
 
     @Test
     public void realmReadsFollowOutOfBandCrChanges() {
-        KeycloakRealmCr cr = kube.client().resources(KeycloakRealmCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
-                .filter(r -> realm.getName().equals(r.getSpec().getRealm()))
-                .findFirst()
-                .orElseThrow();
+        KeycloakRealmCr cr =
+                kube.client().resources(KeycloakRealmCr.class).inNamespace(namespace.name()).list().getItems().stream()
+                        .filter(r -> realm.getName().equals(r.getSpec().getRealm()))
+                        .findFirst()
+                        .orElseThrow();
 
         cr.getSpec().setDisplayName("write-mode-out-of-band");
         kube.client().resource(cr).update();
 
-        Await.await("admin API to serve the out-of-band realm change", () ->
-                "write-mode-out-of-band".equals(realm.admin().toRepresentation().getDisplayName()));
+        Await.await("admin API to serve the out-of-band realm change", () -> "write-mode-out-of-band"
+                .equals(realm.admin().toRepresentation().getDisplayName()));
     }
 
     @Test
@@ -151,19 +159,29 @@ public class CrStoreIsAuthoritativeTest {
         upConfig.setUnmanagedAttributePolicy(UnmanagedAttributePolicy.ENABLED);
         realm.admin().users().userProfile().update(upConfig);
 
-        Await.await("user-profile component config to land in the realm CR", () ->
-                kube.client().resources(KeycloakRealmCr.class)
-                        .inNamespace(namespace.name()).list().getItems().stream()
-                        .filter(r -> realm.getName().equals(r.getSpec().getRealm()))
-                        .findFirst()
-                        .map(KeycloakRealmCr::getSpec)
-                        .map(spec -> spec.getComponents().values().stream()
-                                .flatMap(List::stream)
-                                .filter(c -> "declarative-user-profile".equals(c.getProviderId()))
-                                .anyMatch(c -> c.getConfig() != null
-                                        && c.getConfig().get("kc.user.profile.config") != null
-                                        && c.getConfig().get("kc.user.profile.config").toString().contains("ENABLED")))
-                        .orElse(false));
+        Await.await(
+                "user-profile component config to land in the realm CR",
+                () ->
+                        kube
+                                .client()
+                                .resources(KeycloakRealmCr.class)
+                                .inNamespace(namespace.name())
+                                .list()
+                                .getItems()
+                                .stream()
+                                .filter(r -> realm.getName().equals(r.getSpec().getRealm()))
+                                .findFirst()
+                                .map(KeycloakRealmCr::getSpec)
+                                .map(spec -> spec.getComponents().values().stream()
+                                        .flatMap(List::stream)
+                                        .filter(c -> "declarative-user-profile".equals(c.getProviderId()))
+                                        .anyMatch(c -> c.getConfig() != null
+                                                && c.getConfig().get("kc.user.profile.config") != null
+                                                && c.getConfig()
+                                                        .get("kc.user.profile.config")
+                                                        .toString()
+                                                        .contains("ENABLED")))
+                                .orElse(false));
     }
 
     @Test
@@ -174,31 +192,44 @@ public class CrStoreIsAuthoritativeTest {
         try (Response response = realm.admin().clients().create(client)) {
             assertEquals(201, response.getStatus());
         }
-        String id = realm.admin().clients().findByClientId("mapper-client").get(0).getId();
+        String id =
+                realm.admin().clients().findByClientId("mapper-client").get(0).getId();
 
         ProtocolMapperRepresentation mapper = new ProtocolMapperRepresentation();
         mapper.setName("hardcoded");
         mapper.setProtocol("openid-connect");
         mapper.setProtocolMapper("oidc-hardcoded-claim-mapper");
         mapper.setConfig(new HashMap<>(Map.of("claim.name", "team", "claim.value", "old")));
-        try (Response response = realm.admin().clients().get(id).getProtocolMappers().createMapper(mapper)) {
+        try (Response response =
+                realm.admin().clients().get(id).getProtocolMappers().createMapper(mapper)) {
             assertEquals(201, response.getStatus());
         }
 
-        ProtocolMapperRepresentation created = realm.admin().clients().get(id).getProtocolMappers()
-                .getMappers().stream().filter(m -> "hardcoded".equals(m.getName())).findFirst().orElseThrow();
+        ProtocolMapperRepresentation created =
+                realm.admin().clients().get(id).getProtocolMappers().getMappers().stream()
+                        .filter(m -> "hardcoded".equals(m.getName()))
+                        .findFirst()
+                        .orElseThrow();
         created.getConfig().put("claim.value", "updated-value");
         realm.admin().clients().get(id).getProtocolMappers().update(created.getId(), created);
 
-        Await.await("protocol mapper update to land in the client CR", () ->
-                kube.client().resources(KeycloakClientCr.class)
-                        .inNamespace(namespace.name()).list().getItems().stream()
-                        .filter(c -> "mapper-client".equals(c.getSpec().getClientId()))
-                        .findFirst()
-                        .map(c -> c.getSpec().getProtocolMappers().stream()
-                                .anyMatch(m -> "hardcoded".equals(m.getName())
-                                        && "updated-value".equals(m.getConfig().get("claim.value"))))
-                        .orElse(false));
+        Await.await(
+                "protocol mapper update to land in the client CR",
+                () ->
+                        kube
+                                .client()
+                                .resources(KeycloakClientCr.class)
+                                .inNamespace(namespace.name())
+                                .list()
+                                .getItems()
+                                .stream()
+                                .filter(c -> "mapper-client".equals(c.getSpec().getClientId()))
+                                .findFirst()
+                                .map(c -> c.getSpec().getProtocolMappers().stream()
+                                        .anyMatch(m -> "hardcoded".equals(m.getName())
+                                                && "updated-value"
+                                                        .equals(m.getConfig().get("claim.value"))))
+                                .orElse(false));
     }
 
     @Test
@@ -206,11 +237,20 @@ public class CrStoreIsAuthoritativeTest {
         String realmName = realm.getName();
         String report = runOnServer.fetchString(session -> {
             var em = session.getProvider(JpaConnectionProvider.class).getEntityManager();
-            long realmRows = ((Number) em.createNativeQuery("select count(*) from REALM").getSingleResult()).longValue();
-            long clientRows = ((Number) em.createNativeQuery("select count(*) from CLIENT").getSingleResult()).longValue();
-            long roleRows = ((Number) em.createNativeQuery("select count(*) from KEYCLOAK_ROLE").getSingleResult()).longValue();
-            long groupRows = ((Number) em.createNativeQuery("select count(*) from KEYCLOAK_GROUP").getSingleResult()).longValue();
-            long scopeRows = ((Number) em.createNativeQuery("select count(*) from CLIENT_SCOPE").getSingleResult()).longValue();
+            long realmRows =
+                    ((Number) em.createNativeQuery("select count(*) from REALM").getSingleResult()).longValue();
+            long clientRows = ((Number)
+                            em.createNativeQuery("select count(*) from CLIENT").getSingleResult())
+                    .longValue();
+            long roleRows = ((Number) em.createNativeQuery("select count(*) from KEYCLOAK_ROLE")
+                            .getSingleResult())
+                    .longValue();
+            long groupRows = ((Number) em.createNativeQuery("select count(*) from KEYCLOAK_GROUP")
+                            .getSingleResult())
+                    .longValue();
+            long scopeRows = ((Number) em.createNativeQuery("select count(*) from CLIENT_SCOPE")
+                            .getSingleResult())
+                    .longValue();
             long modelRealms = session.realms().getRealmsStream().count();
             boolean managedRealmServed = session.realms().getRealmByName(realmName) != null;
             return "realmRows=" + realmRows + " clientRows=" + clientRows + " roleRows=" + roleRows

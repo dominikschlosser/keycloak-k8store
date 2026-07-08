@@ -239,7 +239,8 @@ public class PolicyAdapter extends AbstractAuthorizationModel implements Policy 
     @Override
     public void removeAssociatedPolicy(Policy associatedPolicy) {
         throwExceptionIfReadonly();
-        if (spec.getAssociatedPolicyIds() != null && spec.getAssociatedPolicyIds().remove(associatedPolicy.getId())) {
+        if (spec.getAssociatedPolicyIds() != null
+                && spec.getAssociatedPolicyIds().remove(associatedPolicy.getId())) {
             AuthzCrStore.save(spec);
         }
     }

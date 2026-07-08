@@ -73,33 +73,40 @@ class K8sOrganizationKindsTest {
 
     @Test
     void organizationAreaIsOptInButJoinsAll() {
-        assertFalse(K8sStoreConfig.configAreas().contains(Area.ORGANIZATION),
+        assertFalse(
+                K8sStoreConfig.configAreas().contains(Area.ORGANIZATION),
                 "the config default must stay backward-compatible - organization is opt-in");
         assertFalse(K8sStoreConfig.parseAreas("config").contains(Area.ORGANIZATION));
-        assertTrue(K8sStoreConfig.parseAreas("all").contains(Area.ORGANIZATION),
-                "the organization area joins 'all'");
-        assertTrue(K8sStoreConfig
-                        .parseAreas("realm,client,client-scope,role,group,identity-provider,organization")
+        assertTrue(K8sStoreConfig.parseAreas("all").contains(Area.ORGANIZATION), "the organization area joins 'all'");
+        assertTrue(
+                K8sStoreConfig.parseAreas("realm,client,client-scope,role,group,identity-provider,organization")
                         .contains(Area.ORGANIZATION),
                 "explicit lists may name the organization area");
-        assertFalse(Area.ORGANIZATION.isDynamic(),
+        assertFalse(
+                Area.ORGANIZATION.isDynamic(),
                 "organization definitions are configuration-class (read-only mode applies)");
     }
 
     @Test
     void organizationAreaRequiresGroupAndIdentityProviderAreas() {
-        assertThrows(IllegalArgumentException.class,
-                () -> K8sStoreConfig.of(false,
-                        EnumSet.of(Area.REALM, Area.IDENTITY_PROVIDER, Area.ORGANIZATION), "test", false, 30),
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> K8sStoreConfig.of(
+                        false, EnumSet.of(Area.REALM, Area.IDENTITY_PROVIDER, Area.ORGANIZATION), "test", false, 30),
                 "organizations are group-backed - the group area is required");
         K8sStoreConfig.reset();
-        assertThrows(IllegalArgumentException.class,
-                () -> K8sStoreConfig.of(false,
-                        EnumSet.of(Area.REALM, Area.GROUP, Area.ORGANIZATION), "test", false, 30),
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> K8sStoreConfig.of(
+                        false, EnumSet.of(Area.REALM, Area.GROUP, Area.ORGANIZATION), "test", false, 30),
                 "the organization-to-IdP linkage lives in the realm CR - the identity-provider area is required");
         K8sStoreConfig.reset();
-        K8sStoreConfig.of(false,
-                EnumSet.of(Area.REALM, Area.GROUP, Area.IDENTITY_PROVIDER, Area.ORGANIZATION), "test", false, 30);
+        K8sStoreConfig.of(
+                false,
+                EnumSet.of(Area.REALM, Area.GROUP, Area.IDENTITY_PROVIDER, Area.ORGANIZATION),
+                "test",
+                false,
+                30);
     }
 
     // ------------------------------------------------------------------ feature boot gate
@@ -107,7 +114,8 @@ class K8sOrganizationKindsTest {
     @Test
     void featureWithCrGroupsButWithoutOrganizationAreaIsRejected() {
         Profile.init(Profile.ProfileName.DEFAULT, Map.of(Profile.Feature.ORGANIZATION, true));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> K8sStoreConfig.validateOrganizationFeatureCoupling(K8sStoreConfig.configAreas()),
                 "the JPA organization store cannot reference CR-backed groups - boot must fail clearly");
         // adding the organization area resolves it
@@ -126,10 +134,12 @@ class K8sOrganizationKindsTest {
     @Test
     void configOnlyAreasRegisterNoOrganizationKinds() {
         K8sStorageBackend backend = start(false, K8sStoreConfig.configAreas());
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> backend.read(OrganizationSpec.class, "master", "org-1"),
                 "without the organization area its kinds must not be registered (no informers, no CRDs needed)");
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> backend.read(OrganizationInvitationSpec.class, "master", "some-id"));
     }
 
@@ -143,7 +153,8 @@ class K8sOrganizationKindsTest {
         organization.setId("org-1");
         organization.setRealm("master");
         organization.setName("Acme");
-        assertThrows(ReadOnlyException.class,
+        assertThrows(
+                ReadOnlyException.class,
                 () -> K8sStorageBackend.update(OrganizationSpec.class, "master", "org-1", organization),
                 "organization definitions are configuration: writes must be rejected in read-only mode");
 
@@ -155,12 +166,20 @@ class K8sOrganizationKindsTest {
         invitation.setCreatedAt(Time.currentTime());
         invitation.setExpiresAt(Time.currentTime() + 3600);
         K8sStorageBackend.update(OrganizationInvitationSpec.class, "master", "invitation-1", invitation);
-        assertEquals(1, client.resources(KeycloakOrganizationInvitationCr.class).inNamespace("test")
-                        .list().getItems().size(),
+        assertEquals(
+                1,
+                client.resources(KeycloakOrganizationInvitationCr.class)
+                        .inNamespace("test")
+                        .list()
+                        .getItems()
+                        .size(),
                 "invitations are runtime data: writable despite read-only mode");
         K8sStorageBackend.delete(OrganizationInvitationSpec.class, "master", "invitation-1");
-        assertTrue(client.resources(KeycloakOrganizationInvitationCr.class).inNamespace("test")
-                .list().getItems().isEmpty());
+        assertTrue(client.resources(KeycloakOrganizationInvitationCr.class)
+                .inNamespace("test")
+                .list()
+                .getItems()
+                .isEmpty());
     }
 
     // ------------------------------------------------------------------ spec round trip
@@ -198,16 +217,20 @@ class K8sOrganizationKindsTest {
         assertEquals(List.of("gold"), read.getAttributes().get("tier"));
         assertNotNull(read.getDomains());
         assertEquals(1, read.getDomains().size());
-        OrganizationDomainRepresentation readDomain = read.getDomains().iterator().next();
+        OrganizationDomainRepresentation readDomain =
+                read.getDomains().iterator().next();
         assertEquals("acme.example", readDomain.getName());
         assertTrue(readDomain.isVerified());
         assertNull(read.getMembers(), "embedded members must not survive the CR round trip");
         assertNull(read.getGroups(), "embedded groups must not survive the CR round trip");
-        assertEquals(List.of("members", "groups"), spec.ignoredEmbeddedCollections(),
+        assertEquals(
+                List.of("members", "groups"),
+                spec.ignoredEmbeddedCollections(),
                 "directly populated embedded collections are detected for the warning");
 
         KeycloakOrganizationCr cr = new KeycloakOrganizationCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName("org-1").withNamespace("test").build());
+        cr.setMetadata(
+                new ObjectMetaBuilder().withName("org-1").withNamespace("test").build());
         cr.setSpec(spec);
         String wireJson = K8sStorageBackend.buildSerialization().asJson(cr);
         assertFalse(wireJson.contains(":null"), wireJson);
@@ -239,7 +262,8 @@ class K8sOrganizationKindsTest {
         realmGroup.setRealm("master");
         realmGroup.setName("plain");
         KeycloakGroupCr cr = new KeycloakGroupCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName("plain").withNamespace("test").build());
+        cr.setMetadata(
+                new ObjectMetaBuilder().withName("plain").withNamespace("test").build());
         cr.setSpec(realmGroup);
         String wireJson = K8sStorageBackend.buildSerialization().asJson(cr);
         assertFalse(wireJson.contains("organizationId"), wireJson);

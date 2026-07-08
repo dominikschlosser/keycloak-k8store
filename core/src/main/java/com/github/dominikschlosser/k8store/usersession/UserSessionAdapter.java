@@ -93,8 +93,8 @@ public class UserSessionAdapter implements UserSessionModel {
             return null;
         }
         if (LightweightUserAdapter.isLightweightUser(userId)) {
-            LightweightUserAdapter user = LightweightUserAdapter.fromString(
-                    session, realm, getNote(Constants.SESSION_NOTE_LIGHTWEIGHT_USER));
+            LightweightUserAdapter user =
+                    LightweightUserAdapter.fromString(session, realm, getNote(Constants.SESSION_NOTE_LIGHTWEIGHT_USER));
             user.setUpdateHandler(updated -> setNote(Constants.SESSION_NOTE_LIGHTWEIGHT_USER, updated.serialize()));
             return user;
         }
@@ -246,8 +246,15 @@ public class UserSessionAdapter implements UserSessionModel {
     }
 
     @Override
-    public void restartSession(RealmModel realm, UserModel user, String loginUsername, String ipAddress,
-                               String authMethod, boolean rememberMe, String brokerSessionId, String brokerUserId) {
+    public void restartSession(
+            RealmModel realm,
+            UserModel user,
+            String loginUsername,
+            String ipAddress,
+            String authMethod,
+            boolean rememberMe,
+            String brokerSessionId,
+            String brokerUserId) {
         long now = Time.currentTimeMillis();
         spec.setUserId(user == null ? null : user.getId());
         spec.setLoginUsername(loginUsername);

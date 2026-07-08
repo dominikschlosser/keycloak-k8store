@@ -38,8 +38,7 @@ import org.keycloak.models.SingleUseObjectProvider;
 public class SingleUseObjectCrProvider implements SingleUseObjectProvider {
 
     private static SingleUseObjectSpec fetch(String key) {
-        return K8sStorageBackend.get().fetch(
-                SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key);
+        return K8sStorageBackend.get().fetch(SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key);
     }
 
     private static SingleUseObjectSpec newSpec(String key, long lifespanSeconds, Map<String, String> notes) {
@@ -59,7 +58,10 @@ public class SingleUseObjectCrProvider implements SingleUseObjectProvider {
         if (lifespanSeconds <= 0) {
             throw new IllegalArgumentException("lifespanSeconds must be positive");
         }
-        K8sStorageBackend.updateNow(SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key,
+        K8sStorageBackend.updateNow(
+                SingleUseObjectSpec.class,
+                K8sStorageBackend.GLOBAL_PSEUDO_REALM,
+                key,
                 newSpec(key, lifespanSeconds, notes));
     }
 
@@ -77,8 +79,8 @@ public class SingleUseObjectCrProvider implements SingleUseObjectProvider {
         }
         // single-use contract: return the notes only if THIS call deleted the object -
         // Kubernetes answers a DELETE exactly once across all nodes
-        boolean deleted = K8sStorageBackend.deleteNow(
-                SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key);
+        boolean deleted =
+                K8sStorageBackend.deleteNow(SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key);
         return deleted ? notesOf(spec) : null;
     }
 
@@ -108,8 +110,8 @@ public class SingleUseObjectCrProvider implements SingleUseObjectProvider {
         // mirror-only on purpose: contains() sits on token-validation hot paths and a miss is
         // the common case - an API-server round trip per miss would bound request throughput.
         // Entries written on other nodes become visible within watch latency (milliseconds).
-        return K8sStorageBackend.get().read(
-                SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key) != null;
+        return K8sStorageBackend.get().read(SingleUseObjectSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, key)
+                != null;
     }
 
     @Override

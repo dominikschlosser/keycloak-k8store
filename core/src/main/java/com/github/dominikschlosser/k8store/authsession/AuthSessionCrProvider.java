@@ -48,8 +48,8 @@ public class AuthSessionCrProvider implements AuthenticationSessionProvider {
     }
 
     private RootAuthSessionAdapter adapt(RealmModel realm, AuthSessionSpec spec) {
-        return knownAdapters.computeIfAbsent(spec.getId(),
-                id -> new RootAuthSessionAdapter(session, this, realm, spec));
+        return knownAdapters.computeIfAbsent(
+                spec.getId(), id -> new RootAuthSessionAdapter(session, this, realm, spec));
     }
 
     @Override
@@ -139,12 +139,13 @@ public class AuthSessionCrProvider implements AuthenticationSessionProvider {
     public void onRealmRemoved(RealmModel realm) {
         AuthSessionCrStore.allInRealm(realm.getId())
                 .forEach(spec -> AuthSessionCrStore.delete(realm.getId(), spec.getId()));
-        knownAdapters.values().removeIf(adapter -> realm.getId().equals(adapter.getSpec().getRealm()));
+        knownAdapters.values().removeIf(adapter -> realm.getId()
+                .equals(adapter.getSpec().getRealm()));
     }
 
     @Override
-    public void updateNonlocalSessionAuthNotes(AuthenticationSessionCompoundId compoundId,
-                                               Map<String, String> authNotesFragment) {
+    public void updateNonlocalSessionAuthNotes(
+            AuthenticationSessionCompoundId compoundId, Map<String, String> authNotesFragment) {
         if (compoundId == null || authNotesFragment == null) {
             return;
         }
@@ -160,8 +161,9 @@ public class AuthSessionCrProvider implements AuthenticationSessionProvider {
         RootAuthSessionAdapter adapter = (RootAuthSessionAdapter) root;
         Map<String, AuthTabSpec> tabs = adapter.getSpec().getTabs();
         AuthTabSpec tab = tabs == null ? null : tabs.get(compoundId.getTabId());
-        if (tab == null || (compoundId.getClientUUID() != null
-                && !compoundId.getClientUUID().equals(tab.getClientId()))) {
+        if (tab == null
+                || (compoundId.getClientUUID() != null
+                        && !compoundId.getClientUUID().equals(tab.getClientId()))) {
             return;
         }
         if (tab.getAuthNotes() == null) {

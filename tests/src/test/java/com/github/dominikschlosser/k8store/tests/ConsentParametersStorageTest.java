@@ -111,12 +111,16 @@ public class ConsentParametersStorageTest {
             var realmModel = session.realms().getRealmByName(realmName);
             session.getContext().setRealm(realmModel);
             var clientModel = session.clients().getClientByClientId(realmModel, CLIENT_ID);
-            var scope = session.clientScopes().getClientScopesStream(realmModel)
+            var scope = session.clientScopes()
+                    .getClientScopesStream(realmModel)
                     .filter(candidate -> PARAMETERIZED_SCOPE.equals(candidate.getName()))
-                    .findFirst().orElseThrow();
-            var plainScope = session.clientScopes().getClientScopesStream(realmModel)
+                    .findFirst()
+                    .orElseThrow();
+            var plainScope = session.clientScopes()
+                    .getClientScopesStream(realmModel)
                     .filter(candidate -> PLAIN_SCOPE.equals(candidate.getName()))
-                    .findFirst().orElseThrow();
+                    .findFirst()
+                    .orElseThrow();
             var userModel = session.users().getUserByUsername(realmModel, USERNAME);
 
             UserConsentModel consent = new UserConsentModel(clientModel);
@@ -129,11 +133,12 @@ public class ConsentParametersStorageTest {
         assertTrue(granted.contains("scopes=2"), granted);
 
         // the CR carries the parameters in the consent entry
-        KeycloakUserCr cr = kube.client().resources(KeycloakUserCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
-                .filter(candidate -> USERNAME.equals(candidate.getSpec().getUsername())
-                        && realmName.equals(candidate.getSpec().getRealm()))
-                .findFirst().orElseThrow();
+        KeycloakUserCr cr =
+                kube.client().resources(KeycloakUserCr.class).inNamespace(namespace.name()).list().getItems().stream()
+                        .filter(candidate -> USERNAME.equals(candidate.getSpec().getUsername())
+                                && realmName.equals(candidate.getSpec().getRealm()))
+                        .findFirst()
+                        .orElseThrow();
         assertNotNull(cr.getSpec().getConsents(), "the consent entry must land on the user CR");
         assertEquals(1, cr.getSpec().getConsents().size());
         var consentSpec = cr.getSpec().getConsents().get(0);
@@ -141,7 +146,8 @@ public class ConsentParametersStorageTest {
         assertTrue(consentSpec.getGrantedClientScopes().contains(PARAMETERIZED_SCOPE));
         assertTrue(consentSpec.getGrantedClientScopes().contains(PLAIN_SCOPE));
         assertNotNull(consentSpec.getGrantedScopeParameters(), "scope parameters must persist");
-        assertEquals(List.of("acme", "globex"),
+        assertEquals(
+                List.of("acme", "globex"),
                 consentSpec.getGrantedScopeParameters().get(PARAMETERIZED_SCOPE));
 
         // read back through the consent model: parameters, membership checks, plain scope
@@ -149,9 +155,11 @@ public class ConsentParametersStorageTest {
             var realmModel = session.realms().getRealmByName(realmName);
             session.getContext().setRealm(realmModel);
             var clientModel = session.clients().getClientByClientId(realmModel, CLIENT_ID);
-            var scope = session.clientScopes().getClientScopesStream(realmModel)
+            var scope = session.clientScopes()
+                    .getClientScopesStream(realmModel)
                     .filter(candidate -> PARAMETERIZED_SCOPE.equals(candidate.getName()))
-                    .findFirst().orElseThrow();
+                    .findFirst()
+                    .orElseThrow();
             var userModel = session.users().getUserByUsername(realmModel, USERNAME);
             UserConsentModel consent =
                     session.users().getConsentByClient(realmModel, userModel.getId(), clientModel.getId());
@@ -170,9 +178,11 @@ public class ConsentParametersStorageTest {
             var realmModel = session.realms().getRealmByName(realmName);
             session.getContext().setRealm(realmModel);
             var clientModel = session.clients().getClientByClientId(realmModel, CLIENT_ID);
-            var scope = session.clientScopes().getClientScopesStream(realmModel)
+            var scope = session.clientScopes()
+                    .getClientScopesStream(realmModel)
                     .filter(candidate -> PARAMETERIZED_SCOPE.equals(candidate.getName()))
-                    .findFirst().orElseThrow();
+                    .findFirst()
+                    .orElseThrow();
             var userModel = session.users().getUserByUsername(realmModel, USERNAME);
             UserConsentModel replacement = new UserConsentModel(clientModel);
             replacement.addGrantedClientScope(scope, "initech");
@@ -181,13 +191,17 @@ public class ConsentParametersStorageTest {
         });
         assertEquals("updated", updated.replace("\"", ""));
 
-        var updatedConsent = kube.client().resources(KeycloakUserCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
-                .filter(candidate -> USERNAME.equals(candidate.getSpec().getUsername())
-                        && realmName.equals(candidate.getSpec().getRealm()))
-                .findFirst().orElseThrow()
-                .getSpec().getConsents().get(0);
-        assertEquals(List.of("initech"),
+        var updatedConsent =
+                kube.client().resources(KeycloakUserCr.class).inNamespace(namespace.name()).list().getItems().stream()
+                        .filter(candidate -> USERNAME.equals(candidate.getSpec().getUsername())
+                                && realmName.equals(candidate.getSpec().getRealm()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getSpec()
+                        .getConsents()
+                        .get(0);
+        assertEquals(
+                List.of("initech"),
                 updatedConsent.getGrantedScopeParameters().get(PARAMETERIZED_SCOPE),
                 "an update must replace the stored parameters");
         assertEquals(List.of(PARAMETERIZED_SCOPE), updatedConsent.getGrantedClientScopes());

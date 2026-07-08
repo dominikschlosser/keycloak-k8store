@@ -75,7 +75,8 @@ class K8sVerifiableCredentialKindsTest {
     void verifiableCredentialKindsRequireTheUserAreaAndTheFeature() {
         enableOid4vc(false);
         K8sStorageBackend withoutFeature = start(false, EnumSet.allOf(Area.class));
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> withoutFeature.read(UserVerifiableCredentialSpec.class, "master", "vc-1"),
                 "without the oid4vc-vci feature the kinds must not be registered (no informers, no CRDs)");
         K8sStorageBackend.shutdown();
@@ -83,14 +84,16 @@ class K8sVerifiableCredentialKindsTest {
 
         enableOid4vc(true);
         K8sStorageBackend withoutUserArea = start(false, K8sStoreConfig.configAreas());
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> withoutUserArea.read(UserVerifiableCredentialSpec.class, "master", "vc-1"),
                 "the kinds belong to the user area - config-only areas must not register them");
         K8sStorageBackend.shutdown();
         K8sStoreConfig.reset();
 
         K8sStorageBackend withBoth = start(false, EnumSet.allOf(Area.class));
-        assertNull(withBoth.read(UserVerifiableCredentialSpec.class, "master", "vc-1"),
+        assertNull(
+                withBoth.read(UserVerifiableCredentialSpec.class, "master", "vc-1"),
                 "with user area + feature the kind is registered (and empty)");
         assertNull(withBoth.read(IssuedVerifiableCredentialSpec.class, "master", "ivc-1"));
     }
@@ -124,14 +127,20 @@ class K8sVerifiableCredentialKindsTest {
         assertEquals(List.of("msc"), read.getUserAttributes().get("degree"));
 
         KeycloakUserVerifiableCredentialCr cr = new KeycloakUserVerifiableCredentialCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName("vc-1").withNamespace("test").build());
+        cr.setMetadata(
+                new ObjectMetaBuilder().withName("vc-1").withNamespace("test").build());
         cr.setSpec(vc);
         String wireJson = K8sStorageBackend.buildSerialization().asJson(cr);
         assertTrue(wireJson.contains("university-degree"), wireJson);
         assertFalse(wireJson.contains("absent"), wireJson);
         assertFalse(wireJson.contains(":null"), wireJson);
-        assertEquals(1, client.resources(KeycloakUserVerifiableCredentialCr.class)
-                .inNamespace("test").list().getItems().size());
+        assertEquals(
+                1,
+                client.resources(KeycloakUserVerifiableCredentialCr.class)
+                        .inNamespace("test")
+                        .list()
+                        .getItems()
+                        .size());
     }
 
     // ------------------------------------------------------------------ issued-credential expiry
@@ -146,7 +155,8 @@ class K8sVerifiableCredentialKindsTest {
         spec.setIssuedAt(Time.currentTimeMillis());
         spec.setExpiresAt(expiresAt);
         KeycloakIssuedVerifiableCredentialCr cr = new KeycloakIssuedVerifiableCredentialCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName(id).withNamespace("test").build());
+        cr.setMetadata(
+                new ObjectMetaBuilder().withName(id).withNamespace("test").build());
         cr.setSpec(spec);
         return cr;
     }
@@ -162,15 +172,22 @@ class K8sVerifiableCredentialKindsTest {
 
         await(() -> backend.read(IssuedVerifiableCredentialSpec.class, "master", "live") != null);
         await(() -> backend.read(IssuedVerifiableCredentialSpec.class, "master", "forever") != null);
-        assertNull(backend.read(IssuedVerifiableCredentialSpec.class, "master", "expired"),
+        assertNull(
+                backend.read(IssuedVerifiableCredentialSpec.class, "master", "expired"),
                 "expired issuances must never be handed to the model layer");
-        assertEquals(2, backend.readAllInRealm(IssuedVerifiableCredentialSpec.class, "master").size());
+        assertEquals(
+                2,
+                backend.readAllInRealm(IssuedVerifiableCredentialSpec.class, "master")
+                        .size());
 
         backend.sweepExpired();
         var remaining = client.resources(KeycloakIssuedVerifiableCredentialCr.class)
-                .inNamespace("test").list().getItems();
+                .inNamespace("test")
+                .list()
+                .getItems();
         assertEquals(2, remaining.size(), "the reaper must delete expired issued-credential CRs only");
-        assertTrue(remaining.stream().noneMatch(cr -> "expired".equals(cr.getSpec().getId())));
+        assertTrue(
+                remaining.stream().noneMatch(cr -> "expired".equals(cr.getSpec().getId())));
     }
 
     private static void await(BooleanSupplier condition) {

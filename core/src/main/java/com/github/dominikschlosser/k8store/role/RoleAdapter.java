@@ -31,8 +31,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.keycloak.models.ClientModel;
-import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleContainerModel;
 import org.keycloak.models.RoleModel;
@@ -222,7 +222,8 @@ public class RoleAdapter implements RoleModel {
                     ClientModel client = resolveClient(entry.getKey());
                     return client == null || entry.getValue() == null
                             ? Stream.empty()
-                            : entry.getValue().stream().map(name -> session.roles().getClientRole(client, name));
+                            : entry.getValue().stream()
+                                    .map(name -> session.roles().getClientRole(client, name));
                 });
         return Stream.concat(realmRoles, clientRoles).filter(Objects::nonNull);
     }

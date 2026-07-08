@@ -130,9 +130,7 @@ public class GroupCrProvider implements GroupProvider {
 
     @Override
     public Stream<GroupModel> getGroupsStream(RealmModel realm) {
-        return realmGroupSpecs(realm)
-                .map(spec -> adapt(realm, spec))
-                .sorted(Comparator.comparing(GroupModel::getName));
+        return realmGroupSpecs(realm).map(spec -> adapt(realm, spec)).sorted(Comparator.comparing(GroupModel::getName));
     }
 
     @Override
@@ -141,15 +139,13 @@ public class GroupCrProvider implements GroupProvider {
         // JPA parity: the plain by-ids resolution (no search, no paging) is type-blind, the
         // searching/paginating variants restrict to realm groups
         boolean plainIdResolution = (search == null || search.isEmpty()) && first == null && max == null;
-        Stream<GroupSpec> specs = ids
-                .map(id -> GroupCrStore.read(realm.getId(), id))
-                .filter(Objects::nonNull);
+        Stream<GroupSpec> specs =
+                ids.map(id -> GroupCrStore.read(realm.getId(), id)).filter(Objects::nonNull);
         if (!plainIdResolution) {
             specs = specs.filter(GroupCrProvider::isRealmGroup);
         }
-        Stream<GroupModel> groups = specs
-                .map(spec -> adapt(realm, spec))
-                .sorted(Comparator.comparing(GroupModel::getName));
+        Stream<GroupModel> groups =
+                specs.map(spec -> adapt(realm, spec)).sorted(Comparator.comparing(GroupModel::getName));
         if (search != null) {
             groups = groups.filter(nameMatches(search, false));
         }
@@ -211,9 +207,7 @@ public class GroupCrProvider implements GroupProvider {
     }
 
     private Stream<GroupModel> topLevelGroups(RealmModel realm) {
-        return realmGroupSpecs(realm)
-                .filter(spec -> spec.getParentId() == null)
-                .map(spec -> adapt(realm, spec));
+        return realmGroupSpecs(realm).filter(spec -> spec.getParentId() == null).map(spec -> adapt(realm, spec));
     }
 
     // ------------------------------------------------------------------ create / move / remove

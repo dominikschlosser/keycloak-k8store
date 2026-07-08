@@ -105,8 +105,9 @@ class CrPolicyStore implements PolicyStore {
             return null;
         }
         PolicyAdapter policy = factory.policyById(factory.realmOf(resourceServer), id);
-        if (policy == null || (resourceServer != null
-                && !resourceServer.getId().equals(policy.spec().getResourceServer()))) {
+        if (policy == null
+                || (resourceServer != null
+                        && !resourceServer.getId().equals(policy.spec().getResourceServer()))) {
             return null;
         }
         return policy;
@@ -127,17 +128,22 @@ class CrPolicyStore implements PolicyStore {
     }
 
     @Override
-    public List<Policy> find(ResourceServer resourceServer, Map<Policy.FilterOption, String[]> attributes,
-                             Integer firstResult, Integer maxResults) {
-        Stream<AuthzPolicySpec> matches = specs(resourceServer)
-                .filter(spec -> matchesFilters(spec, attributes));
+    public List<Policy> find(
+            ResourceServer resourceServer,
+            Map<Policy.FilterOption, String[]> attributes,
+            Integer firstResult,
+            Integer maxResults) {
+        Stream<AuthzPolicySpec> matches = specs(resourceServer).filter(spec -> matchesFilters(spec, attributes));
         if (!attributes.containsKey(Policy.FilterOption.OWNER)
                 && !attributes.containsKey(Policy.FilterOption.ANY_OWNER)) {
             // JPA parity: without an owner filter only server-managed policies are returned
             matches = matches.filter(spec -> spec.getOwner() == null);
         }
-        return paginatedStream(matches.sorted(Comparator.comparing(AuthzPolicySpec::getName,
-                        Comparator.nullsFirst(Comparator.naturalOrder()))), firstResult, maxResults)
+        return paginatedStream(
+                        matches.sorted(Comparator.comparing(
+                                AuthzPolicySpec::getName, Comparator.nullsFirst(Comparator.naturalOrder()))),
+                        firstResult,
+                        maxResults)
                 .map(factory::wrap)
                 .map(Policy.class::cast)
                 .toList();
@@ -148,26 +154,31 @@ class CrPolicyStore implements PolicyStore {
             String[] value = filter.getValue();
             // Arrays.asList, not List.of: the matched attribute may be null (e.g. the owner of
             // server-managed policies), and List.of's contains(null) throws
-            boolean matches = switch (filter.getKey()) {
-                case ID -> Arrays.asList(value).contains(spec.getId());
-                case OWNER -> Arrays.asList(value).contains(spec.getOwner());
-                case ANY_OWNER -> true;
-                case RESOURCE_ID -> spec.getResourceIds() != null
-                        && spec.getResourceIds().stream().anyMatch(Arrays.asList(value)::contains);
-                case SCOPE_ID -> spec.getScopeIds() != null
-                        && spec.getScopeIds().stream().anyMatch(Arrays.asList(value)::contains);
-                case PERMISSION -> PERMISSION_TYPES.contains(spec.getType()) == Boolean.parseBoolean(value[0]);
-                case CONFIG -> {
-                    if (value.length != 2) {
-                        throw new IllegalArgumentException(
-                                "Config filter option requires value with two items: [config_name, expected_config_value]");
-                    }
-                    String configValue = spec.getConfig() == null ? null : spec.getConfig().get(value[0]);
-                    yield configValue != null && LikePatterns.containsTerm(configValue, value[1], true);
-                }
-                case TYPE -> LikePatterns.containsTerm(spec.getType(), value[0], false);
-                case NAME -> LikePatterns.containsTerm(spec.getName(), value[0], false);
-            };
+            boolean matches =
+                    switch (filter.getKey()) {
+                        case ID -> Arrays.asList(value).contains(spec.getId());
+                        case OWNER -> Arrays.asList(value).contains(spec.getOwner());
+                        case ANY_OWNER -> true;
+                        case RESOURCE_ID ->
+                            spec.getResourceIds() != null
+                                    && spec.getResourceIds().stream().anyMatch(Arrays.asList(value)::contains);
+                        case SCOPE_ID ->
+                            spec.getScopeIds() != null
+                                    && spec.getScopeIds().stream().anyMatch(Arrays.asList(value)::contains);
+                        case PERMISSION -> PERMISSION_TYPES.contains(spec.getType()) == Boolean.parseBoolean(value[0]);
+                        case CONFIG -> {
+                            if (value.length != 2) {
+                                throw new IllegalArgumentException(
+                                        "Config filter option requires value with two items: [config_name, expected_config_value]");
+                            }
+                            String configValue = spec.getConfig() == null
+                                    ? null
+                                    : spec.getConfig().get(value[0]);
+                            yield configValue != null && LikePatterns.containsTerm(configValue, value[1], true);
+                        }
+                        case TYPE -> LikePatterns.containsTerm(spec.getType(), value[0], false);
+                        case NAME -> LikePatterns.containsTerm(spec.getName(), value[0], false);
+                    };
             if (!matches) {
                 return false;
             }
@@ -178,7 +189,8 @@ class CrPolicyStore implements PolicyStore {
     @Override
     public void findByResource(ResourceServer resourceServer, Resource resource, Consumer<Policy> consumer) {
         specs(resourceServer)
-                .filter(spec -> spec.getResourceIds() != null && spec.getResourceIds().contains(resource.getId()))
+                .filter(spec ->
+                        spec.getResourceIds() != null && spec.getResourceIds().contains(resource.getId()))
                 .map(factory::wrap)
                 .forEach(consumer);
     }
@@ -208,8 +220,8 @@ class CrPolicyStore implements PolicyStore {
     }
 
     @Override
-    public void findByScopes(ResourceServer resourceServer, Resource resource, List<Scope> scopes,
-                             Consumer<Policy> consumer) {
+    public void findByScopes(
+            ResourceServer resourceServer, Resource resource, List<Scope> scopes, Consumer<Policy> consumer) {
         Set<String> scopeIds = ids(scopes);
         Stream<AuthzPolicySpec> matches = specs(resourceServer)
                 .filter(spec -> "scope".equals(spec.getType()))
@@ -218,13 +230,13 @@ class CrPolicyStore implements PolicyStore {
         if (resource == null) {
             // JPA parity: scope permissions not attached to any resource, excluding the
             // resource-type permissions of the fine-grained-admin schema
-            matches = matches
-                    .filter(spec -> spec.getResourceIds() == null || spec.getResourceIds().isEmpty())
-                    .filter(spec -> spec.getConfig() == null
-                            || !spec.getConfig().containsKey(DEFAULT_RESOURCE_TYPE_CONFIG));
+            matches = matches.filter(spec -> spec.getResourceIds() == null
+                            || spec.getResourceIds().isEmpty())
+                    .filter(spec ->
+                            spec.getConfig() == null || !spec.getConfig().containsKey(DEFAULT_RESOURCE_TYPE_CONFIG));
         } else {
-            matches = matches.filter(spec -> spec.getResourceIds() != null
-                    && spec.getResourceIds().contains(resource.getId()));
+            matches = matches.filter(spec ->
+                    spec.getResourceIds() != null && spec.getResourceIds().contains(resource.getId()));
         }
         matches.map(factory::wrap).forEach(consumer);
     }
@@ -249,45 +261,54 @@ class CrPolicyStore implements PolicyStore {
     }
 
     @Override
-    public Stream<Policy> findDependentPolicies(ResourceServer resourceServer, String resourceType,
-                                                String groupResourceType, String associatedPolicyType,
-                                                String configKey, String configValue) {
-        return findDependentPolicies(resourceServer, resourceType, groupResourceType, associatedPolicyType,
-                configKey, List.of(configValue));
+    public Stream<Policy> findDependentPolicies(
+            ResourceServer resourceServer,
+            String resourceType,
+            String groupResourceType,
+            String associatedPolicyType,
+            String configKey,
+            String configValue) {
+        return findDependentPolicies(
+                resourceServer, resourceType, groupResourceType, associatedPolicyType, configKey, List.of(configValue));
     }
 
     @Override
-    public Stream<Policy> findDependentPolicies(ResourceServer resourceServer, String resourceType,
-                                                String groupResourceType, String associatedPolicyType,
-                                                String configKey, List<String> configValues) {
+    public Stream<Policy> findDependentPolicies(
+            ResourceServer resourceServer,
+            String resourceType,
+            String groupResourceType,
+            String associatedPolicyType,
+            String configKey,
+            List<String> configValues) {
         // the fine-grained-admin dependency query: resource-type permissions carrying the
         // relevant view scope whose associated policy of the given type references one of the
         // given config values (e.g. a role id inside a role policy's "roles" JSON array)
-        String scopeName = AdminPermissionsSchema.GROUPS.getType().equals(groupResourceType)
-                ? "view-members"
-                : "view";
+        String scopeName = AdminPermissionsSchema.GROUPS.getType().equals(groupResourceType) ? "view-members" : "view";
         String realmId = factory.realmOf(resourceServer);
         return specs(resourceServer)
                 .filter(spec -> spec.getConfig() != null
                         && LikePatterns.like(spec.getConfig().get(DEFAULT_RESOURCE_TYPE_CONFIG), resourceType))
-                .filter(spec -> spec.getScopeIds() != null && spec.getScopeIds().stream()
-                        .map(scopeId -> AuthzCrStore.scope(realmId, scopeId))
-                        .anyMatch(scope -> scope != null && scopeName.equals(scope.getName())))
-                .filter(spec -> spec.getAssociatedPolicyIds() != null && spec.getAssociatedPolicyIds().stream()
-                        .map(associatedId -> AuthzCrStore.policy(realmId, associatedId))
-                        .anyMatch(associated -> associated != null
-                                && Objects.equals(associatedPolicyType, associated.getType())
-                                && matchesAssociatedConfig(associated, configKey, configValues)))
+                .filter(spec -> spec.getScopeIds() != null
+                        && spec.getScopeIds().stream()
+                                .map(scopeId -> AuthzCrStore.scope(realmId, scopeId))
+                                .anyMatch(scope -> scope != null && scopeName.equals(scope.getName())))
+                .filter(spec -> spec.getAssociatedPolicyIds() != null
+                        && spec.getAssociatedPolicyIds().stream()
+                                .map(associatedId -> AuthzCrStore.policy(realmId, associatedId))
+                                .anyMatch(associated -> associated != null
+                                        && Objects.equals(associatedPolicyType, associated.getType())
+                                        && matchesAssociatedConfig(associated, configKey, configValues)))
                 .map(factory::wrap)
                 .map(Policy.class::cast);
     }
 
-    private static boolean matchesAssociatedConfig(AuthzPolicySpec associated, String configKey,
-                                                   List<String> configValues) {
+    private static boolean matchesAssociatedConfig(
+            AuthzPolicySpec associated, String configKey, List<String> configValues) {
         if (configKey == null) {
             return true;
         }
-        String configValue = associated.getConfig() == null ? null : associated.getConfig().get(configKey);
+        String configValue =
+                associated.getConfig() == null ? null : associated.getConfig().get(configKey);
         if (configValue == null) {
             return false;
         }

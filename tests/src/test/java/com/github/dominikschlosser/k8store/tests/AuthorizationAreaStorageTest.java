@@ -94,7 +94,11 @@ public class AuthorizationAreaStorageTest {
     // ------------------------------------------------------------------ CR helpers
 
     private <T extends CustomResource<?, ?>> List<T> crs(Class<T> type) {
-        return kube.client().resources(type).inNamespace(namespace.name()).list().getItems();
+        return kube.client()
+                .resources(type)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems();
     }
 
     private List<KeycloakResourceServerCr> resourceServerCrs(String clientId) {
@@ -182,8 +186,8 @@ public class AuthorizationAreaStorageTest {
     // ------------------------------------------------------------------ token helpers
 
     private JsonNode tokenRequest(String form, String bearerToken, int expectedStatus) throws Exception {
-        HttpRequest.Builder request = HttpRequest.newBuilder(URI.create(
-                        urls.getBase() + "/realms/" + realm.getName() + "/protocol/openid-connect/token"))
+        HttpRequest.Builder request = HttpRequest.newBuilder(
+                        URI.create(urls.getBase() + "/realms/" + realm.getName() + "/protocol/openid-connect/token"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(form));
         if (bearerToken != null) {
@@ -205,10 +209,10 @@ public class AuthorizationAreaStorageTest {
 
     /** UMA entitlement request: all permissions of the audience, answered as a permission list. */
     private JsonNode umaEntitlement(String audience, String bearerToken, int expectedStatus) throws Exception {
-        String form = "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:uma-ticket",
-                        StandardCharsets.UTF_8)
-                + "&audience=" + URLEncoder.encode(audience, StandardCharsets.UTF_8)
-                + "&response_mode=permissions";
+        String form =
+                "grant_type=" + URLEncoder.encode("urn:ietf:params:oauth:grant-type:uma-ticket", StandardCharsets.UTF_8)
+                        + "&audience=" + URLEncoder.encode(audience, StandardCharsets.UTF_8)
+                        + "&response_mode=permissions";
         return tokenRequest(form, bearerToken, expectedStatus);
     }
 
@@ -223,7 +227,12 @@ public class AuthorizationAreaStorageTest {
         assertEquals(1, servers.size(), "enabling authorization services must create the resource-server CR");
         assertEquals(PolicyEnforcementMode.ENFORCING, servers.get(0).getSpec().getPolicyEnforcementMode());
         // the uma_protection role of the resource server lands in the role area as usual
-        assertNotNull(realm.admin().clients().get(clientUuid).roles().get("uma_protection").toRepresentation());
+        assertNotNull(realm.admin()
+                .clients()
+                .get(clientUuid)
+                .roles()
+                .get("uma_protection")
+                .toRepresentation());
 
         // the admin API reads the resource server back through the CR store, and settings
         // updates land on the CR
@@ -232,10 +241,12 @@ public class AuthorizationAreaStorageTest {
         settings.setDecisionStrategy(DecisionStrategy.AFFIRMATIVE);
         settings.setAllowRemoteResourceManagement(true);
         authorization(clientUuid).update(settings);
-        Await.await("resource-server CR to carry the updated settings",
-                () -> resourceServerCrs("authz-enable-client").stream().anyMatch(cr ->
-                        DecisionStrategy.AFFIRMATIVE == cr.getSpec().getDecisionStrategy()
-                                && Boolean.TRUE.equals(cr.getSpec().getAllowRemoteResourceManagement())));
+        Await.await(
+                "resource-server CR to carry the updated settings",
+                () -> resourceServerCrs("authz-enable-client").stream()
+                        .anyMatch(cr ->
+                                DecisionStrategy.AFFIRMATIVE == cr.getSpec().getDecisionStrategy()
+                                        && Boolean.TRUE.equals(cr.getSpec().getAllowRemoteResourceManagement())));
     }
 
     @Test
@@ -261,8 +272,10 @@ public class AuthorizationAreaStorageTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakAuthzResource CR named Document Resource"));
         assertNotNull(resourceCr.getSpec().getScopeIds(), "the resource CR must reference its scope");
-        assertTrue(resourceCr.getSpec().getScopeIds().contains(scopeCr.getSpec().getId()),
-                "the resource CR references the scope by id: " + resourceCr.getSpec().getScopeIds());
+        assertTrue(
+                resourceCr.getSpec().getScopeIds().contains(scopeCr.getSpec().getId()),
+                "the resource CR references the scope by id: "
+                        + resourceCr.getSpec().getScopeIds());
 
         createRealmRoleIfAbsent("doc-reader");
         RolePolicyRepresentation rolePolicy = new RolePolicyRepresentation();
@@ -277,8 +290,10 @@ public class AuthorizationAreaStorageTest {
                 .orElseThrow(() -> new AssertionError("no KeycloakAuthzPolicy CR named doc-reader-policy"));
         assertEquals("role", policyCr.getSpec().getType());
         assertNotNull(policyCr.getSpec().getConfig());
-        assertTrue(policyCr.getSpec().getConfig().get("roles").contains("doc-reader"),
-                "the role policy's roles config must reference the role: " + policyCr.getSpec().getConfig());
+        assertTrue(
+                policyCr.getSpec().getConfig().get("roles").contains("doc-reader"),
+                "the role policy's roles config must reference the role: "
+                        + policyCr.getSpec().getConfig());
 
         ResourcePermissionRepresentation permission = new ResourcePermissionRepresentation();
         permission.setName("document-permission");
@@ -292,9 +307,17 @@ public class AuthorizationAreaStorageTest {
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakAuthzPolicy CR named document-permission"));
         assertEquals("resource", permissionCr.getSpec().getType());
-        assertTrue(permissionCr.getSpec().getResourceIds().contains(resourceCr.getSpec().getId()),
+        assertTrue(
+                permissionCr
+                        .getSpec()
+                        .getResourceIds()
+                        .contains(resourceCr.getSpec().getId()),
                 "the permission CR references the resource by id");
-        assertTrue(permissionCr.getSpec().getAssociatedPolicyIds().contains(policyCr.getSpec().getId()),
+        assertTrue(
+                permissionCr
+                        .getSpec()
+                        .getAssociatedPolicyIds()
+                        .contains(policyCr.getSpec().getId()),
                 "the permission CR references the role policy by id");
     }
 
@@ -331,14 +354,16 @@ public class AuthorizationAreaStorageTest {
         String readerToken = passwordGrant("authz-eval-client", "eval-reader-user", "eval-password");
         // regression guard for the default-scope assignment during client creation: without the
         // realm's default scopes the token has no realm_access and every role policy denies
-        assertTrue(realm.admin().clients().get(clientUuid).getDefaultClientScopes().stream()
+        assertTrue(
+                realm.admin().clients().get(clientUuid).getDefaultClientScopes().stream()
                         .anyMatch(s -> "roles".equals(s.getName())),
                 "a new client must inherit the realm's default client scopes");
         JsonNode permissions = umaEntitlement("authz-eval-client", readerToken, 200);
         assertTrue(permissions.isArray() && permissions.size() > 0, "granted permissions expected: " + permissions);
         boolean grantsEvaluatedResource = false;
         for (JsonNode granted : permissions) {
-            grantsEvaluatedResource |= "Evaluated Resource".equals(granted.path("rsname").asText());
+            grantsEvaluatedResource |=
+                    "Evaluated Resource".equals(granted.path("rsname").asText());
         }
         assertTrue(grantsEvaluatedResource, "the RPT permissions must contain the resource: " + permissions);
 
@@ -383,19 +408,20 @@ public class AuthorizationAreaStorageTest {
         authorization.resources().resource(resourceId).remove();
         Await.await("resource CR to be deleted", () -> resourceCrs("authz-cascade-client").stream()
                 .noneMatch(cr -> "Cascade Resource".equals(cr.getSpec().getName())));
-        Await.await("dependent permission CR to be deleted with its only resource",
-                () -> policyCrs("authz-cascade-client").stream()
-                        .noneMatch(cr -> "cascade-permission".equals(cr.getSpec().getName())));
+        Await.await(
+                "dependent permission CR to be deleted with its only resource",
+                () -> policyCrs("authz-cascade-client").stream().noneMatch(cr -> "cascade-permission"
+                        .equals(cr.getSpec().getName())));
 
         // deleting the client deletes the whole remaining graph
         realm.admin().clients().get(clientUuid).remove();
-        Await.await("resource-server CR to be deleted with the client",
-                () -> resourceServerCrs("authz-cascade-client").isEmpty());
-        Await.await("all policy CRs to be deleted with the client",
-                () -> policyCrs("authz-cascade-client").isEmpty());
-        Await.await("all resource CRs to be deleted with the client",
-                () -> resourceCrs("authz-cascade-client").isEmpty());
-        Await.await("all scope CRs to be deleted with the client",
-                () -> scopeCrs("authz-cascade-client").isEmpty());
+        Await.await("resource-server CR to be deleted with the client", () -> resourceServerCrs("authz-cascade-client")
+                .isEmpty());
+        Await.await("all policy CRs to be deleted with the client", () -> policyCrs("authz-cascade-client")
+                .isEmpty());
+        Await.await("all resource CRs to be deleted with the client", () -> resourceCrs("authz-cascade-client")
+                .isEmpty());
+        Await.await("all scope CRs to be deleted with the client", () -> scopeCrs("authz-cascade-client")
+                .isEmpty());
     }
 }

@@ -42,14 +42,16 @@ public final class ScopeMappingSupport {
     public static Stream<RoleModel> stream(KeycloakSession session, RealmModel realm, ScopeMappingCarrier spec) {
         Stream<RoleModel> realmRoles = spec.getRealmScopeMappings() == null
                 ? Stream.empty()
-                : spec.getRealmScopeMappings().stream().map(name -> session.roles().getRealmRole(realm, name));
+                : spec.getRealmScopeMappings().stream()
+                        .map(name -> session.roles().getRealmRole(realm, name));
         Stream<RoleModel> clientRoles = spec.getClientScopeMappings() == null
                 ? Stream.empty()
                 : spec.getClientScopeMappings().entrySet().stream().flatMap(entry -> {
                     ClientModel client = resolveClient(session, realm, entry.getKey());
                     return client == null || entry.getValue() == null
                             ? Stream.empty()
-                            : entry.getValue().stream().map(name -> session.roles().getClientRole(client, name));
+                            : entry.getValue().stream()
+                                    .map(name -> session.roles().getClientRole(client, name));
                 });
         return Stream.concat(realmRoles, clientRoles).filter(Objects::nonNull);
     }
@@ -106,7 +108,8 @@ public final class ScopeMappingSupport {
             List<String> names = byClient == null ? null : byClient.get(role.getContainerId());
             return names != null && names.contains(role.getName());
         }
-        return spec.getRealmScopeMappings() != null && spec.getRealmScopeMappings().contains(role.getName());
+        return spec.getRealmScopeMappings() != null
+                && spec.getRealmScopeMappings().contains(role.getName());
     }
 
     /**
@@ -125,7 +128,8 @@ public final class ScopeMappingSupport {
             }
             return false;
         }
-        return spec.getRealmScopeMappings() != null && spec.getRealmScopeMappings().remove(removed.getName());
+        return spec.getRealmScopeMappings() != null
+                && spec.getRealmScopeMappings().remove(removed.getName());
     }
 
     /**

@@ -78,8 +78,7 @@ public class TestFederationUserStorage implements UserStorageProviderFactory<Tes
                 // the import path every import-style federation provider (LDAP) uses: create
                 // the local shadow user and link it to this provider. No default required
                 // actions - the federated account is ready to log in as imported.
-                local = UserStoragePrivateUtil.userLocalStorage(session)
-                        .addUser(realm, null, USERNAME, true, false);
+                local = UserStoragePrivateUtil.userLocalStorage(session).addUser(realm, null, USERNAME, true, false);
                 local.setEnabled(true);
                 local.setEmail(EMAIL);
                 local.setEmailVerified(true);

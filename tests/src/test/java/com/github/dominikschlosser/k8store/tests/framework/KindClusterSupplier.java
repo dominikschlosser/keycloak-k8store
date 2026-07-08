@@ -59,9 +59,11 @@ public class KindClusterSupplier
                     .build();
             client.getKubernetesVersion();
         } catch (Exception e) {
-            throw new IllegalStateException("Cannot reach the '" + contextName + "' kind cluster - the integration"
-                    + " tests run against a real cluster. Create it with scripts/kind-up.sh (or set"
-                    + " K8STORE_TEST_CONTEXT to another kubeconfig context).", e);
+            throw new IllegalStateException(
+                    "Cannot reach the '" + contextName + "' kind cluster - the integration"
+                            + " tests run against a real cluster. Create it with scripts/kind-up.sh (or set"
+                            + " K8STORE_TEST_CONTEXT to another kubeconfig context).",
+                    e);
         }
         if (!ServerMode.remote()) {
             applyCrds(client);
@@ -71,8 +73,7 @@ public class KindClusterSupplier
 
     @Override
     public boolean compatible(
-            InstanceContext<KindCluster, InjectKindCluster> a,
-            RequestedInstance<KindCluster, InjectKindCluster> b) {
+            InstanceContext<KindCluster, InjectKindCluster> a, RequestedInstance<KindCluster, InjectKindCluster> b) {
         return true;
     }
 
@@ -88,8 +89,7 @@ public class KindClusterSupplier
 
     @Override
     public KeycloakServerConfigBuilder intercept(
-            KeycloakServerConfigBuilder serverConfig,
-            InstanceContext<KindCluster, InjectKindCluster> instanceContext) {
+            KeycloakServerConfigBuilder serverConfig, InstanceContext<KindCluster, InjectKindCluster> instanceContext) {
         if (ServerMode.remote()) {
             return serverConfig;
         }
@@ -107,7 +107,9 @@ public class KindClusterSupplier
         Path crdDir = Files.isDirectory(Path.of("../crds")) ? Path.of("../crds") : Path.of("crds");
         List<Path> files;
         try (Stream<Path> paths = Files.list(crdDir)) {
-            files = paths.filter(f -> f.getFileName().toString().endsWith(".yml")).sorted().toList();
+            files = paths.filter(f -> f.getFileName().toString().endsWith(".yml"))
+                    .sorted()
+                    .toList();
         } catch (IOException e) {
             throw new IllegalStateException("Cannot list CRD manifests in " + crdDir.toAbsolutePath(), e);
         }
@@ -127,8 +129,11 @@ public class KindClusterSupplier
         for (Path file : files) {
             String name = file.getFileName().toString().replace("-v1.yml", "");
             Await.await("CRD " + name + " to become established", () -> {
-                CustomResourceDefinition current =
-                        client.apiextensions().v1().customResourceDefinitions().withName(name).get();
+                CustomResourceDefinition current = client.apiextensions()
+                        .v1()
+                        .customResourceDefinitions()
+                        .withName(name)
+                        .get();
                 return current != null
                         && current.getStatus() != null
                         && current.getStatus().getConditions() != null
