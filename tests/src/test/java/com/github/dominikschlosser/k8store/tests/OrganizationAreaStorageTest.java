@@ -87,7 +87,11 @@ public class OrganizationAreaStorageTest {
     // ------------------------------------------------------------------ CR helpers
 
     private <T extends CustomResource<?, ?>> List<T> crs(Class<T> type) {
-        return kube.client().resources(type).inNamespace(namespace.name()).list().getItems();
+        return kube.client()
+                .resources(type)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems();
     }
 
     private Optional<KeycloakOrganizationCr> organizationCr(String orgId) {
@@ -149,8 +153,8 @@ public class OrganizationAreaStorageTest {
     public void creatingAnOrganizationMaterializesCrAndBackingGroup() {
         String orgId = createOrganization("Acme Corp", "acme", "acme.example");
 
-        KeycloakOrganizationCr orgCr = organizationCr(orgId)
-                .orElseThrow(() -> new AssertionError("no KeycloakOrganization CR for " + orgId));
+        KeycloakOrganizationCr orgCr =
+                organizationCr(orgId).orElseThrow(() -> new AssertionError("no KeycloakOrganization CR for " + orgId));
         assertEquals("Acme Corp", orgCr.getSpec().getName());
         assertEquals("acme", orgCr.getSpec().getAlias());
         assertTrue(orgCr.getSpec().isEnabled());
@@ -158,26 +162,29 @@ public class OrganizationAreaStorageTest {
         assertEquals("https://acme.example/after-login", orgCr.getSpec().getRedirectUrl());
         assertEquals(List.of("gold"), orgCr.getSpec().getAttributes().get("tier"));
         assertNotNull(orgCr.getSpec().getDomains(), "the organization CR must carry its domains");
-        OrganizationDomainRepresentation domain = orgCr.getSpec().getDomains().iterator().next();
+        OrganizationDomainRepresentation domain =
+                orgCr.getSpec().getDomains().iterator().next();
         assertEquals("acme.example", domain.getName());
         assertTrue(domain.isVerified());
 
         // the backing group is a group CR of type organization, named after the organization id
         String groupId = orgCr.getSpec().getGroupId();
         assertNotNull(groupId, "the organization CR must reference its backing group");
-        KeycloakGroupCr groupCr = groupCr(groupId)
-                .orElseThrow(() -> new AssertionError("no backing KeycloakGroup CR " + groupId));
+        KeycloakGroupCr groupCr =
+                groupCr(groupId).orElseThrow(() -> new AssertionError("no backing KeycloakGroup CR " + groupId));
         assertEquals("organization", groupCr.getSpec().getType());
         assertEquals(orgId, groupCr.getSpec().getOrganizationId());
         assertEquals(orgId, groupCr.getSpec().getName(), "backing group name = organization id (upstream convention)");
 
         // organization groups are invisible to the regular group surface
         List<GroupRepresentation> visibleGroups = realm.admin().groups().groups();
-        assertTrue(visibleGroups.stream().noneMatch(group -> groupId.equals(group.getId())),
+        assertTrue(
+                visibleGroups.stream().noneMatch(group -> groupId.equals(group.getId())),
                 "the backing group must not surface in the regular group API: " + visibleGroups);
 
         // and the admin API reads the organization back through the CR store
-        OrganizationRepresentation read = realm.admin().organizations().get(orgId).toRepresentation();
+        OrganizationRepresentation read =
+                realm.admin().organizations().get(orgId).toRepresentation();
         assertEquals("Acme Corp", read.getName());
         assertEquals("acme", read.getAlias());
         assertNotNull(read.getDomain("acme.example"));
@@ -189,16 +196,17 @@ public class OrganizationAreaStorageTest {
         String orgId = createOrganization("Member Org", "member-org", "members.example");
         String userId = createUser("org-member");
 
-        try (Response response = realm.admin().organizations().get(orgId).members().addMember(userId)) {
+        try (Response response =
+                realm.admin().organizations().get(orgId).members().addMember(userId)) {
             assertEquals(201, response.getStatus());
         }
 
         // organization -> members
-        List<MemberRepresentation> members = realm.admin().organizations().get(orgId).members().getAll();
+        List<MemberRepresentation> members =
+                realm.admin().organizations().get(orgId).members().getAll();
         assertEquals(1, members.size());
         assertEquals("org-member", members.get(0).getUsername());
-        assertEquals(MembershipType.UNMANAGED, members.get(0).getMembershipType(),
-                "admin-added members are unmanaged");
+        assertEquals(MembershipType.UNMANAGED, members.get(0).getMembershipType(), "admin-added members are unmanaged");
         assertEquals(1, realm.admin().organizations().get(orgId).members().count());
         List<MemberRepresentation> found =
                 realm.admin().organizations().get(orgId).members().search("org-member", false, null, null);
@@ -207,7 +215,8 @@ public class OrganizationAreaStorageTest {
         // member -> organizations
         List<OrganizationRepresentation> memberOrgs =
                 realm.admin().organizations().members().getOrganizations(userId, true);
-        assertTrue(memberOrgs.stream().anyMatch(org -> orgId.equals(org.getId())),
+        assertTrue(
+                memberOrgs.stream().anyMatch(org -> orgId.equals(org.getId())),
                 "the member's organizations must include the organization");
 
         // membership is stored on the user side: the organization CR carries no member list
@@ -215,11 +224,13 @@ public class OrganizationAreaStorageTest {
         assertNull(orgCr.getSpec().getMembers(), "membership must not be embedded in the organization CR");
 
         // leaving the organization removes the membership but keeps the (unmanaged) user
-        try (Response response = realm.admin().organizations().get(orgId).members().removeMember(userId)) {
+        try (Response response =
+                realm.admin().organizations().get(orgId).members().removeMember(userId)) {
             assertEquals(204, response.getStatus());
         }
         assertEquals(0, realm.admin().organizations().get(orgId).members().count());
-        assertNotNull(realm.admin().users().get(userId).toRepresentation(),
+        assertNotNull(
+                realm.admin().users().get(userId).toRepresentation(),
                 "removing an unmanaged member must not delete the user");
     }
 
@@ -253,11 +264,12 @@ public class OrganizationAreaStorageTest {
         assertEquals(orgId, linked.get(0).getOrganizationId());
 
         // and persisted where the model keeps it: on the identity provider in the realm CR
-        Await.await("realm CR to carry the organization linkage on the identity provider",
+        Await.await(
+                "realm CR to carry the organization linkage on the identity provider",
                 () -> realmCr().getSpec().getIdentityProviders() != null
                         && realmCr().getSpec().getIdentityProviders().stream()
-                                .anyMatch(rep -> "org-broker".equals(rep.getAlias())
-                                        && orgId.equals(rep.getOrganizationId())));
+                                .anyMatch(rep ->
+                                        "org-broker".equals(rep.getAlias()) && orgId.equals(rep.getOrganizationId())));
 
         // the organization CR itself embeds no identity providers
         assertNull(organizationCr(orgId).orElseThrow().getSpec().getIdentityProviders());
@@ -272,19 +284,24 @@ public class OrganizationAreaStorageTest {
         assertTrue(all.size() >= 2);
 
         List<OrganizationRepresentation> byName = realm.admin().organizations().search("Search");
-        assertTrue(byName.stream().anyMatch(org -> orgId.equals(org.getId())),
+        assertTrue(
+                byName.stream().anyMatch(org -> orgId.equals(org.getId())),
                 "name search must find the organization: " + byName);
 
-        List<OrganizationRepresentation> byDomain = realm.admin().organizations().search("search.example");
-        assertTrue(byDomain.stream().anyMatch(org -> orgId.equals(org.getId())),
+        List<OrganizationRepresentation> byDomain =
+                realm.admin().organizations().search("search.example");
+        assertTrue(
+                byDomain.stream().anyMatch(org -> orgId.equals(org.getId())),
                 "domain search must find the organization: " + byDomain);
 
         List<OrganizationRepresentation> byExactName =
                 realm.admin().organizations().search("Search Org", true, 0, 10);
         assertEquals(1, byExactName.size());
 
-        List<OrganizationRepresentation> byAttribute = realm.admin().organizations().searchByAttribute("tier:gold");
-        assertTrue(byAttribute.stream().anyMatch(org -> orgId.equals(org.getId())),
+        List<OrganizationRepresentation> byAttribute =
+                realm.admin().organizations().searchByAttribute("tier:gold");
+        assertTrue(
+                byAttribute.stream().anyMatch(org -> orgId.equals(org.getId())),
                 "attribute search must find the organization: " + byAttribute);
     }
 
@@ -292,7 +309,8 @@ public class OrganizationAreaStorageTest {
     public void deletingAnOrganizationCascadesOverItsCrs() {
         String orgId = createOrganization("Doomed Org", "doomed-org", "doomed.example");
         String userId = createUser("doomed-org-member");
-        try (Response response = realm.admin().organizations().get(orgId).members().addMember(userId)) {
+        try (Response response =
+                realm.admin().organizations().get(orgId).members().addMember(userId)) {
             assertEquals(201, response.getStatus());
         }
         String groupId = organizationCr(orgId).orElseThrow().getSpec().getGroupId();
@@ -303,9 +321,10 @@ public class OrganizationAreaStorageTest {
         }
 
         Await.await("organization CR to be deleted", () -> organizationCr(orgId).isEmpty());
-        Await.await("backing group CR to be deleted with the organization",
-                () -> groupCr(groupId).isEmpty());
-        assertNotNull(realm.admin().users().get(userId).toRepresentation(),
+        Await.await("backing group CR to be deleted with the organization", () -> groupCr(groupId)
+                .isEmpty());
+        assertNotNull(
+                realm.admin().users().get(userId).toRepresentation(),
                 "unmanaged members survive the organization removal");
         assertFalse(realm.admin().organizations().getAll().stream().anyMatch(org -> orgId.equals(org.getId())));
     }

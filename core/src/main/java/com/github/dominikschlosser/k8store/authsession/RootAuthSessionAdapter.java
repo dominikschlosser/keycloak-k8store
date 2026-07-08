@@ -48,8 +48,8 @@ public class RootAuthSessionAdapter implements RootAuthenticationSessionModel {
     private final RealmModel realm;
     private final AuthSessionSpec spec;
 
-    RootAuthSessionAdapter(KeycloakSession session, AuthSessionCrProvider provider,
-                           RealmModel realm, AuthSessionSpec spec) {
+    RootAuthSessionAdapter(
+            KeycloakSession session, AuthSessionCrProvider provider, RealmModel realm, AuthSessionSpec spec) {
         this.session = session;
         this.provider = provider;
         this.realm = realm;
@@ -96,8 +96,8 @@ public class RootAuthSessionAdapter implements RootAuthenticationSessionModel {
     public Map<String, AuthenticationSessionModel> getAuthenticationSessions() {
         Map<String, AuthenticationSessionModel> result = new LinkedHashMap<>();
         if (spec.getTabs() != null) {
-            spec.getTabs().forEach((tabId, tab) -> result.put(tabId,
-                    new AuthSessionAdapter(session, this, tabId, tab)));
+            spec.getTabs()
+                    .forEach((tabId, tab) -> result.put(tabId, new AuthSessionAdapter(session, this, tabId, tab)));
         }
         return result;
     }
@@ -121,8 +121,8 @@ public class RootAuthSessionAdapter implements RootAuthenticationSessionModel {
         }
         while (spec.getTabs().size() >= TAB_LIMIT) {
             spec.getTabs().entrySet().stream()
-                    .min(Comparator.comparing(entry -> entry.getValue().getTimestamp(),
-                            Comparator.nullsFirst(Comparator.naturalOrder())))
+                    .min(Comparator.comparing(
+                            entry -> entry.getValue().getTimestamp(), Comparator.nullsFirst(Comparator.naturalOrder())))
                     .ifPresent(oldest -> spec.getTabs().remove(oldest.getKey()));
         }
         String tabId = Base64Url.encode(SecretGenerator.getInstance().randomBytes(8));

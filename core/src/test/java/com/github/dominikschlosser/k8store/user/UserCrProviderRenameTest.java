@@ -21,13 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.dominikschlosser.k8store.client.ClientAdapter;
 import com.github.dominikschlosser.k8store.crd.ClientSpec;
+import com.github.dominikschlosser.k8store.crd.IssuedVerifiableCredentialSpec;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
 import com.github.dominikschlosser.k8store.crd.UserConsentSpec;
-import org.keycloak.common.Profile;
-import com.github.dominikschlosser.k8store.crd.IssuedVerifiableCredentialSpec;
-import com.github.dominikschlosser.k8store.crd.UserVerifiableCredentialSpec;
 import com.github.dominikschlosser.k8store.crd.UserSpec;
+import com.github.dominikschlosser.k8store.crd.UserVerifiableCredentialSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStorageBackend;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
@@ -43,6 +42,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.keycloak.common.Profile;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
@@ -122,12 +122,15 @@ class UserCrProviderRenameTest {
         UserSpec read = UserCrStore.read("master", "carol");
         assertTrue(read.getClientRoles().containsKey("portal"), "grant map is rekeyed to the new clientId");
         assertFalse(read.getClientRoles().containsKey("web"), "the old clientId grant key is gone");
-        assertEquals(List.of("view", "edit"), read.getClientRoles().get("portal"),
+        assertEquals(
+                List.of("view", "edit"),
+                read.getClientRoles().get("portal"),
                 "the grant names are preserved under the new key");
-        assertEquals("portal", read.getConsents().get(0).getClientId(),
+        assertEquals(
+                "portal",
+                read.getConsents().get(0).getClientId(),
                 "the consent client reference moves to the new clientId");
-        assertEquals("portal", read.getServiceAccountClientId(),
-                "the service-account link moves to the new clientId");
+        assertEquals("portal", read.getServiceAccountClientId(), "the service-account link moves to the new clientId");
     }
 
     @Test
@@ -149,9 +152,13 @@ class UserCrProviderRenameTest {
         new UserCrProvider(null).roleRenamed(realm, clientRole(realm, "web-internal", "view"), "read");
 
         UserSpec read = UserCrStore.read("master", "bob");
-        assertEquals(List.of("viewer", "administrator", "editor"), read.getRealmRoles(),
+        assertEquals(
+                List.of("viewer", "administrator", "editor"),
+                read.getRealmRoles(),
                 "realm grant keeps position and swaps the renamed role");
-        assertEquals(List.of("create", "read", "delete"), read.getClientRoles().get("web-internal"),
+        assertEquals(
+                List.of("create", "read", "delete"),
+                read.getClientRoles().get("web-internal"),
                 "client grant keeps position and swaps the renamed role, key unchanged");
     }
 
@@ -177,13 +184,18 @@ class UserCrProviderRenameTest {
 
         UserSpec read = UserCrStore.read("master", "alice");
         UserConsentSpec readConsent = read.getConsents().get(0);
-        assertEquals(List.of("profile", "mail", "roles"), readConsent.getGrantedClientScopes(),
+        assertEquals(
+                List.of("profile", "mail", "roles"),
+                readConsent.getGrantedClientScopes(),
                 "granted-scope list keeps position and swaps the renamed scope");
-        assertTrue(readConsent.getGrantedScopeParameters().containsKey("mail"),
+        assertTrue(
+                readConsent.getGrantedScopeParameters().containsKey("mail"),
                 "the scope-parameters map is rekeyed to the new name");
-        assertFalse(readConsent.getGrantedScopeParameters().containsKey("email"),
-                "the old scope-parameters key is gone");
-        assertEquals(List.of("primary"), readConsent.getGrantedScopeParameters().get("mail"),
+        assertFalse(
+                readConsent.getGrantedScopeParameters().containsKey("email"), "the old scope-parameters key is gone");
+        assertEquals(
+                List.of("primary"),
+                readConsent.getGrantedScopeParameters().get("mail"),
                 "the scope-parameters value is preserved under the new key");
     }
 
@@ -201,7 +213,9 @@ class UserCrProviderRenameTest {
 
             new UserCrProvider(null).clientScopeRenamed(realm("master"), "email", "mail");
 
-            assertEquals("mail", VerifiableCredentialCrStore.readCredential("master", "vc-1").getClientScopeId(),
+            assertEquals(
+                    "mail",
+                    VerifiableCredentialCrStore.readCredential("master", "vc-1").getClientScopeId(),
                     "a renamed scope's bound credential is rekeyed, not orphaned");
         } finally {
             Profile.reset();
@@ -223,7 +237,9 @@ class UserCrProviderRenameTest {
             RealmModel realm = realm("master");
             new UserCrProvider(null).clientRenamed(realm, client(realm, "web"), "portal");
 
-            assertEquals("portal", VerifiableCredentialCrStore.findIssuedById("issued-1").getClientId(),
+            assertEquals(
+                    "portal",
+                    VerifiableCredentialCrStore.findIssuedById("issued-1").getClientId(),
                     "a renamed client's issued credentials are rekeyed, not orphaned");
         } finally {
             Profile.reset();

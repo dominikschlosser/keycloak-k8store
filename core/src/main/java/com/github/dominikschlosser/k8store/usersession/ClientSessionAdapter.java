@@ -38,8 +38,12 @@ public class ClientSessionAdapter implements AuthenticatedClientSessionModel {
     private final ClientSessionSpec spec;
     private boolean detached;
 
-    ClientSessionAdapter(KeycloakSession session, RealmModel realm, ClientModel client,
-                         UserSessionAdapter userSession, ClientSessionSpec spec) {
+    ClientSessionAdapter(
+            KeycloakSession session,
+            RealmModel realm,
+            ClientModel client,
+            UserSessionAdapter userSession,
+            ClientSessionSpec spec) {
         this.realm = realm;
         this.client = client;
         this.userSession = userSession;

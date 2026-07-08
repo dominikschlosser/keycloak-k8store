@@ -17,7 +17,6 @@ package com.github.dominikschlosser.k8store.crdtools;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -63,11 +62,20 @@ public final class SchemaDiff {
 
     /** Validation keywords whose addition or tightening rejects previously valid documents. */
     private static final Set<String> CONSTRAINT_KEYWORDS = Set.of(
-            "pattern", "format",
-            "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
-            "minLength", "maxLength",
-            "minItems", "maxItems", "uniqueItems",
-            "minProperties", "maxProperties");
+            "pattern",
+            "format",
+            "minimum",
+            "maximum",
+            "exclusiveMinimum",
+            "exclusiveMaximum",
+            "multipleOf",
+            "minLength",
+            "maxLength",
+            "minItems",
+            "maxItems",
+            "uniqueItems",
+            "minProperties",
+            "maxProperties");
 
     /**
      * Diffs two sets of CRDs matched by {@code metadata.name}.
@@ -112,23 +120,28 @@ public final class SchemaDiff {
             }
             if (newVersion == null) {
                 boolean served = oldVersion.path("served").asBoolean(false);
-                changes.add(new Change(served ? Severity.BREAKING : Severity.COMPATIBLE, name, versionPath,
+                changes.add(new Change(
+                        served ? Severity.BREAKING : Severity.COMPATIBLE,
+                        name,
+                        versionPath,
                         served ? "served version removed" : "unserved version removed"));
                 continue;
             }
             boolean oldServed = oldVersion.path("served").asBoolean(false);
             boolean newServed = newVersion.path("served").asBoolean(false);
             if (oldServed && !newServed) {
-                changes.add(new Change(Severity.BREAKING, name, versionPath + ".served",
-                        "version is no longer served"));
+                changes.add(
+                        new Change(Severity.BREAKING, name, versionPath + ".served", "version is no longer served"));
             } else if (!oldServed && newServed) {
-                changes.add(new Change(Severity.COMPATIBLE, name, versionPath + ".served",
-                        "version is now served"));
+                changes.add(new Change(Severity.COMPATIBLE, name, versionPath + ".served", "version is now served"));
             }
             boolean oldStorage = oldVersion.path("storage").asBoolean(false);
             boolean newStorage = newVersion.path("storage").asBoolean(false);
             if (oldStorage != newStorage) {
-                changes.add(new Change(Severity.COMPATIBLE, name, versionPath + ".storage",
+                changes.add(new Change(
+                        Severity.COMPATIBLE,
+                        name,
+                        versionPath + ".storage",
                         "storage flag changed: " + oldStorage + " -> " + newStorage));
             }
             JsonNode oldSchema = oldVersion.path("schema").path("openAPIV3Schema");
@@ -149,8 +162,7 @@ public final class SchemaDiff {
         JsonNode oldNode = isAbsent(oldSchema) ? JsonNodeFactory.instance.objectNode() : oldSchema;
         JsonNode newNode = isAbsent(newSchema) ? JsonNodeFactory.instance.objectNode() : newSchema;
 
-        boolean relaxedToPreserveUnknown =
-                !isPreserveUnknown(oldNode) && isPreserveUnknown(newNode);
+        boolean relaxedToPreserveUnknown = !isPreserveUnknown(oldNode) && isPreserveUnknown(newNode);
 
         for (String field : fieldUnion(oldNode, newNode)) {
             JsonNode oldValue = oldNode.get(field);
@@ -158,8 +170,7 @@ public final class SchemaDiff {
             switch (field) {
                 case "description" -> {
                     if (!equalNodes(oldValue, newValue)) {
-                        out.add(new Change(Severity.COMPATIBLE, crd, path + ".description",
-                                "description changed"));
+                        out.add(new Change(Severity.COMPATIBLE, crd, path + ".description", "description changed"));
                     }
                 }
                 case "type" -> diffType(crd, path, oldValue, newValue, relaxedToPreserveUnknown, out);
@@ -169,34 +180,46 @@ public final class SchemaDiff {
                 case "items" -> diffItems(crd, path, oldValue, newValue, out);
                 case "additionalProperties" -> diffAdditionalProperties(crd, path, oldValue, newValue, out);
                 case "nullable" -> diffNullable(crd, path, oldValue, newValue, out);
-                case "x-kubernetes-preserve-unknown-fields" -> diffPreserveUnknownFields(crd, path, oldValue, newValue, out);
+                case "x-kubernetes-preserve-unknown-fields" ->
+                    diffPreserveUnknownFields(crd, path, oldValue, newValue, out);
                 default -> diffOtherKeyword(crd, path, field, oldValue, newValue, out);
             }
         }
     }
 
-    private void diffType(String crd, String path, JsonNode oldValue, JsonNode newValue,
-                          boolean relaxedToPreserveUnknown, List<Change> out) {
+    private void diffType(
+            String crd,
+            String path,
+            JsonNode oldValue,
+            JsonNode newValue,
+            boolean relaxedToPreserveUnknown,
+            List<Change> out) {
         if (equalNodes(oldValue, newValue)) {
             return;
         }
         if (oldValue == null) {
-            out.add(new Change(Severity.BREAKING, crd, path + ".type",
-                    "type added (tightens validation): " + newValue));
+            out.add(new Change(
+                    Severity.BREAKING, crd, path + ".type", "type added (tightens validation): " + newValue));
         } else if (newValue == null) {
-            out.add(new Change(relaxedToPreserveUnknown ? Severity.COMPATIBLE : Severity.BREAKING,
-                    crd, path + ".type",
+            out.add(new Change(
+                    relaxedToPreserveUnknown ? Severity.COMPATIBLE : Severity.BREAKING,
+                    crd,
+                    path + ".type",
                     relaxedToPreserveUnknown
                             ? "type " + oldValue + " removed, schema relaxed to x-kubernetes-preserve-unknown-fields"
                             : "type removed: " + oldValue));
         } else {
-            out.add(new Change(Severity.BREAKING, crd, path + ".type",
-                    oldValue + " -> " + newValue));
+            out.add(new Change(Severity.BREAKING, crd, path + ".type", oldValue + " -> " + newValue));
         }
     }
 
-    private void diffProperties(String crd, String path, JsonNode oldValue, JsonNode newValue,
-                                boolean relaxedToPreserveUnknown, List<Change> out) {
+    private void diffProperties(
+            String crd,
+            String path,
+            JsonNode oldValue,
+            JsonNode newValue,
+            boolean relaxedToPreserveUnknown,
+            List<Change> out) {
         JsonNode oldProps = oldValue == null ? JsonNodeFactory.instance.objectNode() : oldValue;
         JsonNode newProps = newValue == null ? JsonNodeFactory.instance.objectNode() : newValue;
         for (String prop : fieldUnion(oldProps, newProps)) {
@@ -206,8 +229,10 @@ public final class SchemaDiff {
             if (oldProp == null) {
                 out.add(new Change(Severity.COMPATIBLE, crd, propPath, "property added"));
             } else if (newProp == null) {
-                out.add(new Change(relaxedToPreserveUnknown ? Severity.COMPATIBLE : Severity.BREAKING,
-                        crd, propPath,
+                out.add(new Change(
+                        relaxedToPreserveUnknown ? Severity.COMPATIBLE : Severity.BREAKING,
+                        crd,
+                        propPath,
                         relaxedToPreserveUnknown
                                 ? "property removed, schema relaxed to x-kubernetes-preserve-unknown-fields"
                                 : "property removed"));
@@ -222,14 +247,13 @@ public final class SchemaDiff {
         Set<String> newRequired = stringSet(newValue);
         for (String entry : newRequired) {
             if (!oldRequired.contains(entry)) {
-                out.add(new Change(Severity.BREAKING, crd, path + ".required",
-                        "\"" + entry + "\" is newly required"));
+                out.add(new Change(Severity.BREAKING, crd, path + ".required", "\"" + entry + "\" is newly required"));
             }
         }
         for (String entry : oldRequired) {
             if (!newRequired.contains(entry)) {
-                out.add(new Change(Severity.COMPATIBLE, crd, path + ".required",
-                        "\"" + entry + "\" is no longer required"));
+                out.add(new Change(
+                        Severity.COMPATIBLE, crd, path + ".required", "\"" + entry + "\" is no longer required"));
             }
         }
     }
@@ -239,32 +263,28 @@ public final class SchemaDiff {
         Set<String> newEnum = valueSet(newValue);
         for (String value : oldEnum) {
             if (!newEnum.contains(value)) {
-                out.add(new Change(Severity.BREAKING, crd, path + ".enum",
-                        "enum value " + value + " removed"));
+                out.add(new Change(Severity.BREAKING, crd, path + ".enum", "enum value " + value + " removed"));
             }
         }
         for (String value : newEnum) {
             if (!oldEnum.contains(value)) {
-                out.add(new Change(Severity.COMPATIBLE, crd, path + ".enum",
-                        "enum value " + value + " added"));
+                out.add(new Change(Severity.COMPATIBLE, crd, path + ".enum", "enum value " + value + " added"));
             }
         }
     }
 
     private void diffItems(String crd, String path, JsonNode oldValue, JsonNode newValue, List<Change> out) {
         if (oldValue == null) {
-            out.add(new Change(Severity.BREAKING, crd, path + ".items",
-                    "items schema added (tightens validation)"));
+            out.add(new Change(Severity.BREAKING, crd, path + ".items", "items schema added (tightens validation)"));
         } else if (newValue == null) {
-            out.add(new Change(Severity.COMPATIBLE, crd, path + ".items",
-                    "items schema removed (relaxes validation)"));
+            out.add(new Change(Severity.COMPATIBLE, crd, path + ".items", "items schema removed (relaxes validation)"));
         } else {
             diffSchema(crd, path + ".items", oldValue, newValue, out);
         }
     }
 
-    private void diffAdditionalProperties(String crd, String path, JsonNode oldValue, JsonNode newValue,
-                                          List<Change> out) {
+    private void diffAdditionalProperties(
+            String crd, String path, JsonNode oldValue, JsonNode newValue, List<Change> out) {
         if (equalNodes(oldValue, newValue)) {
             return;
         }
@@ -274,8 +294,7 @@ public final class SchemaDiff {
         } else if (newValue == null) {
             out.add(new Change(Severity.BREAKING, crd, location, "additionalProperties removed"));
         } else {
-            out.add(new Change(Severity.BREAKING, crd, location,
-                    "additionalProperties shape changed"));
+            out.add(new Change(Severity.BREAKING, crd, location, "additionalProperties shape changed"));
         }
     }
 
@@ -285,12 +304,15 @@ public final class SchemaDiff {
         if (oldNullable == newNullable) {
             return;
         }
-        out.add(new Change(newNullable ? Severity.COMPATIBLE : Severity.BREAKING, crd, path + ".nullable",
+        out.add(new Change(
+                newNullable ? Severity.COMPATIBLE : Severity.BREAKING,
+                crd,
+                path + ".nullable",
                 newNullable ? "nullable added (relaxes validation)" : "nullable removed (tightens validation)"));
     }
 
-    private void diffPreserveUnknownFields(String crd, String path, JsonNode oldValue, JsonNode newValue,
-                                           List<Change> out) {
+    private void diffPreserveUnknownFields(
+            String crd, String path, JsonNode oldValue, JsonNode newValue, List<Change> out) {
         boolean oldPreserve = oldValue != null && oldValue.asBoolean(false);
         boolean newPreserve = newValue != null && newValue.asBoolean(false);
         if (oldPreserve == newPreserve) {
@@ -298,31 +320,38 @@ public final class SchemaDiff {
         }
         String location = path + ".x-kubernetes-preserve-unknown-fields";
         if (newPreserve) {
-            out.add(new Change(Severity.COMPATIBLE, crd, location,
+            out.add(new Change(
+                    Severity.COMPATIBLE,
+                    crd,
+                    location,
                     "x-kubernetes-preserve-unknown-fields added (relaxes validation)"));
         } else {
-            out.add(new Change(Severity.BREAKING, crd, location,
+            out.add(new Change(
+                    Severity.BREAKING,
+                    crd,
+                    location,
                     "x-kubernetes-preserve-unknown-fields removed (unknown fields will be pruned/rejected)"));
         }
     }
 
-    private void diffOtherKeyword(String crd, String path, String field, JsonNode oldValue, JsonNode newValue,
-                                  List<Change> out) {
+    private void diffOtherKeyword(
+            String crd, String path, String field, JsonNode oldValue, JsonNode newValue, List<Change> out) {
         if (equalNodes(oldValue, newValue)) {
             return;
         }
         String location = path + "." + field;
         if (field.startsWith("x-kubernetes-")) {
-            out.add(new Change(Severity.COMPATIBLE, crd, location,
-                    describeChange(field, oldValue, newValue)));
+            out.add(new Change(Severity.COMPATIBLE, crd, location, describeChange(field, oldValue, newValue)));
             return;
         }
         if (CONSTRAINT_KEYWORDS.contains(field)) {
             if (newValue == null) {
-                out.add(new Change(Severity.COMPATIBLE, crd, location,
-                        "constraint removed (relaxes validation)"));
+                out.add(new Change(Severity.COMPATIBLE, crd, location, "constraint removed (relaxes validation)"));
             } else {
-                out.add(new Change(Severity.BREAKING, crd, location,
+                out.add(new Change(
+                        Severity.BREAKING,
+                        crd,
+                        location,
                         oldValue == null
                                 ? "constraint added (tightens validation): " + newValue
                                 : "constraint changed: " + oldValue + " -> " + newValue));

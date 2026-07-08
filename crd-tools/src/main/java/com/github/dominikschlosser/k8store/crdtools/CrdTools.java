@@ -26,7 +26,6 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.dsl.WritableOperation;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -172,12 +171,10 @@ public final class CrdTools {
                         client.getKubernetesSerialization().convertValue(node, CustomResourceDefinition.class);
                 Resource<CustomResourceDefinition> resource = client.resource(crd);
                 WritableOperation<CustomResourceDefinition> operation = dryRun ? resource.dryRun() : resource;
-                CustomResourceDefinition applied = operation
-                        .fieldManager(FIELD_MANAGER)
-                        .forceConflicts()
-                        .serverSideApply();
-                out.println("Applied " + applied.getMetadata().getName()
-                        + " (server-side apply" + (dryRun ? ", dry-run" : "") + ")");
+                CustomResourceDefinition applied =
+                        operation.fieldManager(FIELD_MANAGER).forceConflicts().serverSideApply();
+                out.println("Applied " + applied.getMetadata().getName() + " (server-side apply"
+                        + (dryRun ? ", dry-run" : "") + ")");
             }
             return EXIT_OK;
         }
@@ -191,11 +188,13 @@ public final class CrdTools {
         List<Change> changes = new ArrayList<>();
         for (Map.Entry<String, JsonNode> entry : localCrds.entrySet()) {
             String name = entry.getKey();
-            CustomResourceDefinition clusterCrd =
-                    client.apiextensions().v1().customResourceDefinitions().withName(name).get();
+            CustomResourceDefinition clusterCrd = client.apiextensions()
+                    .v1()
+                    .customResourceDefinitions()
+                    .withName(name)
+                    .get();
             if (clusterCrd == null) {
-                changes.add(new Change(Severity.COMPATIBLE, name, "",
-                        "not installed in cluster (will be created)"));
+                changes.add(new Change(Severity.COMPATIBLE, name, "", "not installed in cluster (will be created)"));
                 continue;
             }
             JsonNode clusterNode = client.getKubernetesSerialization().convertValue(clusterCrd, JsonNode.class);
@@ -236,15 +235,16 @@ public final class CrdTools {
         }
         long breakingCount = changes.stream().filter(Change::isBreaking).count();
         out.println();
-        out.println("Summary: " + breakingCount + " breaking, "
-                + (changes.size() - breakingCount) + " compatible change(s)");
+        out.println("Summary: " + breakingCount + " breaking, " + (changes.size() - breakingCount)
+                + " compatible change(s)");
     }
 
     private void printJsonReport(List<Change> changes, boolean breaking) {
         ObjectNode root = jsonMapper.createObjectNode();
         root.put("breaking", breaking);
         root.put("breakingCount", changes.stream().filter(Change::isBreaking).count());
-        root.put("compatibleCount", changes.stream().filter(c -> !c.isBreaking()).count());
+        root.put(
+                "compatibleCount", changes.stream().filter(c -> !c.isBreaking()).count());
         ArrayNode changeArray = root.putArray("changes");
         for (Change change : changes) {
             ObjectNode node = changeArray.addObject();

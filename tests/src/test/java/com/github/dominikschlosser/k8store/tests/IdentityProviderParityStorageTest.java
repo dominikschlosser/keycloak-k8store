@@ -54,8 +54,7 @@ public class IdentityProviderParityStorageTest {
     ManagedRealm realm;
 
     private KeycloakRealmCr realmCr() {
-        return kube.client().resources(KeycloakRealmCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
+        return kube.client().resources(KeycloakRealmCr.class).inNamespace(namespace.name()).list().getItems().stream()
                 .filter(cr -> realm.getName().equals(cr.getSpec().getRealm()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakRealm CR for " + realm.getName()));
@@ -93,19 +92,23 @@ public class IdentityProviderParityStorageTest {
         mapper.setIdentityProviderAlias("mapper-idp");
         mapper.setIdentityProviderMapper("oidc-username-idp-mapper");
         mapper.setConfig(Map.of("syncMode", "INHERIT", "template", "${CLAIM.preferred_username}"));
-        try (Response response = realm.admin().identityProviders().get("mapper-idp").addMapper(mapper)) {
+        try (Response response =
+                realm.admin().identityProviders().get("mapper-idp").addMapper(mapper)) {
             assertEquals(201, response.getStatus());
         }
 
-        assertTrue(realm.admin().identityProviders().get("mapper-idp").getMappers().stream()
+        assertTrue(
+                realm.admin().identityProviders().get("mapper-idp").getMappers().stream()
                         .anyMatch(m -> "username-template".equals(m.getName())),
                 "mapper must be readable through the admin API");
 
-        assertTrue(realmCr().getSpec().getIdentityProviderMappers().stream()
+        assertTrue(
+                realmCr().getSpec().getIdentityProviderMappers().stream()
                         .anyMatch(m -> "username-template".equals(m.getName())
                                 && "mapper-idp".equals(m.getIdentityProviderAlias())
                                 && "oidc-username-idp-mapper".equals(m.getIdentityProviderMapper())
-                                && "${CLAIM.preferred_username}".equals(m.getConfig().get("template"))),
+                                && "${CLAIM.preferred_username}"
+                                        .equals(m.getConfig().get("template"))),
                 "IdP mapper must be embedded in the realm CR with its config");
     }
 
@@ -113,7 +116,8 @@ public class IdentityProviderParityStorageTest {
     public void idpConfigUpdateRoundTripsThroughRealmCustomResource() {
         createIdp("update-idp");
 
-        IdentityProviderRepresentation rep = realm.admin().identityProviders().get("update-idp").toRepresentation();
+        IdentityProviderRepresentation rep =
+                realm.admin().identityProviders().get("update-idp").toRepresentation();
         rep.setDisplayName("Renamed Broker");
         rep.setTrustEmail(true);
         rep.getConfig().put("clientId", "kc-broker-v2");
@@ -139,19 +143,21 @@ public class IdentityProviderParityStorageTest {
         mapper.setIdentityProviderAlias("delete-idp");
         mapper.setIdentityProviderMapper("oidc-username-idp-mapper");
         mapper.setConfig(Map.of("syncMode", "INHERIT", "template", "${CLAIM.sub}"));
-        try (Response response = realm.admin().identityProviders().get("delete-idp").addMapper(mapper)) {
+        try (Response response =
+                realm.admin().identityProviders().get("delete-idp").addMapper(mapper)) {
             assertEquals(201, response.getStatus());
         }
 
         realm.admin().identityProviders().get("delete-idp").remove();
 
-        assertTrue(realm.admin().identityProviders().findAll().stream()
-                        .noneMatch(i -> "delete-idp".equals(i.getAlias())),
+        assertTrue(
+                realm.admin().identityProviders().findAll().stream().noneMatch(i -> "delete-idp".equals(i.getAlias())),
                 "deleted IdP must disappear from the admin API");
-        assertTrue(realmCr().getSpec().getIdentityProviders().stream()
-                        .noneMatch(i -> "delete-idp".equals(i.getAlias())),
+        assertTrue(
+                realmCr().getSpec().getIdentityProviders().stream().noneMatch(i -> "delete-idp".equals(i.getAlias())),
                 "deleted IdP must disappear from the realm CR");
-        assertTrue(realmCr().getSpec().getIdentityProviderMappers().stream()
+        assertTrue(
+                realmCr().getSpec().getIdentityProviderMappers().stream()
                         .noneMatch(m -> "delete-idp".equals(m.getIdentityProviderAlias())),
                 "mappers of a deleted IdP must be cascaded out of the realm CR");
     }

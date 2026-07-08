@@ -51,7 +51,11 @@ public class TestNamespaceSupplier implements Supplier<TestNamespace, InjectTest
         String name = nameForRef(instanceContext.getRef());
         cluster.client()
                 .namespaces()
-                .resource(new NamespaceBuilder().withNewMetadata().withName(name).endMetadata().build())
+                .resource(new NamespaceBuilder()
+                        .withNewMetadata()
+                        .withName(name)
+                        .endMetadata()
+                        .build())
                 .create();
         return new TestNamespace(name, cluster);
     }
@@ -63,8 +67,8 @@ public class TestNamespaceSupplier implements Supplier<TestNamespace, InjectTest
         if (TestNamespaces.DYNAMIC_REF.equals(ref)) {
             return TestNamespaces.dynamicName();
         }
-        throw new IllegalArgumentException("Unknown test namespace ref '" + ref + "' - use the default ref"
-                + " or TestNamespaces.DYNAMIC_REF");
+        throw new IllegalArgumentException(
+                "Unknown test namespace ref '" + ref + "' - use the default ref" + " or TestNamespaces.DYNAMIC_REF");
     }
 
     @Override

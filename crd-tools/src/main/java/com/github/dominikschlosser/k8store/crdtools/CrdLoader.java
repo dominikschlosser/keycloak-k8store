@@ -19,7 +19,6 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -67,7 +66,7 @@ public final class CrdLoader {
     public List<JsonNode> readDocuments(File file) throws IOException {
         List<JsonNode> documents = new ArrayList<>();
         try (JsonParser parser = mapper.getFactory().createParser(file);
-             MappingIterator<JsonNode> iterator = mapper.readValues(parser, JsonNode.class)) {
+                MappingIterator<JsonNode> iterator = mapper.readValues(parser, JsonNode.class)) {
             while (iterator.hasNext()) {
                 JsonNode document = iterator.next();
                 if (document != null && document.isObject()) {

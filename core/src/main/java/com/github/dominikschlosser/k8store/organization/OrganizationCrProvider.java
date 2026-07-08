@@ -106,8 +106,8 @@ public class OrganizationCrProvider implements OrganizationProvider {
 
     /** Memoizes adapters per id so one flow never mutates two spec copies of one organization. */
     private OrganizationModel adapt(RealmModel realm, OrganizationSpec spec) {
-        return knownAdapters.computeIfAbsent(realm.getId() + "/" + spec.getId(),
-                key -> new OrganizationAdapter(session, realm, spec, this));
+        return knownAdapters.computeIfAbsent(
+                realm.getId() + "/" + spec.getId(), key -> new OrganizationAdapter(session, realm, spec, this));
     }
 
     private Stream<OrganizationSpec> specs(RealmModel realm) {
@@ -189,8 +189,8 @@ public class OrganizationCrProvider implements OrganizationProvider {
             // the backing group lands wherever the group area stores groups; its name is the
             // organization id (upstream convention) and its id follows this store's id = name
             // convention, so spec.groupId is the organization id too
-            GroupModel group = session.groups()
-                    .createGroup(realm, null, GroupModel.Type.ORGANIZATION, spec.getId(), null);
+            GroupModel group =
+                    session.groups().createGroup(realm, null, GroupModel.Type.ORGANIZATION, spec.getId(), null);
             linkGroup(group, spec.getId());
             spec.setGroupId(group.getId());
             OrganizationCrStore.save(spec);
@@ -219,12 +219,14 @@ public class OrganizationCrProvider implements OrganizationProvider {
             if (group != null) {
                 // managed members are removed with the organization (their lifecycle is bound
                 // to it), unmanaged members just leave the backing group
-                session.users().getGroupMembersStream(realm, group)
+                session.users()
+                        .getGroupMembersStream(realm, group)
                         .collect(Collectors.toList())
                         .forEach(member -> removeMember(organization, member));
                 session.groups().removeGroup(realm, group);
             }
-            organization.getIdentityProviders()
+            organization
+                    .getIdentityProviders()
                     .collect(Collectors.toList())
                     .forEach(broker -> removeIdentityProvider(organization, broker));
             invitationManager().removeAll(realm, organization.getId());
@@ -273,8 +275,9 @@ public class OrganizationCrProvider implements OrganizationProvider {
         Organizations.validateDomain(emailDomain);
         RealmModel realm = realm();
         List<OrganizationModel> candidates = specs(realm)
-                .filter(spec -> spec.getDomains() != null && spec.getDomains().stream()
-                        .anyMatch(d -> Organizations.isSameDomain(emailDomain, d.getName())))
+                .filter(spec -> spec.getDomains() != null
+                        && spec.getDomains().stream()
+                                .anyMatch(d -> Organizations.isSameDomain(emailDomain, d.getName())))
                 .map(spec -> adapt(realm, spec))
                 .collect(Collectors.toList());
         return Organizations.resolveByDomain(candidates, emailDomain);
@@ -287,9 +290,11 @@ public class OrganizationCrProvider implements OrganizationProvider {
         if (StringUtil.isNotBlank(search)) {
             specs = specs.filter(spec -> nameOrDomainMatches(spec, search, Boolean.TRUE.equals(exact)));
         }
-        return paginatedStream(specs
-                .sorted(Comparator.comparing(OrganizationSpec::getName, Comparator.nullsLast(String::compareTo)))
-                .map(spec -> adapt(realm, spec)), first, max);
+        return paginatedStream(
+                specs.sorted(Comparator.comparing(OrganizationSpec::getName, Comparator.nullsLast(String::compareTo)))
+                        .map(spec -> adapt(realm, spec)),
+                first,
+                max);
     }
 
     private static boolean nameOrDomainMatches(OrganizationSpec spec, String search, boolean exact) {
@@ -316,14 +321,17 @@ public class OrganizationCrProvider implements OrganizationProvider {
                     specs = specs.filter(spec -> Objects.equals(entry.getValue(), spec.getAlias()));
                 } else {
                     specs = specs.filter(spec -> spec.getAttributes() != null
-                            && spec.getAttributes().getOrDefault(entry.getKey(), List.of())
+                            && spec.getAttributes()
+                                    .getOrDefault(entry.getKey(), List.of())
                                     .contains(entry.getValue()));
                 }
             }
         }
-        return paginatedStream(specs
-                .sorted(Comparator.comparing(OrganizationSpec::getName, Comparator.nullsLast(String::compareTo)))
-                .map(spec -> adapt(realm, spec)), first, max);
+        return paginatedStream(
+                specs.sorted(Comparator.comparing(OrganizationSpec::getName, Comparator.nullsLast(String::compareTo)))
+                        .map(spec -> adapt(realm, spec)),
+                first,
+                max);
     }
 
     @Override
@@ -381,8 +389,8 @@ public class OrganizationCrProvider implements OrganizationProvider {
     }
 
     @Override
-    public Stream<UserModel> getMembersStream(OrganizationModel organization, String search, Boolean exact,
-            Integer first, Integer max) {
+    public Stream<UserModel> getMembersStream(
+            OrganizationModel organization, String search, Boolean exact, Integer first, Integer max) {
         throwIfNull(organization, "Organization");
         GroupModel group = getOrganizationGroup(organization);
         RealmModel realm = realm();
@@ -429,9 +437,8 @@ public class OrganizationCrProvider implements OrganizationProvider {
     public Stream<OrganizationModel> getByMember(UserModel member) {
         throwIfNull(member, "User");
         RealmModel realm = realm();
-        Set<String> directGroupIds = member.getGroupsStream()
-                .map(GroupModel::getId)
-                .collect(Collectors.toSet());
+        Set<String> directGroupIds =
+                member.getGroupsStream().map(GroupModel::getId).collect(Collectors.toSet());
         return specs(realm)
                 .filter(spec -> directGroupIds.contains(backingGroupId(spec)))
                 .sorted(Comparator.comparing(OrganizationSpec::getName, Comparator.nullsLast(String::compareTo)))
@@ -505,8 +512,8 @@ public class OrganizationCrProvider implements OrganizationProvider {
             }
             parent = toParent;
         }
-        GroupModel created = session.groups()
-                .createGroup(entity.realm(), id, GroupModel.Type.ORGANIZATION, name, parent);
+        GroupModel created =
+                session.groups().createGroup(entity.realm(), id, GroupModel.Type.ORGANIZATION, name, parent);
         linkGroup(created, organization.getId());
         return created;
     }
@@ -522,8 +529,7 @@ public class OrganizationCrProvider implements OrganizationProvider {
     }
 
     private Stream<GroupModel> toGroups(RealmModel realm, Stream<GroupSpec> specs) {
-        return specs
-                .sorted(Comparator.comparing(GroupSpec::getName, Comparator.nullsLast(String::compareTo)))
+        return specs.sorted(Comparator.comparing(GroupSpec::getName, Comparator.nullsLast(String::compareTo)))
                 .map(spec -> session.groups().getGroupById(realm, spec.getId()))
                 .filter(Objects::nonNull);
     }
@@ -533,17 +539,21 @@ public class OrganizationCrProvider implements OrganizationProvider {
         throwIfNull(organization, "Organization");
         OrganizationAdapter entity = entity(organization);
         String backingGroupId = entity.getGroupId();
-        return paginatedStream(toGroups(entity.realm(), organizationGroupSpecs(organization)
-                .filter(spec -> backingGroupId.equals(spec.getParentId()))), first, max);
+        return paginatedStream(
+                toGroups(
+                        entity.realm(),
+                        organizationGroupSpecs(organization).filter(spec -> backingGroupId.equals(spec.getParentId()))),
+                first,
+                max);
     }
 
     @Override
-    public Stream<GroupModel> searchGroupsByName(OrganizationModel organization, String search, Boolean exact,
-            Integer first, Integer max) {
+    public Stream<GroupModel> searchGroupsByName(
+            OrganizationModel organization, String search, Boolean exact, Integer first, Integer max) {
         throwIfNull(organization, "Organization");
         OrganizationAdapter entity = entity(organization);
-        Stream<GroupSpec> specs = organizationGroupSpecs(organization)
-                .filter(spec -> groupNameMatches(spec.getName(), search, exact));
+        Stream<GroupSpec> specs =
+                organizationGroupSpecs(organization).filter(spec -> groupNameMatches(spec.getName(), search, exact));
         return paginatedStream(toGroups(entity.realm(), specs), first, max);
     }
 
@@ -566,8 +576,8 @@ public class OrganizationCrProvider implements OrganizationProvider {
     }
 
     @Override
-    public Stream<GroupModel> searchGroupsByAttributes(OrganizationModel organization, Map<String, String> attributes,
-            Integer first, Integer max) {
+    public Stream<GroupModel> searchGroupsByAttributes(
+            OrganizationModel organization, Map<String, String> attributes, Integer first, Integer max) {
         throwIfNull(organization, "Organization");
         OrganizationAdapter entity = entity(organization);
         Stream<GroupSpec> specs = organizationGroupSpecs(organization);
@@ -590,19 +600,18 @@ public class OrganizationCrProvider implements OrganizationProvider {
     }
 
     @Override
-    public Stream<GroupModel> getOrganizationGroupsByMember(OrganizationModel organization, UserModel member,
-            String search, Integer first, Integer max) {
+    public Stream<GroupModel> getOrganizationGroupsByMember(
+            OrganizationModel organization, UserModel member, String search, Integer first, Integer max) {
         throwIfNull(organization, "Organization");
         throwIfNull(member, "Member");
         if (!isMember(organization, member)) {
             return Stream.empty();
         }
         OrganizationAdapter entity = entity(organization);
-        Set<String> directGroupIds = member.getGroupsStream()
-                .map(GroupModel::getId)
-                .collect(Collectors.toSet());
-        Stream<GroupSpec> specs = organizationGroupSpecs(organization)
-                .filter(spec -> directGroupIds.contains(spec.getId()));
+        Set<String> directGroupIds =
+                member.getGroupsStream().map(GroupModel::getId).collect(Collectors.toSet());
+        Stream<GroupSpec> specs =
+                organizationGroupSpecs(organization).filter(spec -> directGroupIds.contains(spec.getId()));
         if (search != null && !search.isBlank()) {
             specs = specs.filter(spec -> groupNameMatches(spec.getName(), search.trim(), false));
         }

@@ -17,8 +17,8 @@
 package com.github.dominikschlosser.k8store;
 
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
-import com.github.dominikschlosser.k8store.spi.AbstractCrProviderFactory;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
+import com.github.dominikschlosser.k8store.spi.AbstractCrProviderFactory;
 import org.keycloak.models.ClientProvider;
 import org.keycloak.models.ClientScopeProvider;
 import org.keycloak.models.GroupProvider;
@@ -33,9 +33,9 @@ import org.keycloak.models.UserProvider;
 import org.keycloak.models.UserSessionProvider;
 import org.keycloak.provider.Provider;
 import org.keycloak.sessions.AuthenticationSessionProvider;
-import org.keycloak.storage.datastore.DefaultDatastoreProviderFactory;
 import org.keycloak.storage.MigrationManager;
 import org.keycloak.storage.datastore.DefaultDatastoreProvider;
+import org.keycloak.storage.datastore.DefaultDatastoreProviderFactory;
 
 /**
  * Datastore that serves the configured {@link Area areas} from Kubernetes custom resources and
@@ -144,9 +144,7 @@ public class K8sDatastoreProvider extends DefaultDatastoreProvider {
 
     @Override
     public UserSessionProvider userSessions() {
-        return K8sStoreConfig.isAreaEnabled(Area.USER_SESSION)
-                ? k8s(UserSessionProvider.class)
-                : super.userSessions();
+        return K8sStoreConfig.isAreaEnabled(Area.USER_SESSION) ? k8s(UserSessionProvider.class) : super.userSessions();
     }
 
     @Override

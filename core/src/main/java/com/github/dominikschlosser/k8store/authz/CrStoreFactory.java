@@ -365,14 +365,16 @@ public class CrStoreFactory implements StoreFactory {
     private void rewriteClientInPolicies(String realmId, String oldClientId, String newClientId) {
         Set<String> renamedRoleIds = RoleCrStore.allInRealm(realmId).stream()
                 .filter(role -> Boolean.TRUE.equals(role.getClientRole()))
-                .filter(role -> oldClientId.equals(role.getContainerId())
-                        || newClientId.equals(role.getContainerId()))
+                .filter(role -> oldClientId.equals(role.getContainerId()) || newClientId.equals(role.getContainerId()))
                 .map(role -> oldClientId + ":" + role.getName())
                 .collect(Collectors.toSet());
         for (AuthzPolicySpec policy : AuthzCrStore.policies(realmId)) {
             boolean changed = rewriteClientsConfig(policy, oldClientId, newClientId);
-            changed |= rewriteRolesConfig(policy, id -> renamedRoleIds.contains(id)
-                    ? newClientId + ":" + id.substring(oldClientId.length() + 1) : id);
+            changed |= rewriteRolesConfig(
+                    policy,
+                    id -> renamedRoleIds.contains(id)
+                            ? newClientId + ":" + id.substring(oldClientId.length() + 1)
+                            : id);
             if (changed) {
                 AuthzCrStore.save(policy);
             }
@@ -391,7 +393,7 @@ public class CrStoreFactory implements StoreFactory {
             return false;
         }
         boolean changed = false;
-        for (Iterator<Map<String, Object>> it = roles.iterator(); it.hasNext();) {
+        for (Iterator<Map<String, Object>> it = roles.iterator(); it.hasNext(); ) {
             Map<String, Object> entry = it.next();
             if (!(entry.get("id") instanceof String id)) {
                 continue;
@@ -434,8 +436,12 @@ public class CrStoreFactory implements StoreFactory {
         try {
             return POLICY_JSON.readValue(json, type);
         } catch (IOException e) {
-            LOG.warnv(e, "k8store: could not parse the {0} config of authorization policy {1}; skipping its"
-                    + " rename rewrite", key, policyId);
+            LOG.warnv(
+                    e,
+                    "k8store: could not parse the {0} config of authorization policy {1}; skipping its"
+                            + " rename rewrite",
+                    key,
+                    policyId);
             return null;
         }
     }
@@ -446,8 +452,7 @@ public class CrStoreFactory implements StoreFactory {
             config.put(key, POLICY_JSON.writeValueAsString(value));
             return true;
         } catch (IOException e) {
-            LOG.warnv(e, "k8store: could not re-serialize the {0} config of authorization policy {1}",
-                    key, policyId);
+            LOG.warnv(e, "k8store: could not re-serialize the {0} config of authorization policy {1}", key, policyId);
             return false;
         }
     }

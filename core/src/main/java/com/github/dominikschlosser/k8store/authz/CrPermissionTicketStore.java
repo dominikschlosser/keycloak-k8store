@@ -94,8 +94,9 @@ class CrPermissionTicketStore implements PermissionTicketStore {
             return null;
         }
         PermissionTicketAdapter ticket = factory.ticketById(factory.realmOf(resourceServer), id);
-        if (ticket == null || (resourceServer != null
-                && !resourceServer.getId().equals(ticket.spec().getResourceServer()))) {
+        if (ticket == null
+                || (resourceServer != null
+                        && !resourceServer.getId().equals(ticket.spec().getResourceServer()))) {
             return null;
         }
         return ticket;
@@ -123,24 +124,26 @@ class CrPermissionTicketStore implements PermissionTicketStore {
     }
 
     @Override
-    public List<PermissionTicket> find(ResourceServer resourceServer,
-                                       Map<PermissionTicket.FilterOption, String> attributes,
-                                       Integer firstResult, Integer maxResults) {
-        Stream<PermissionTicketSpec> matches = filtered(resourceServer, attributes)
-                .sorted(Comparator.comparing(PermissionTicketSpec::getId));
+    public List<PermissionTicket> find(
+            ResourceServer resourceServer,
+            Map<PermissionTicket.FilterOption, String> attributes,
+            Integer firstResult,
+            Integer maxResults) {
+        Stream<PermissionTicketSpec> matches =
+                filtered(resourceServer, attributes).sorted(Comparator.comparing(PermissionTicketSpec::getId));
         return paginatedStream(matches, firstResult, maxResults)
                 .map(factory::wrap)
                 .map(PermissionTicket.class::cast)
                 .toList();
     }
 
-    private Stream<PermissionTicketSpec> filtered(ResourceServer resourceServer,
-                                                  Map<PermissionTicket.FilterOption, String> attributes) {
+    private Stream<PermissionTicketSpec> filtered(
+            ResourceServer resourceServer, Map<PermissionTicket.FilterOption, String> attributes) {
         Stream<PermissionTicketSpec> matches = specs(resourceServer);
         String callerRestriction = callerRestriction(resourceServer, attributes);
         if (callerRestriction != null) {
-            matches = matches.filter(spec -> callerRestriction.equals(spec.getOwner())
-                    || callerRestriction.equals(spec.getRequester()));
+            matches = matches.filter(
+                    spec -> callerRestriction.equals(spec.getOwner()) || callerRestriction.equals(spec.getRequester()));
         }
         return matches.filter(spec -> matchesFilters(spec, attributes));
     }
@@ -151,10 +154,9 @@ class CrPermissionTicketStore implements PermissionTicketStore {
      * server's service account, which sees everything. Returns the restricting user id, or null
      * for no restriction.
      */
-    private String callerRestriction(ResourceServer resourceServer,
-                                     Map<PermissionTicket.FilterOption, String> attributes) {
-        if (resourceServer == null
-                || Boolean.parseBoolean(attributes.get(PermissionTicket.FilterOption.IS_ADMIN))) {
+    private String callerRestriction(
+            ResourceServer resourceServer, Map<PermissionTicket.FilterOption, String> attributes) {
+        if (resourceServer == null || Boolean.parseBoolean(attributes.get(PermissionTicket.FilterOption.IS_ADMIN))) {
             return null;
         }
         KeycloakSession session = factory.session();
@@ -173,27 +175,27 @@ class CrPermissionTicketStore implements PermissionTicketStore {
         return currentUser.getId();
     }
 
-    private boolean matchesFilters(PermissionTicketSpec spec,
-                                   Map<PermissionTicket.FilterOption, String> attributes) {
+    private boolean matchesFilters(PermissionTicketSpec spec, Map<PermissionTicket.FilterOption, String> attributes) {
         for (Map.Entry<PermissionTicket.FilterOption, String> filter : attributes.entrySet()) {
             String value = filter.getValue();
-            boolean matches = switch (filter.getKey()) {
-                case ID -> Objects.equals(value, spec.getId());
-                case OWNER -> Objects.equals(value, spec.getOwner());
-                case REQUESTER -> Objects.equals(value, spec.getRequester());
-                case RESOURCE_ID -> Objects.equals(value, spec.getResourceId());
-                case RESOURCE_NAME -> {
-                    var resource = AuthzCrStore.resource(spec.getRealm(), spec.getResourceId());
-                    yield resource != null && Objects.equals(value, resource.getName());
-                }
-                case SCOPE_ID -> Objects.equals(value, spec.getScopeId());
-                case SCOPE_IS_NULL -> (spec.getScopeId() == null) == Boolean.parseBoolean(value);
-                case GRANTED -> (spec.getGrantedTimestamp() != null) == Boolean.parseBoolean(value);
-                case REQUESTER_IS_NULL -> spec.getRequester() == null;
-                case POLICY_IS_NOT_NULL -> spec.getPolicyId() != null;
-                case POLICY_ID -> Objects.equals(value, spec.getPolicyId());
-                case IS_ADMIN -> true;
-            };
+            boolean matches =
+                    switch (filter.getKey()) {
+                        case ID -> Objects.equals(value, spec.getId());
+                        case OWNER -> Objects.equals(value, spec.getOwner());
+                        case REQUESTER -> Objects.equals(value, spec.getRequester());
+                        case RESOURCE_ID -> Objects.equals(value, spec.getResourceId());
+                        case RESOURCE_NAME -> {
+                            var resource = AuthzCrStore.resource(spec.getRealm(), spec.getResourceId());
+                            yield resource != null && Objects.equals(value, resource.getName());
+                        }
+                        case SCOPE_ID -> Objects.equals(value, spec.getScopeId());
+                        case SCOPE_IS_NULL -> (spec.getScopeId() == null) == Boolean.parseBoolean(value);
+                        case GRANTED -> (spec.getGrantedTimestamp() != null) == Boolean.parseBoolean(value);
+                        case REQUESTER_IS_NULL -> spec.getRequester() == null;
+                        case POLICY_IS_NOT_NULL -> spec.getPolicyId() != null;
+                        case POLICY_ID -> Objects.equals(value, spec.getPolicyId());
+                        case IS_ADMIN -> true;
+                    };
             if (!matches) {
                 return false;
             }
@@ -219,11 +221,9 @@ class CrPermissionTicketStore implements PermissionTicketStore {
     }
 
     @Override
-    public List<Resource> findGrantedResources(String requester, String name, Integer firstResult,
-                                               Integer maxResults) {
+    public List<Resource> findGrantedResources(String requester, String name, Integer firstResult, Integer maxResults) {
         Stream<String> resourceIds = specs(null)
-                .filter(spec -> Objects.equals(requester, spec.getRequester())
-                        && spec.getGrantedTimestamp() != null)
+                .filter(spec -> Objects.equals(requester, spec.getRequester()) && spec.getGrantedTimestamp() != null)
                 .map(PermissionTicketSpec::getResourceId)
                 .filter(Objects::nonNull)
                 .distinct()
@@ -234,8 +234,8 @@ class CrPermissionTicketStore implements PermissionTicketStore {
                 .map(Resource.class::cast);
         if (name != null) {
             // JPA parity: lower(name) like %term% - a plain case-insensitive contains
-            resources = resources.filter(resource ->
-                    LikePatterns.insensitiveLike(resource.getName(), "%" + name.toLowerCase() + "%"));
+            resources = resources.filter(
+                    resource -> LikePatterns.insensitiveLike(resource.getName(), "%" + name.toLowerCase() + "%"));
         }
         return paginatedStream(resources, firstResult, maxResults).toList();
     }

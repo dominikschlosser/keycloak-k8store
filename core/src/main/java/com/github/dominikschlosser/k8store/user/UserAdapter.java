@@ -268,8 +268,10 @@ public class UserAdapter implements UserModel {
     }
 
     private static boolean isFirstClassAttribute(String name) {
-        return UserModel.FIRST_NAME.equals(name) || UserModel.LAST_NAME.equals(name)
-                || UserModel.EMAIL.equals(name) || UserModel.USERNAME.equals(name);
+        return UserModel.FIRST_NAME.equals(name)
+                || UserModel.LAST_NAME.equals(name)
+                || UserModel.EMAIL.equals(name)
+                || UserModel.USERNAME.equals(name);
     }
 
     private String firstClassAttribute(String name) {
@@ -331,9 +333,8 @@ public class UserAdapter implements UserModel {
         if (groupIds == null || groupIds.isEmpty()) {
             return Stream.empty();
         }
-        return new ArrayList<>(groupIds).stream()
-                .map(id -> session.groups().getGroupById(realm, id))
-                .filter(Objects::nonNull);
+        return new ArrayList<>(groupIds)
+                .stream().map(id -> session.groups().getGroupById(realm, id)).filter(Objects::nonNull);
     }
 
     @Override
@@ -370,9 +371,8 @@ public class UserAdapter implements UserModel {
         if (names == null || names.isEmpty()) {
             return Stream.empty();
         }
-        return new ArrayList<>(names).stream()
-                .map(name -> session.roles().getRealmRole(realm, name))
-                .filter(Objects::nonNull);
+        return new ArrayList<>(names)
+                .stream().map(name -> session.roles().getRealmRole(realm, name)).filter(Objects::nonNull);
     }
 
     @Override
@@ -382,9 +382,10 @@ public class UserAdapter implements UserModel {
         if (names == null || names.isEmpty()) {
             return Stream.empty();
         }
-        return new ArrayList<>(names).stream()
-                .map(name -> session.roles().getClientRole(client, name))
-                .filter(Objects::nonNull);
+        return new ArrayList<>(names)
+                .stream()
+                        .map(name -> session.roles().getClientRole(client, name))
+                        .filter(Objects::nonNull);
     }
 
     @Override
@@ -392,10 +393,11 @@ public class UserAdapter implements UserModel {
         Map<String, List<String>> byClient = spec.getClientRoles();
         Stream<RoleModel> clientRoles = byClient == null
                 ? Stream.empty()
-                : new ArrayList<>(byClient.keySet()).stream()
-                        .map(clientId -> session.clients().getClientById(realm, clientId))
-                        .filter(Objects::nonNull)
-                        .flatMap(this::getClientRoleMappingsStream);
+                : new ArrayList<>(byClient.keySet())
+                        .stream()
+                                .map(clientId -> session.clients().getClientById(realm, clientId))
+                                .filter(Objects::nonNull)
+                                .flatMap(this::getClientRoleMappingsStream);
         return Stream.concat(getRealmRoleMappingsStream(), clientRoles);
     }
 

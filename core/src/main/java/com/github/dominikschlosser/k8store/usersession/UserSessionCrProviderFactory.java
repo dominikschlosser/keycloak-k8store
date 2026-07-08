@@ -56,8 +56,7 @@ public class UserSessionCrProviderFactory extends AbstractCrProviderFactory<User
     public void postInit(KeycloakSessionFactory factory) {
         factory.register(event -> {
             if (event instanceof UserModel.UserRemovedEvent userRemoved) {
-                create(userRemoved.getKeycloakSession())
-                        .onUserRemoved(userRemoved.getRealm(), userRemoved.getUser());
+                create(userRemoved.getKeycloakSession()).onUserRemoved(userRemoved.getRealm(), userRemoved.getUser());
             }
         });
     }
@@ -80,8 +79,8 @@ public class UserSessionCrProviderFactory extends AbstractCrProviderFactory<User
     @Override
     public void invalidate(KeycloakSession session, InvalidableObjectType type, Object... params) {
         if (type == CLIENT_RENAMED) {
-            create(session).onClientRenamed(
-                    (RealmModel) params[0], ((ClientModel) params[1]).getId(), (String) params[2]);
+            create(session)
+                    .onClientRenamed((RealmModel) params[0], ((ClientModel) params[1]).getId(), (String) params[2]);
         }
     }
 }

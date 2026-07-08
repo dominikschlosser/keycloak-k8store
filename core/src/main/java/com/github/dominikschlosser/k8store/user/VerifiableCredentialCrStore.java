@@ -34,10 +34,12 @@ public final class VerifiableCredentialCrStore {
 
     private static final CrStore<UserVerifiableCredentialSpec> CREDENTIALS = new CrStore<>(
             UserVerifiableCredentialSpec.class,
-            UserVerifiableCredentialSpec::getRealm, UserVerifiableCredentialSpec::getId);
+            UserVerifiableCredentialSpec::getRealm,
+            UserVerifiableCredentialSpec::getId);
     private static final CrStore<IssuedVerifiableCredentialSpec> ISSUED = new CrStore<>(
             IssuedVerifiableCredentialSpec.class,
-            IssuedVerifiableCredentialSpec::getRealm, IssuedVerifiableCredentialSpec::getId);
+            IssuedVerifiableCredentialSpec::getRealm,
+            IssuedVerifiableCredentialSpec::getId);
 
     private VerifiableCredentialCrStore() {}
 

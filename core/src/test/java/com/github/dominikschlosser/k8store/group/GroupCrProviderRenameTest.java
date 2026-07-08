@@ -113,7 +113,9 @@ class GroupCrProviderRenameTest {
         GroupSpec read = GroupCrStore.read("master", "team");
         assertTrue(read.getClientRoles().containsKey("portal"), "grant map is rekeyed to the new clientId");
         assertFalse(read.getClientRoles().containsKey("web"), "the old clientId grant key is gone");
-        assertEquals(List.of("view", "edit"), read.getClientRoles().get("portal"),
+        assertEquals(
+                List.of("view", "edit"),
+                read.getClientRoles().get("portal"),
                 "the grant names are preserved under the new key");
     }
 
@@ -136,9 +138,13 @@ class GroupCrProviderRenameTest {
         new GroupCrProvider(null).roleRenamed(realm, clientRole(realm, "web-internal", "view"), "read");
 
         GroupSpec read = GroupCrStore.read("master", "team");
-        assertEquals(List.of("viewer", "administrator", "editor"), read.getRealmRoles(),
+        assertEquals(
+                List.of("viewer", "administrator", "editor"),
+                read.getRealmRoles(),
                 "realm grant keeps position and swaps the renamed role");
-        assertEquals(List.of("create", "read", "delete"), read.getClientRoles().get("web-internal"),
+        assertEquals(
+                List.of("create", "read", "delete"),
+                read.getClientRoles().get("web-internal"),
                 "client grant keeps position and swaps the renamed role, key unchanged");
     }
 }

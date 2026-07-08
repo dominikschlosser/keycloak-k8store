@@ -19,7 +19,6 @@ import static org.keycloak.utils.StreamsUtil.paginatedStream;
 
 import com.github.dominikschlosser.k8store.crd.ClientSessionSpec;
 import com.github.dominikschlosser.k8store.crd.UserSessionSpec;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,8 +66,7 @@ public class UserSessionCrProvider implements UserSessionProvider {
     }
 
     private UserSessionAdapter adapt(RealmModel realm, UserSessionSpec spec) {
-        return knownAdapters.computeIfAbsent(spec.getId(),
-                id -> new UserSessionAdapter(session, realm, spec, false));
+        return knownAdapters.computeIfAbsent(spec.getId(), id -> new UserSessionAdapter(session, realm, spec, false));
     }
 
     private Stream<UserSessionSpec> specs(RealmModel realm, boolean offline) {
@@ -77,8 +75,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
     }
 
     private Stream<UserSessionModel> sorted(RealmModel realm, Stream<UserSessionSpec> specs) {
-        return specs.sorted(Comparator.comparing(UserSessionSpec::getStarted,
-                        Comparator.nullsFirst(Comparator.naturalOrder()))
+        return specs.sorted(Comparator.comparing(
+                                UserSessionSpec::getStarted, Comparator.nullsFirst(Comparator.naturalOrder()))
                         .thenComparing(UserSessionSpec::getId))
                 .map(spec -> (UserSessionModel) adapt(realm, spec));
     }
@@ -95,10 +93,17 @@ public class UserSessionCrProvider implements UserSessionProvider {
     // ------------------------------------------------------------------ create
 
     @Override
-    public UserSessionModel createUserSession(String id, RealmModel realm, UserModel user, String loginUsername,
-                                              String ipAddress, String authMethod, boolean rememberMe,
-                                              String brokerSessionId, String brokerUserId,
-                                              UserSessionModel.SessionPersistenceState persistenceState) {
+    public UserSessionModel createUserSession(
+            String id,
+            RealmModel realm,
+            UserModel user,
+            String loginUsername,
+            String ipAddress,
+            String authMethod,
+            boolean rememberMe,
+            String brokerSessionId,
+            String brokerUserId,
+            UserSessionModel.SessionPersistenceState persistenceState) {
         String sessionId = id != null ? id : KeycloakModelUtils.generateId();
         long now = Time.currentTimeMillis();
         UserSessionSpec spec = new UserSessionSpec();
@@ -127,8 +132,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
     }
 
     @Override
-    public AuthenticatedClientSessionModel createClientSession(RealmModel realm, ClientModel client,
-                                                               UserSessionModel userSession) {
+    public AuthenticatedClientSessionModel createClientSession(
+            RealmModel realm, ClientModel client, UserSessionModel userSession) {
         UserSessionAdapter parent = requireAdapter(userSession);
         long now = Time.currentTimeMillis();
         ClientSessionSpec clientSession = new ClientSessionSpec();
@@ -137,8 +142,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
         clientSession.setTimestamp(now);
         Map<String, String> notes = new HashMap<>();
         notes.put(AuthenticatedClientSessionModel.STARTED_AT_NOTE, String.valueOf((int) (now / 1000L)));
-        notes.put(AuthenticatedClientSessionModel.USER_SESSION_STARTED_AT_NOTE,
-                String.valueOf(userSession.getStarted()));
+        notes.put(
+                AuthenticatedClientSessionModel.USER_SESSION_STARTED_AT_NOTE, String.valueOf(userSession.getStarted()));
         if (userSession.isRememberMe()) {
             notes.put(AuthenticatedClientSessionModel.USER_SESSION_REMEMBER_ME_NOTE, "true");
         }
@@ -152,7 +157,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
         if (userSession instanceof UserSessionAdapter adapter) {
             return adapter;
         }
-        UserSessionAdapter known = userSession == null ? null
+        UserSessionAdapter known = userSession == null
+                ? null
                 : knownAdapters.getOrDefault(userSession.getId(), transientSessions.get(userSession.getId()));
         if (known == null) {
             throw new IllegalStateException("Unknown user session model type: "
@@ -180,8 +186,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
     }
 
     @Override
-    public AuthenticatedClientSessionModel getClientSession(UserSessionModel userSession, ClientModel client,
-                                                            boolean offline) {
+    public AuthenticatedClientSessionModel getClientSession(
+            UserSessionModel userSession, ClientModel client, boolean offline) {
         if (userSession == null || client == null || userSession.isOffline() != offline) {
             return null;
         }
@@ -200,8 +206,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
     }
 
     @Override
-    public Stream<UserSessionModel> getUserSessionsStream(RealmModel realm, ClientModel client,
-                                                          Integer firstResult, Integer maxResults) {
+    public Stream<UserSessionModel> getUserSessionsStream(
+            RealmModel realm, ClientModel client, Integer firstResult, Integer maxResults) {
         return paginatedStream(getUserSessionsStream(realm, client), firstResult, maxResults);
     }
 
@@ -220,8 +226,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
     }
 
     @Override
-    public UserSessionModel getUserSessionWithPredicate(RealmModel realm, String id, boolean offline,
-                                                        Predicate<UserSessionModel> predicate) {
+    public UserSessionModel getUserSessionWithPredicate(
+            RealmModel realm, String id, boolean offline, Predicate<UserSessionModel> predicate) {
         UserSessionModel userSession = offline ? getOfflineUserSession(realm, id) : getUserSession(realm, id);
         return userSession != null && predicate.test(userSession) ? userSession : null;
     }
@@ -229,14 +235,17 @@ public class UserSessionCrProvider implements UserSessionProvider {
     @Override
     public long getActiveUserSessions(RealmModel realm, ClientModel client) {
         long now = Time.currentTimeMillis();
-        return specs(realm, false).filter(spec -> hasLiveClientSession(spec, client.getId(), now)).count();
+        return specs(realm, false)
+                .filter(spec -> hasLiveClientSession(spec, client.getId(), now))
+                .count();
     }
 
     @Override
     public Map<String, Long> getActiveClientSessionStats(RealmModel realm, boolean offline) {
         long now = Time.currentTimeMillis();
         return specs(realm, offline)
-                .flatMap(spec -> spec.getClientSessions() == null ? Stream.<String>empty()
+                .flatMap(spec -> spec.getClientSessions() == null
+                        ? Stream.<String>empty()
                         : spec.getClientSessions().entrySet().stream()
                                 .filter(entry -> !Expirations.isClientSessionExpired(entry.getValue(), now))
                                 .map(Map.Entry::getKey))
@@ -303,8 +312,10 @@ public class UserSessionCrProvider implements UserSessionProvider {
     public void onRealmRemoved(RealmModel realm) {
         UserSessionCrStore.allInRealm(realm.getId())
                 .forEach(spec -> UserSessionCrStore.delete(realm.getId(), spec.getId()));
-        transientSessions.values().removeIf(adapter -> realm.getId().equals(adapter.getSpec().getRealm()));
-        knownAdapters.values().removeIf(adapter -> realm.getId().equals(adapter.getSpec().getRealm()));
+        transientSessions.values().removeIf(adapter -> realm.getId()
+                .equals(adapter.getSpec().getRealm()));
+        knownAdapters.values().removeIf(adapter -> realm.getId()
+                .equals(adapter.getSpec().getRealm()));
     }
 
     @Override
@@ -362,7 +373,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
         UserSessionSpec offline = new UserSessionSpec();
         offline.setId(KeycloakModelUtils.generateId());
         offline.setRealm(realm.getId());
-        offline.setUserId(userSession.getUser() == null ? null : userSession.getUser().getId());
+        offline.setUserId(
+                userSession.getUser() == null ? null : userSession.getUser().getId());
         offline.setLoginUsername(userSession.getLoginUsername());
         offline.setIpAddress(userSession.getIpAddress());
         offline.setAuthMethod(userSession.getAuthMethod());
@@ -404,9 +416,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
         if (userSession == null) {
             return;
         }
-        UserSessionModel offline = userSession.isOffline()
-                ? userSession
-                : getOfflineUserSession(realm, userSession.getId());
+        UserSessionModel offline =
+                userSession.isOffline() ? userSession : getOfflineUserSession(realm, userSession.getId());
         if (offline == null) {
             return;
         }
@@ -422,8 +433,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
     }
 
     @Override
-    public AuthenticatedClientSessionModel createOfflineClientSession(AuthenticatedClientSessionModel clientSession,
-                                                                      UserSessionModel offlineUserSession) {
+    public AuthenticatedClientSessionModel createOfflineClientSession(
+            AuthenticatedClientSessionModel clientSession, UserSessionModel offlineUserSession) {
         UserSessionAdapter parent = requireAdapter(offlineUserSession);
         RealmModel realm = clientSession.getRealm();
         ClientModel client = clientSession.getClient();
@@ -437,7 +448,8 @@ public class UserSessionCrProvider implements UserSessionProvider {
         offline.setRedirectUri(clientSession.getRedirectUri());
         Map<String, String> notes = new HashMap<>(clientSession.getNotes());
         notes.put(AuthenticatedClientSessionModel.STARTED_AT_NOTE, String.valueOf((int) (now / 1000L)));
-        notes.put(AuthenticatedClientSessionModel.USER_SESSION_STARTED_AT_NOTE,
+        notes.put(
+                AuthenticatedClientSessionModel.USER_SESSION_STARTED_AT_NOTE,
                 String.valueOf(offlineUserSession.getStarted()));
         offline.setNotes(notes);
         Expirations.stampClientSession(realm, client, parent.getSpec(), offline);
@@ -457,16 +469,19 @@ public class UserSessionCrProvider implements UserSessionProvider {
     @Override
     public long getOfflineSessionsCount(RealmModel realm, ClientModel client) {
         long now = Time.currentTimeMillis();
-        return specs(realm, true).filter(spec -> hasLiveClientSession(spec, client.getId(), now)).count();
+        return specs(realm, true)
+                .filter(spec -> hasLiveClientSession(spec, client.getId(), now))
+                .count();
     }
 
     @Override
-    public Stream<UserSessionModel> getOfflineUserSessionsStream(RealmModel realm, ClientModel client,
-                                                                 Integer firstResult, Integer maxResults) {
+    public Stream<UserSessionModel> getOfflineUserSessionsStream(
+            RealmModel realm, ClientModel client, Integer firstResult, Integer maxResults) {
         long now = Time.currentTimeMillis();
         return paginatedStream(
                 sorted(realm, specs(realm, true).filter(spec -> hasLiveClientSession(spec, client.getId(), now))),
-                firstResult, maxResults);
+                firstResult,
+                maxResults);
     }
 
     // ------------------------------------------------------------------ misc

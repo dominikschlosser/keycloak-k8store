@@ -175,18 +175,46 @@ public final class K8sStorageBackend implements AutoCloseable {
         // no separate realm setter - a realm CR without spec.realm falls back to metadata.name,
         // never to labels. Clients are keyed by clientId, scopes by name - both human-readable
         // and defaulting to metadata.name in hand-authored CRs.
-        register(new KindState<>(KeycloakRealmCr.class, KeycloakRealmCr::new, RealmSpec.class,
-                RealmSpec::getRealm, RealmSpec::setRealm, RealmSpec::getRealm, null));
-        register(new KindState<>(KeycloakClientCr.class, KeycloakClientCr::new, ClientSpec.class,
-                ClientSpec::getClientId, ClientSpec::setClientId,
-                ClientSpec::getRealm, ClientSpec::setRealm));
-        register(new KindState<>(KeycloakClientScopeCr.class, KeycloakClientScopeCr::new, ClientScopeSpec.class,
-                ClientScopeSpec::getName, ClientScopeSpec::setName,
-                ClientScopeSpec::getRealm, ClientScopeSpec::setRealm));
-        register(new KindState<>(KeycloakRoleCr.class, KeycloakRoleCr::new, RoleSpec.class,
-                RoleSpec::getId, RoleSpec::setId, RoleSpec::getRealm, RoleSpec::setRealm));
-        register(new KindState<>(KeycloakGroupCr.class, KeycloakGroupCr::new, GroupSpec.class,
-                GroupSpec::getId, GroupSpec::setId, GroupSpec::getRealm, GroupSpec::setRealm));
+        register(new KindState<>(
+                KeycloakRealmCr.class,
+                KeycloakRealmCr::new,
+                RealmSpec.class,
+                RealmSpec::getRealm,
+                RealmSpec::setRealm,
+                RealmSpec::getRealm,
+                null));
+        register(new KindState<>(
+                KeycloakClientCr.class,
+                KeycloakClientCr::new,
+                ClientSpec.class,
+                ClientSpec::getClientId,
+                ClientSpec::setClientId,
+                ClientSpec::getRealm,
+                ClientSpec::setRealm));
+        register(new KindState<>(
+                KeycloakClientScopeCr.class,
+                KeycloakClientScopeCr::new,
+                ClientScopeSpec.class,
+                ClientScopeSpec::getName,
+                ClientScopeSpec::setName,
+                ClientScopeSpec::getRealm,
+                ClientScopeSpec::setRealm));
+        register(new KindState<>(
+                KeycloakRoleCr.class,
+                KeycloakRoleCr::new,
+                RoleSpec.class,
+                RoleSpec::getId,
+                RoleSpec::setId,
+                RoleSpec::getRealm,
+                RoleSpec::setRealm));
+        register(new KindState<>(
+                KeycloakGroupCr.class,
+                KeycloakGroupCr::new,
+                GroupSpec.class,
+                GroupSpec::getId,
+                GroupSpec::setId,
+                GroupSpec::getRealm,
+                GroupSpec::setRealm));
 
         // the authorization area is opt-in (config-class but not part of the config default):
         // its kinds are registered only when the area is enabled, so default deployments do not
@@ -194,27 +222,48 @@ public final class K8sStorageBackend implements AutoCloseable {
         // read-only mode (they are realm configuration); permission tickets are UMA runtime data
         // and stay writable like the dynamic kinds. None of these entities expire.
         if (config.getAreas().contains(Area.AUTHORIZATION)) {
-            register(new KindState<>(KeycloakResourceServerCr.class, KeycloakResourceServerCr::new,
+            register(new KindState<>(
+                    KeycloakResourceServerCr.class,
+                    KeycloakResourceServerCr::new,
                     ResourceServerSpec.class,
-                    ResourceServerSpec::getClientId, ResourceServerSpec::setClientId,
-                    ResourceServerSpec::getRealm, ResourceServerSpec::setRealm));
-            register(new KindState<>(KeycloakAuthzResourceCr.class, KeycloakAuthzResourceCr::new,
+                    ResourceServerSpec::getClientId,
+                    ResourceServerSpec::setClientId,
+                    ResourceServerSpec::getRealm,
+                    ResourceServerSpec::setRealm));
+            register(new KindState<>(
+                    KeycloakAuthzResourceCr.class,
+                    KeycloakAuthzResourceCr::new,
                     AuthzResourceSpec.class,
-                    AuthzResourceSpec::getId, AuthzResourceSpec::setId,
-                    AuthzResourceSpec::getRealm, AuthzResourceSpec::setRealm));
-            register(new KindState<>(KeycloakAuthzScopeCr.class, KeycloakAuthzScopeCr::new,
+                    AuthzResourceSpec::getId,
+                    AuthzResourceSpec::setId,
+                    AuthzResourceSpec::getRealm,
+                    AuthzResourceSpec::setRealm));
+            register(new KindState<>(
+                    KeycloakAuthzScopeCr.class,
+                    KeycloakAuthzScopeCr::new,
                     AuthzScopeSpec.class,
-                    AuthzScopeSpec::getId, AuthzScopeSpec::setId,
-                    AuthzScopeSpec::getRealm, AuthzScopeSpec::setRealm));
-            register(new KindState<>(KeycloakAuthzPolicyCr.class, KeycloakAuthzPolicyCr::new,
+                    AuthzScopeSpec::getId,
+                    AuthzScopeSpec::setId,
+                    AuthzScopeSpec::getRealm,
+                    AuthzScopeSpec::setRealm));
+            register(new KindState<>(
+                    KeycloakAuthzPolicyCr.class,
+                    KeycloakAuthzPolicyCr::new,
                     AuthzPolicySpec.class,
-                    AuthzPolicySpec::getId, AuthzPolicySpec::setId,
-                    AuthzPolicySpec::getRealm, AuthzPolicySpec::setRealm));
-            register(new KindState<>(KeycloakPermissionTicketCr.class, KeycloakPermissionTicketCr::new,
+                    AuthzPolicySpec::getId,
+                    AuthzPolicySpec::setId,
+                    AuthzPolicySpec::getRealm,
+                    AuthzPolicySpec::setRealm));
+            register(new KindState<>(
+                    KeycloakPermissionTicketCr.class,
+                    KeycloakPermissionTicketCr::new,
                     PermissionTicketSpec.class,
-                    PermissionTicketSpec::getId, PermissionTicketSpec::setId,
-                    PermissionTicketSpec::getRealm, PermissionTicketSpec::setRealm,
-                    true, null));
+                    PermissionTicketSpec::getId,
+                    PermissionTicketSpec::setId,
+                    PermissionTicketSpec::getRealm,
+                    PermissionTicketSpec::setRealm,
+                    true,
+                    null));
         }
 
         // the organization area is opt-in like authorization. The organization kind is
@@ -223,15 +272,24 @@ public final class K8sStorageBackend implements AutoCloseable {
         // deliberately NOT wired into the expiry filtering/reaping - they remain listable with
         // the EXPIRED status filter, like upstream's database rows.
         if (config.getAreas().contains(Area.ORGANIZATION)) {
-            register(new KindState<>(KeycloakOrganizationCr.class, KeycloakOrganizationCr::new,
+            register(new KindState<>(
+                    KeycloakOrganizationCr.class,
+                    KeycloakOrganizationCr::new,
                     OrganizationSpec.class,
-                    OrganizationSpec::getId, OrganizationSpec::setId,
-                    OrganizationSpec::getRealm, OrganizationSpec::setRealm));
-            register(new KindState<>(KeycloakOrganizationInvitationCr.class, KeycloakOrganizationInvitationCr::new,
+                    OrganizationSpec::getId,
+                    OrganizationSpec::setId,
+                    OrganizationSpec::getRealm,
+                    OrganizationSpec::setRealm));
+            register(new KindState<>(
+                    KeycloakOrganizationInvitationCr.class,
+                    KeycloakOrganizationInvitationCr::new,
                     OrganizationInvitationSpec.class,
-                    OrganizationInvitationSpec::getId, OrganizationInvitationSpec::setId,
-                    OrganizationInvitationSpec::getRealm, OrganizationInvitationSpec::setRealm,
-                    true, null));
+                    OrganizationInvitationSpec::getId,
+                    OrganizationInvitationSpec::setId,
+                    OrganizationInvitationSpec::getRealm,
+                    OrganizationInvitationSpec::setRealm,
+                    true,
+                    null));
         }
 
         // dynamic kinds are registered ONLY when their area is enabled: a deployment on the
@@ -242,58 +300,103 @@ public final class K8sStorageBackend implements AutoCloseable {
         if (config.getAreas().contains(Area.USER)) {
             // users are low-churn but runtime-mutated (self-registration, credential updates,
             // lockout flags), so the kind is always writable; user entities never expire
-            register(new KindState<>(KeycloakUserCr.class, KeycloakUserCr::new, UserSpec.class,
-                    UserSpec::getId, UserSpec::setId,
-                    UserSpec::getRealm, UserSpec::setRealm,
-                    true, null));
+            register(new KindState<>(
+                    KeycloakUserCr.class,
+                    KeycloakUserCr::new,
+                    UserSpec.class,
+                    UserSpec::getId,
+                    UserSpec::setId,
+                    UserSpec::getRealm,
+                    UserSpec::setRealm,
+                    true,
+                    null));
             // the OID4VC verifiable-credential kinds only exist when the (experimental)
             // oid4vc-vci feature is on - user-area deployments without it need neither the
             // CRDs nor the watches. Issued credentials expire: reads filter them and the
             // background reaper deletes their CRs (upstream's scheduled cleanup task is not
             // registered under this datastore, the reaper is its replacement).
             if (oid4vcFeatureEnabled()) {
-                register(new KindState<>(KeycloakUserVerifiableCredentialCr.class,
-                        KeycloakUserVerifiableCredentialCr::new, UserVerifiableCredentialSpec.class,
-                        UserVerifiableCredentialSpec::getId, UserVerifiableCredentialSpec::setId,
-                        UserVerifiableCredentialSpec::getRealm, UserVerifiableCredentialSpec::setRealm,
-                        true, null));
-                register(new KindState<>(KeycloakIssuedVerifiableCredentialCr.class,
-                        KeycloakIssuedVerifiableCredentialCr::new, IssuedVerifiableCredentialSpec.class,
-                        IssuedVerifiableCredentialSpec::getId, IssuedVerifiableCredentialSpec::setId,
-                        IssuedVerifiableCredentialSpec::getRealm, IssuedVerifiableCredentialSpec::setRealm,
-                        true, IssuedVerifiableCredentialSpec::getExpiresAt));
+                register(new KindState<>(
+                        KeycloakUserVerifiableCredentialCr.class,
+                        KeycloakUserVerifiableCredentialCr::new,
+                        UserVerifiableCredentialSpec.class,
+                        UserVerifiableCredentialSpec::getId,
+                        UserVerifiableCredentialSpec::setId,
+                        UserVerifiableCredentialSpec::getRealm,
+                        UserVerifiableCredentialSpec::setRealm,
+                        true,
+                        null));
+                register(new KindState<>(
+                        KeycloakIssuedVerifiableCredentialCr.class,
+                        KeycloakIssuedVerifiableCredentialCr::new,
+                        IssuedVerifiableCredentialSpec.class,
+                        IssuedVerifiableCredentialSpec::getId,
+                        IssuedVerifiableCredentialSpec::setId,
+                        IssuedVerifiableCredentialSpec::getRealm,
+                        IssuedVerifiableCredentialSpec::setRealm,
+                        true,
+                        IssuedVerifiableCredentialSpec::getExpiresAt));
             }
         }
         if (config.getAreas().contains(Area.USER_SESSION)) {
-            register(new KindState<>(KeycloakUserSessionCr.class, KeycloakUserSessionCr::new, UserSessionSpec.class,
-                    UserSessionSpec::getId, UserSessionSpec::setId,
-                    UserSessionSpec::getRealm, UserSessionSpec::setRealm,
-                    true, UserSessionSpec::getExpiresAt));
+            register(new KindState<>(
+                    KeycloakUserSessionCr.class,
+                    KeycloakUserSessionCr::new,
+                    UserSessionSpec.class,
+                    UserSessionSpec::getId,
+                    UserSessionSpec::setId,
+                    UserSessionSpec::getRealm,
+                    UserSessionSpec::setRealm,
+                    true,
+                    UserSessionSpec::getExpiresAt));
         }
         if (config.getAreas().contains(Area.AUTH_SESSION)) {
-            register(new KindState<>(KeycloakAuthSessionCr.class, KeycloakAuthSessionCr::new, AuthSessionSpec.class,
-                    AuthSessionSpec::getId, AuthSessionSpec::setId,
-                    AuthSessionSpec::getRealm, AuthSessionSpec::setRealm,
-                    true, AuthSessionSpec::getExpiresAt));
+            register(new KindState<>(
+                    KeycloakAuthSessionCr.class,
+                    KeycloakAuthSessionCr::new,
+                    AuthSessionSpec.class,
+                    AuthSessionSpec::getId,
+                    AuthSessionSpec::setId,
+                    AuthSessionSpec::getRealm,
+                    AuthSessionSpec::setRealm,
+                    true,
+                    AuthSessionSpec::getExpiresAt));
         }
         if (config.getAreas().contains(Area.LOGIN_FAILURE)) {
-            register(new KindState<>(KeycloakLoginFailureCr.class, KeycloakLoginFailureCr::new, LoginFailureSpec.class,
-                    LoginFailureSpec::getUserId, LoginFailureSpec::setUserId,
-                    LoginFailureSpec::getRealm, LoginFailureSpec::setRealm,
-                    true, null));
+            register(new KindState<>(
+                    KeycloakLoginFailureCr.class,
+                    KeycloakLoginFailureCr::new,
+                    LoginFailureSpec.class,
+                    LoginFailureSpec::getUserId,
+                    LoginFailureSpec::setUserId,
+                    LoginFailureSpec::getRealm,
+                    LoginFailureSpec::setRealm,
+                    true,
+                    null));
         }
         if (config.getAreas().contains(Area.SINGLE_USE_OBJECT)) {
-            register(new KindState<>(KeycloakSingleUseObjectCr.class, KeycloakSingleUseObjectCr::new,
+            register(new KindState<>(
+                    KeycloakSingleUseObjectCr.class,
+                    KeycloakSingleUseObjectCr::new,
                     SingleUseObjectSpec.class,
-                    SingleUseObjectSpec::getKey, SingleUseObjectSpec::setKey,
-                    spec -> GLOBAL_PSEUDO_REALM, null,
-                    true, SingleUseObjectSpec::getExpiresAt));
+                    SingleUseObjectSpec::getKey,
+                    SingleUseObjectSpec::setKey,
+                    spec -> GLOBAL_PSEUDO_REALM,
+                    null,
+                    true,
+                    SingleUseObjectSpec::getExpiresAt));
         }
         if (config.getAreas().contains(Area.REVOKED_TOKEN)) {
-            register(new KindState<>(KeycloakRevokedTokenCr.class, KeycloakRevokedTokenCr::new, RevokedTokenSpec.class,
-                    RevokedTokenSpec::getTokenId, RevokedTokenSpec::setTokenId,
-                    spec -> GLOBAL_PSEUDO_REALM, null,
-                    true, RevokedTokenSpec::getExpiresAt));
+            register(new KindState<>(
+                    KeycloakRevokedTokenCr.class,
+                    KeycloakRevokedTokenCr::new,
+                    RevokedTokenSpec.class,
+                    RevokedTokenSpec::getTokenId,
+                    RevokedTokenSpec::setTokenId,
+                    spec -> GLOBAL_PSEUDO_REALM,
+                    null,
+                    true,
+                    RevokedTokenSpec::getExpiresAt));
         }
     }
 
@@ -321,8 +424,8 @@ public final class K8sStorageBackend implements AutoCloseable {
      * older nodes. Package-visible for tests.
      */
     static ObjectMapper configureMapper(ObjectMapper mapper) {
-        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(
-                JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        mapper.setDefaultPropertyInclusion(
+                JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return mapper;
     }
@@ -347,7 +450,8 @@ public final class K8sStorageBackend implements AutoCloseable {
     }
 
     private static KubernetesClient buildClient(K8sStoreConfig config) {
-        KubernetesClientBuilder builder = new KubernetesClientBuilder().withKubernetesSerialization(buildSerialization());
+        KubernetesClientBuilder builder =
+                new KubernetesClientBuilder().withKubernetesSerialization(buildSerialization());
         if (config.getContext() != null) {
             builder.withConfig(Config.autoConfigure(config.getContext()));
         }
@@ -406,7 +510,8 @@ public final class K8sStorageBackend implements AutoCloseable {
             while (!informer.hasSynced()) {
                 if (!informer.isRunning() || System.currentTimeMillis() > deadline) {
                     close();
-                    throw new IllegalStateException("k8store: informer for " + informer.getApiTypeClass().getSimpleName()
+                    throw new IllegalStateException("k8store: informer for "
+                            + informer.getApiTypeClass().getSimpleName()
                             + " did not sync within " + config.getSyncTimeoutSeconds() + "s. Are the "
                             + KeycloakRealmCr.GROUP + " CRDs installed and does the service account have list/watch"
                             + " permissions?");
@@ -428,20 +533,30 @@ public final class K8sStorageBackend implements AutoCloseable {
                 return thread;
             });
             if (config.getReconcileIntervalSeconds() > 0) {
-                reconciler.scheduleWithFixedDelay(this::reconcileAll,
-                        config.getReconcileIntervalSeconds(), config.getReconcileIntervalSeconds(), TimeUnit.SECONDS);
+                reconciler.scheduleWithFixedDelay(
+                        this::reconcileAll,
+                        config.getReconcileIntervalSeconds(),
+                        config.getReconcileIntervalSeconds(),
+                        TimeUnit.SECONDS);
             }
             if (anyExpiring && config.getExpirationSweepSeconds() > 0) {
-                reconciler.scheduleWithFixedDelay(this::sweepExpiredGuarded,
-                        config.getExpirationSweepSeconds(), config.getExpirationSweepSeconds(), TimeUnit.SECONDS);
+                reconciler.scheduleWithFixedDelay(
+                        this::sweepExpiredGuarded,
+                        config.getExpirationSweepSeconds(),
+                        config.getExpirationSweepSeconds(),
+                        TimeUnit.SECONDS);
             }
         }
-        LOG.infov("k8store storage backend started (namespace={0}, readOnly={1}, areas={2}, watching kinds: {3})",
-                config.isAllNamespaces() ? "<all>" : writeNamespace, config.isReadOnly(), config.getAreas(),
+        LOG.infov(
+                "k8store storage backend started (namespace={0}, readOnly={1}, areas={2}, watching kinds: {3})",
+                config.isAllNamespaces() ? "<all>" : writeNamespace,
+                config.isReadOnly(),
+                config.getAreas(),
                 kinds.values().stream()
                         // strip only the "Cr" class-name suffix (kind names may contain "Cr",
                         // e.g. KeycloakUserVerifiableCredentialCr)
-                        .map(state -> state.crClass.getSimpleName()
+                        .map(state -> state.crClass
+                                .getSimpleName()
                                 .substring(0, state.crClass.getSimpleName().length() - 2))
                         .sorted()
                         .collect(Collectors.joining(", ")));
@@ -479,7 +594,8 @@ public final class K8sStorageBackend implements AutoCloseable {
     private void warnAboutVersionDrift() {
         List<String> drifted = detectVersionDrift();
         if (!drifted.isEmpty()) {
-            LOG.warnv("k8store: {0} custom resource(s) carry a {1} stamp different from the running Keycloak"
+            LOG.warnv(
+                    "k8store: {0} custom resource(s) carry a {1} stamp different from the running Keycloak"
                             + " version {2}. Model migrations do not run against CR-backed config - review the"
                             + " Keycloak migration notes and refresh these CRs: {3}",
                     drifted.size(), VERSION_LABEL, Version.VERSION, String.join(", ", drifted));
@@ -501,8 +617,9 @@ public final class K8sStorageBackend implements AutoCloseable {
                 Map<String, String> labels = resource.getMetadata().getLabels();
                 String stamp = labels == null ? null : labels.get(VERSION_LABEL);
                 if (stamp != null && !stamp.equals(runningStamp)) {
-                    drifted.add(resource.getKind() + "/" + resource.getMetadata().getNamespace()
-                            + "/" + resource.getMetadata().getName() + " (written by " + stamp + ")");
+                    drifted.add(
+                            resource.getKind() + "/" + resource.getMetadata().getNamespace() + "/"
+                                    + resource.getMetadata().getName() + " (written by " + stamp + ")");
                 }
             }
         }
@@ -521,8 +638,11 @@ public final class K8sStorageBackend implements AutoCloseable {
             } catch (RuntimeException e) {
                 // a failing reconcile is operationally significant (the mirror can drift from the
                 // cluster until it recovers), so warn rather than hide it at debug
-                LOG.warnv(e, "k8store mirror reconciliation for {0} failed; next run in {1}s",
-                        state.specClass.getSimpleName(), config.getReconcileIntervalSeconds());
+                LOG.warnv(
+                        e,
+                        "k8store mirror reconciliation for {0} failed; next run in {1}s",
+                        state.specClass.getSimpleName(),
+                        config.getReconcileIntervalSeconds());
             }
         }
     }
@@ -589,8 +709,12 @@ public final class K8sStorageBackend implements AutoCloseable {
         try {
             state.refreshFromServer(realmId, id);
         } catch (RuntimeException e) {
-            LOG.debugv(e, "k8store: direct read of {0} {1}/{2} from the API server failed",
-                    specClass.getSimpleName(), realmId, id);
+            LOG.debugv(
+                    e,
+                    "k8store: direct read of {0} {1}/{2} from the API server failed",
+                    specClass.getSimpleName(),
+                    realmId,
+                    id);
         }
         return read(specClass, realmId, id);
     }
@@ -807,6 +931,7 @@ public final class K8sStorageBackend implements AutoCloseable {
 
         /** Insertion-ordered last write per key; a {@code null} spec marks a delete. */
         private final Map<String, PendingWrite<?>> pending = new LinkedHashMap<>();
+
         private boolean flushed;
         private boolean rolledBack;
 
@@ -846,8 +971,11 @@ public final class K8sStorageBackend implements AutoCloseable {
                 try {
                     write.repairMirror();
                 } catch (RuntimeException e) {
-                    LOG.warnv(e, "k8store: re-reading {0} after transaction rollback failed; the local mirror"
-                            + " may be stale until the next reconciliation", write.describe());
+                    LOG.warnv(
+                            e,
+                            "k8store: re-reading {0} after transaction rollback failed; the local mirror"
+                                    + " may be stale until the next reconciliation",
+                            write.describe());
                 }
             }
             pending.values().forEach(PendingWrite::clearPending);
@@ -963,16 +1091,27 @@ public final class K8sStorageBackend implements AutoCloseable {
          */
         private final Set<String> pendingWriteKeys = ConcurrentHashMap.newKeySet();
 
-        KindState(Class<C> crClass, Supplier<C> crFactory, Class<S> specClass,
-                  Function<S, String> idFn, BiConsumer<S, String> idSetter,
-                  Function<S, String> realmFn, BiConsumer<S, String> realmSetter) {
+        KindState(
+                Class<C> crClass,
+                Supplier<C> crFactory,
+                Class<S> specClass,
+                Function<S, String> idFn,
+                BiConsumer<S, String> idSetter,
+                Function<S, String> realmFn,
+                BiConsumer<S, String> realmSetter) {
             this(crClass, crFactory, specClass, idFn, idSetter, realmFn, realmSetter, false, null);
         }
 
-        KindState(Class<C> crClass, Supplier<C> crFactory, Class<S> specClass,
-                  Function<S, String> idFn, BiConsumer<S, String> idSetter,
-                  Function<S, String> realmFn, BiConsumer<S, String> realmSetter,
-                  boolean alwaysWritable, Function<S, Long> expiresAtFn) {
+        KindState(
+                Class<C> crClass,
+                Supplier<C> crFactory,
+                Class<S> specClass,
+                Function<S, String> idFn,
+                BiConsumer<S, String> idSetter,
+                Function<S, String> realmFn,
+                BiConsumer<S, String> realmSetter,
+                boolean alwaysWritable,
+                Function<S, Long> expiresAtFn) {
             this.crClass = crClass;
             this.crFactory = crFactory;
             this.specClass = specClass;
@@ -1033,7 +1172,9 @@ public final class K8sStorageBackend implements AutoCloseable {
         private void upsert(C cr) {
             S spec = cr.getSpec();
             if (spec == null) {
-                LOG.warnv("Ignoring {0}/{1}: empty spec", cr.getKind(), cr.getMetadata().getName());
+                LOG.warnv(
+                        "Ignoring {0}/{1}: empty spec",
+                        cr.getKind(), cr.getMetadata().getName());
                 return;
             }
             if (idFn.apply(spec) == null) {
@@ -1047,12 +1188,14 @@ public final class K8sStorageBackend implements AutoCloseable {
             }
             String realmId = realmFn.apply(spec);
             if (realmId == null) {
-                LOG.warnv("Ignoring {0}/{1}: no realm in the spec or the {2} label",
+                LOG.warnv(
+                        "Ignoring {0}/{1}: no realm in the spec or the {2} label",
                         cr.getKind(), cr.getMetadata().getName(), REALM_LABEL);
                 return;
             }
             byRealm.computeIfAbsent(realmId, k -> new ConcurrentHashMap<>()).put(idFn.apply(spec), spec);
-            refs.put(key(realmId, idFn.apply(spec)),
+            refs.put(
+                    key(realmId, idFn.apply(spec)),
                     new CrRef(cr.getMetadata().getName(), cr.getMetadata().getNamespace()));
         }
 
@@ -1062,7 +1205,9 @@ public final class K8sStorageBackend implements AutoCloseable {
             if (spec == null) {
                 return null;
             }
-            String id = idFn.apply(spec) != null ? idFn.apply(spec) : cr.getMetadata().getName();
+            String id = idFn.apply(spec) != null
+                    ? idFn.apply(spec)
+                    : cr.getMetadata().getName();
             String realmId = realmFn.apply(spec);
             if (realmId == null && realmSetter != null) {
                 realmId = labelOf(cr, REALM_LABEL);
@@ -1078,7 +1223,9 @@ public final class K8sStorageBackend implements AutoCloseable {
             if (spec == null) {
                 return;
             }
-            String id = idFn.apply(spec) != null ? idFn.apply(spec) : cr.getMetadata().getName();
+            String id = idFn.apply(spec) != null
+                    ? idFn.apply(spec)
+                    : cr.getMetadata().getName();
             String realmId = realmFn.apply(spec);
             if (realmId == null && realmSetter != null) {
                 realmId = labelOf(cr, REALM_LABEL);
@@ -1211,7 +1358,8 @@ public final class K8sStorageBackend implements AutoCloseable {
             if (!isExpired(current.getSpec())) {
                 return false;
             }
-            C replacement = buildCr(name, writeNamespace, realmId, spec, current.getMetadata().getResourceVersion());
+            C replacement = buildCr(
+                    name, writeNamespace, realmId, spec, current.getMetadata().getResourceVersion());
             try {
                 operation().inNamespace(writeNamespace).resource(replacement).update();
             } catch (KubernetesClientException e) {
@@ -1266,18 +1414,24 @@ public final class K8sStorageBackend implements AutoCloseable {
         /** Deletes every mirrored entry of this kind whose expiration timestamp has passed. */
         void sweepExpired() {
             for (Map.Entry<String, Map<String, S>> realmEntry : byRealm.entrySet()) {
-                for (Map.Entry<String, S> entry : new ArrayList<>(realmEntry.getValue().entrySet())) {
+                for (Map.Entry<String, S> entry :
+                        new ArrayList<>(realmEntry.getValue().entrySet())) {
                     if (isExpired(entry.getValue())) {
                         String realmId = realmEntry.getKey();
                         String id = entry.getKey();
                         try {
                             deleteOnServerChecked(realmId, id);
                             mirrorRemove(realmId, id);
-                            LOG.tracev("k8store reaper deleted expired {0} {1}/{2}",
+                            LOG.tracev(
+                                    "k8store reaper deleted expired {0} {1}/{2}",
                                     specClass.getSimpleName(), realmId, id);
                         } catch (RuntimeException e) {
-                            LOG.debugv(e, "k8store reaper could not delete expired {0} {1}/{2}; retrying next sweep",
-                                    specClass.getSimpleName(), realmId, id);
+                            LOG.debugv(
+                                    e,
+                                    "k8store reaper could not delete expired {0} {1}/{2}; retrying next sweep",
+                                    specClass.getSimpleName(),
+                                    realmId,
+                                    id);
                         }
                     }
                 }
@@ -1349,9 +1503,8 @@ public final class K8sStorageBackend implements AutoCloseable {
      * {@code "-<hash>"} suffix within the 63-character label limit.
      */
     private static String dnsLabel(String raw) {
-        String label = raw.toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("^-+|-+$", "");
+        String label =
+                raw.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
         if (label.length() > 54) {
             label = label.substring(0, 54).replaceAll("-+$", "");
         }

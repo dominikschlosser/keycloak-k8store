@@ -31,7 +31,8 @@ public class AuthorizationAreasServerConfig implements KeycloakServerConfig {
     public KeycloakServerConfigBuilder configure(KeycloakServerConfigBuilder config) {
         return K8StoreServerConfig.commonOptions(config)
                 .option("spi-datastore--k8store--read-only", "false")
-                .option("spi-datastore--k8store--areas",
+                .option(
+                        "spi-datastore--k8store--areas",
                         "realm,client,client-scope,role,group,identity-provider,authorization");
     }
 }

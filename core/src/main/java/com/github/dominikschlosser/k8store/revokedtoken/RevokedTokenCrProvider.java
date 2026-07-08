@@ -44,8 +44,8 @@ public class RevokedTokenCrProvider implements RevokedTokenProvider {
         // mirror-only on purpose: contains() runs on every token validation and "not revoked"
         // is the common case - an API-server round trip per miss would bound request
         // throughput. A revocation from another node holds within watch latency (milliseconds).
-        return K8sStorageBackend.get().read(
-                RevokedTokenSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, tokenId) != null;
+        return K8sStorageBackend.get().read(RevokedTokenSpec.class, K8sStorageBackend.GLOBAL_PSEUDO_REALM, tokenId)
+                != null;
     }
 
     @Override

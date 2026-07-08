@@ -107,8 +107,7 @@ public class CrossStoreParityStorageTest {
     }
 
     private boolean roleCrExists(String name) {
-        return kube.client().resources(KeycloakRoleCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
+        return kube.client().resources(KeycloakRoleCr.class).inNamespace(namespace.name()).list().getItems().stream()
                 .anyMatch(cr -> name.equals(cr.getSpec().getName())
                         && realm.getName().equals(cr.getSpec().getRealm()));
     }
@@ -122,16 +121,22 @@ public class CrossStoreParityStorageTest {
         RoleRepresentation clientRole = new RoleRepresentation();
         clientRole.setName("cross-client-role");
         realm.admin().clients().get(clientDbId).roles().create(clientRole);
-        RoleRepresentation clientRoleRep =
-                realm.admin().clients().get(clientDbId).roles().get("cross-client-role").toRepresentation();
+        RoleRepresentation clientRoleRep = realm.admin()
+                .clients()
+                .get(clientDbId)
+                .roles()
+                .get("cross-client-role")
+                .toRepresentation();
 
         realm.admin().users().get(userId).roles().realmLevel().add(List.of(realmRole));
         realm.admin().users().get(userId).roles().clientLevel(clientDbId).add(List.of(clientRoleRep));
 
-        assertTrue(realm.admin().users().get(userId).roles().realmLevel().listAll().stream()
+        assertTrue(
+                realm.admin().users().get(userId).roles().realmLevel().listAll().stream()
                         .anyMatch(r -> "cross-realm-role".equals(r.getName())),
                 "realm role mapping on the JPA user must read back");
-        assertTrue(realm.admin().users().get(userId).roles().clientLevel(clientDbId).listAll().stream()
+        assertTrue(
+                realm.admin().users().get(userId).roles().clientLevel(clientDbId).listAll().stream()
                         .anyMatch(r -> "cross-client-role".equals(r.getName())),
                 "client role mapping on the JPA user must read back");
 
@@ -150,11 +155,14 @@ public class CrossStoreParityStorageTest {
 
         List<RoleRepresentation> effective =
                 realm.admin().users().get(userId).roles().realmLevel().listEffective();
-        assertTrue(effective.stream().anyMatch(r -> "cross-composite-parent".equals(r.getName())),
+        assertTrue(
+                effective.stream().anyMatch(r -> "cross-composite-parent".equals(r.getName())),
                 "directly assigned role must be effective");
-        assertTrue(effective.stream().anyMatch(r -> "cross-composite-child".equals(r.getName())),
+        assertTrue(
+                effective.stream().anyMatch(r -> "cross-composite-child".equals(r.getName())),
                 "composite member resolved from the role CR must be effective for the JPA user");
-        assertTrue(effective.stream().anyMatch(r -> r.getName().startsWith("default-roles-")),
+        assertTrue(
+                effective.stream().anyMatch(r -> r.getName().startsWith("default-roles-")),
                 "the CR-backed default-roles composite must stay effective");
     }
 
@@ -179,7 +187,8 @@ public class CrossStoreParityStorageTest {
         config.put("jsonType.label", "String");
         config.put("access.token.claim", "true");
         mapper.setConfig(config);
-        try (Response response = realm.admin().clientScopes().get(scopeId).getProtocolMappers().createMapper(mapper)) {
+        try (Response response =
+                realm.admin().clientScopes().get(scopeId).getProtocolMappers().createMapper(mapper)) {
             assertEquals(201, response.getStatus());
         }
 
@@ -195,8 +204,13 @@ public class CrossStoreParityStorageTest {
         realm.admin().clients().get(clientDbId).addDefaultClientScope(scopeId);
 
         // both the scope assignment and the mapper must be visible in the cluster before login
-        KeycloakClientScopeCr scopeCr = kube.client().resources(KeycloakClientScopeCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
+        KeycloakClientScopeCr scopeCr = kube
+                .client()
+                .resources(KeycloakClientScopeCr.class)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems()
+                .stream()
                 .filter(cr -> "token-claim-scope".equals(cr.getSpec().getName()))
                 .findFirst()
                 .orElseThrow();
@@ -212,16 +226,16 @@ public class CrossStoreParityStorageTest {
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(form))
                 .build();
-        HttpResponse<String> response =
-                HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), () -> "token endpoint answered: " + response.body());
 
         ObjectMapper json = new ObjectMapper();
         String accessToken = json.readTree(response.body()).get("access_token").asText();
-        String payload = new String(Base64.getUrlDecoder().decode(accessToken.split("\\.")[1]),
-                StandardCharsets.UTF_8);
+        String payload = new String(Base64.getUrlDecoder().decode(accessToken.split("\\.")[1]), StandardCharsets.UTF_8);
         JsonNode claims = json.readTree(payload);
-        assertEquals("cr-backed", claims.path("k8store-proof").asText(),
+        assertEquals(
+                "cr-backed",
+                claims.path("k8store-proof").asText(),
                 "the CR-backed scope's hardcoded-claim mapper must drive real token issuance");
     }
 

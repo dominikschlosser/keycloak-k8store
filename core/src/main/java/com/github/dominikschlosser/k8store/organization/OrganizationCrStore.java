@@ -76,7 +76,8 @@ public final class OrganizationCrStore {
         }
         List<String> ignored = spec.ignoredEmbeddedCollections();
         if (!ignored.isEmpty() && WARNED_ORGS.add(spec.getRealm() + "/" + spec.getId())) {
-            LOG.warnv("KeycloakOrganization CR {0} (realm {1}) embeds the collections {2}; they are"
+            LOG.warnv(
+                    "KeycloakOrganization CR {0} (realm {1}) embeds the collections {2}; they are"
                             + " ignored - membership lives on the users, organization groups are"
                             + " KeycloakGroup CRs (spec.type: organization) and the identity-provider"
                             + " linkage is the organizationId field in the realm CR",

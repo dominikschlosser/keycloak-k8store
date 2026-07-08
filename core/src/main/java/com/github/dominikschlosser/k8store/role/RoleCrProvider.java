@@ -15,12 +15,12 @@
  */
 package com.github.dominikschlosser.k8store.role;
 
-import com.github.dominikschlosser.k8store.common.ListRewrites;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_BEFORE_REMOVE;
 import static org.keycloak.utils.StreamsUtil.paginatedStream;
 
 import com.github.dominikschlosser.k8store.common.LikePatterns;
+import com.github.dominikschlosser.k8store.common.ListRewrites;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
 import java.util.Comparator;
 import java.util.List;
@@ -190,8 +190,7 @@ public class RoleCrProvider implements RoleProvider {
     @Override
     public Stream<RoleModel> getRolesStream(
             RealmModel realm, Stream<String> ids, String search, Integer first, Integer max) {
-        Stream<RoleModel> roles = ids
-                .map(id -> RoleCrStore.read(realm.getId(), id))
+        Stream<RoleModel> roles = ids.map(id -> RoleCrStore.read(realm.getId(), id))
                 .filter(Objects::nonNull)
                 .map(spec -> adapt(realm, spec));
         if (search != null && !search.isBlank()) {
@@ -240,8 +239,7 @@ public class RoleCrProvider implements RoleProvider {
         if (search == null) {
             return Stream.empty();
         }
-        Stream<RoleModel> roles = ids
-                .map(id -> RoleCrStore.read(realm.getId(), id))
+        Stream<RoleModel> roles = ids.map(id -> RoleCrStore.read(realm.getId(), id))
                 .filter(Objects::nonNull)
                 .filter(RoleCrProvider::isClientRoleSpec)
                 .map(spec -> adapt(realm, spec))
@@ -274,9 +272,8 @@ public class RoleCrProvider implements RoleProvider {
 
     @Override
     public boolean removeRole(RoleModel role) {
-        RealmModel realm = role.isClientRole()
-                ? ((ClientModel) role.getContainer()).getRealm()
-                : (RealmModel) role.getContainer();
+        RealmModel realm =
+                role.isClientRole() ? ((ClientModel) role.getContainer()).getRealm() : (RealmModel) role.getContainer();
         session.invalidate(ROLE_BEFORE_REMOVE, realm, role);
         RoleCrStore.delete(realm.getId(), role.getId());
         session.invalidate(ROLE_AFTER_REMOVE, realm, role);
@@ -353,8 +350,7 @@ public class RoleCrProvider implements RoleProvider {
                 }
             }
             if (changed) {
-                LOG.tracef("Rewriting renamed role %s to %s in composites of %s",
-                        oldName, newName, spec.getId());
+                LOG.tracef("Rewriting renamed role %s to %s in composites of %s", oldName, newName, spec.getId());
                 RoleCrStore.save(spec);
             }
         });
@@ -378,8 +374,8 @@ public class RoleCrProvider implements RoleProvider {
                     changed = true;
                 }
             }
-            boolean isRenamedClientRole = Boolean.TRUE.equals(spec.getClientRole())
-                    && oldClientId.equals(spec.getContainerId());
+            boolean isRenamedClientRole =
+                    Boolean.TRUE.equals(spec.getClientRole()) && oldClientId.equals(spec.getContainerId());
             if (isRenamedClientRole) {
                 String oldId = spec.getId();
                 spec.setContainerId(newClientId);

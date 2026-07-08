@@ -47,7 +47,11 @@ public final class LikePatterns {
         if (value == null || term == null) {
             return false;
         }
-        return matches(value, "*" + term + "*", '*', caseSensitive ? Pattern.DOTALL : Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        return matches(
+                value,
+                "*" + term + "*",
+                '*',
+                caseSensitive ? Pattern.DOTALL : Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     }
 
     private static boolean matches(String value, String pattern, char wildcard, int flags) {

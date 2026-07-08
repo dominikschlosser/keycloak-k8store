@@ -70,7 +70,9 @@ import org.keycloak.representations.idm.UserRepresentation;
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 // clientProfiles/clientPolicies are raw-JSON fields bound at the field level in the superclass
 // (no overridable accessor), hence excluded by name here
-@JsonIgnoreProperties(value = {"clientProfiles", "clientPolicies"}, ignoreUnknown = true)
+@JsonIgnoreProperties(
+        value = {"clientProfiles", "clientPolicies"},
+        ignoreUnknown = true)
 public class RealmSpec extends RealmRepresentation {
 
     /**

@@ -33,11 +33,11 @@ import com.github.dominikschlosser.k8store.tests.framework.TestNamespace;
 import io.fabric8.kubernetes.client.CustomResource;
 import jakarta.ws.rs.core.Response;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Order;
@@ -48,16 +48,16 @@ import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.IdentityProviderRepresentation;
 import org.keycloak.representations.idm.RoleRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.testframework.annotations.InjectKeycloakUrls;
 import org.keycloak.testframework.annotations.InjectRealm;
 import org.keycloak.testframework.annotations.InjectUser;
 import org.keycloak.testframework.annotations.KeycloakIntegrationTest;
 import org.keycloak.testframework.injection.LifeCycle;
 import org.keycloak.testframework.realm.ManagedRealm;
 import org.keycloak.testframework.realm.ManagedUser;
-import org.keycloak.testframework.realm.UserConfig;
 import org.keycloak.testframework.realm.UserBuilder;
+import org.keycloak.testframework.realm.UserConfig;
 import org.keycloak.testframework.server.KeycloakUrls;
-import org.keycloak.testframework.annotations.InjectKeycloakUrls;
 
 /**
  * Write mode: everything an admin does to config entities must materialize as custom resources,
@@ -92,9 +92,12 @@ public class WriteModeStorageTest {
 
     @Test
     public void bootMirrorsMasterRealmToCustomResources() {
-        assertTrue(crs(KeycloakRealmCr.class).stream().anyMatch(cr -> "master".equals(cr.getSpec().getRealm())),
+        assertTrue(
+                crs(KeycloakRealmCr.class).stream()
+                        .anyMatch(cr -> "master".equals(cr.getSpec().getRealm())),
                 "master realm must be stored as a KeycloakRealm CR");
-        assertTrue(crs(KeycloakClientCr.class).stream()
+        assertTrue(
+                crs(KeycloakClientCr.class).stream()
                         .anyMatch(cr -> "admin-cli".equals(cr.getSpec().getClientId())),
                 "master realm default clients must be stored as KeycloakClient CRs");
         assertFalse(crs(KeycloakClientScopeCr.class).isEmpty(), "default client scopes must be CRs");
@@ -103,7 +106,8 @@ public class WriteModeStorageTest {
 
     @Test
     public void managedRealmIsStoredAsCustomResource() {
-        assertTrue(crs(KeycloakRealmCr.class).stream()
+        assertTrue(
+                crs(KeycloakRealmCr.class).stream()
                         .anyMatch(cr -> realm.getName().equals(cr.getSpec().getRealm())),
                 "managed realm must be stored as a KeycloakRealm CR");
     }
@@ -129,12 +133,14 @@ public class WriteModeStorageTest {
         ClientRepresentation update = realm.admin().clients().get(id).toRepresentation();
         update.setDescription("updated via admin API");
         realm.admin().clients().get(id).update(update);
-        assertEquals("updated via admin API", crs(KeycloakClientCr.class).stream()
-                .filter(c -> "cr-client".equals(c.getSpec().getClientId()))
-                .findFirst()
-                .orElseThrow()
-                .getSpec()
-                .getDescription());
+        assertEquals(
+                "updated via admin API",
+                crs(KeycloakClientCr.class).stream()
+                        .filter(c -> "cr-client".equals(c.getSpec().getClientId()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getSpec()
+                        .getDescription());
 
         realm.admin().clients().get(id).remove();
         assertTrue(crs(KeycloakClientCr.class).stream()
@@ -146,14 +152,16 @@ public class WriteModeStorageTest {
         RoleRepresentation role = new RoleRepresentation();
         role.setName("cr-role");
         realm.admin().roles().create(role);
-        assertTrue(crs(KeycloakRoleCr.class).stream().anyMatch(r -> "cr-role".equals(r.getSpec().getName())));
+        assertTrue(crs(KeycloakRoleCr.class).stream()
+                .anyMatch(r -> "cr-role".equals(r.getSpec().getName())));
 
         GroupRepresentation group = new GroupRepresentation();
         group.setName("cr-group");
         try (Response response = realm.admin().groups().add(group)) {
             assertEquals(201, response.getStatus());
         }
-        assertTrue(crs(KeycloakGroupCr.class).stream().anyMatch(g -> "cr-group".equals(g.getSpec().getName())));
+        assertTrue(crs(KeycloakGroupCr.class).stream()
+                .anyMatch(g -> "cr-group".equals(g.getSpec().getName())));
 
         ClientScopeRepresentation scope = new ClientScopeRepresentation();
         scope.setName("cr-scope");
@@ -184,8 +192,7 @@ public class WriteModeStorageTest {
                 .findFirst()
                 .orElseThrow();
         assertNotNull(realmCr.getSpec().getIdentityProviders());
-        assertTrue(realmCr.getSpec().getIdentityProviders().stream()
-                .anyMatch(i -> "cr-idp".equals(i.getAlias())));
+        assertTrue(realmCr.getSpec().getIdentityProviders().stream().anyMatch(i -> "cr-idp".equals(i.getAlias())));
     }
 
     @Test
@@ -209,8 +216,7 @@ public class WriteModeStorageTest {
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(form))
                 .build();
-        HttpResponse<String> response =
-                HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode(), () -> "token endpoint answered: " + response.body());
         assertTrue(response.body().contains("access_token"));
     }

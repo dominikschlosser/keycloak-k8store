@@ -93,15 +93,25 @@ public class Oid4vcAreaStorageTest {
     RunOnServerClient runOnServer;
 
     private List<KeycloakUserVerifiableCredentialCr> credentialCrs() {
-        return kube.client().resources(KeycloakUserVerifiableCredentialCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
+        return kube
+                .client()
+                .resources(KeycloakUserVerifiableCredentialCr.class)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems()
+                .stream()
                 .filter(cr -> realm.getName().equals(cr.getSpec().getRealm()))
                 .toList();
     }
 
     private List<KeycloakIssuedVerifiableCredentialCr> issuedCrs() {
-        return kube.client().resources(KeycloakIssuedVerifiableCredentialCr.class)
-                .inNamespace(namespace.name()).list().getItems().stream()
+        return kube
+                .client()
+                .resources(KeycloakIssuedVerifiableCredentialCr.class)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems()
+                .stream()
                 .filter(cr -> realm.getName().equals(cr.getSpec().getRealm()))
                 .toList();
     }
@@ -112,8 +122,8 @@ public class Oid4vcAreaStorageTest {
             rep.setVerifiableCredentialsEnabled(true);
             realm.admin().update(rep);
         }
-        boolean scopeExists = realm.admin().clientScopes().findAll().stream()
-                .anyMatch(scope -> SCOPE_NAME.equals(scope.getName()));
+        boolean scopeExists =
+                realm.admin().clientScopes().findAll().stream().anyMatch(scope -> SCOPE_NAME.equals(scope.getName()));
         if (!scopeExists) {
             ClientScopeRepresentation scope = new ClientScopeRepresentation();
             scope.setName(SCOPE_NAME);
@@ -156,8 +166,8 @@ public class Oid4vcAreaStorageTest {
         String userId = createUser("vc-user");
 
         // create through the feature's admin endpoint - the storage behind it is the CR store
-        HttpResponse<String> created = vcRequest("POST", userId, "credentials",
-                "{\"credentialScopeName\":\"" + SCOPE_NAME + "\"}");
+        HttpResponse<String> created =
+                vcRequest("POST", userId, "credentials", "{\"credentialScopeName\":\"" + SCOPE_NAME + "\"}");
         assertEquals(200, created.statusCode(), () -> "creating the credential failed: " + created.body());
         JsonNode createdRep = JSON.readTree(created.body());
         assertEquals(SCOPE_NAME, createdRep.path("credentialScopeName").asText());
@@ -168,13 +178,17 @@ public class Oid4vcAreaStorageTest {
                 .filter(candidate -> userId.equals(candidate.getSpec().getUserId()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("no KeycloakUserVerifiableCredential CR for the user"));
-        assertEquals(SCOPE_NAME, cr.getSpec().getClientScopeId(),
+        assertEquals(
+                SCOPE_NAME,
+                cr.getSpec().getClientScopeId(),
                 "credential scopes are client scopes - scope id == scope name in this store");
         assertEquals(initialRevision, cr.getSpec().getRevision());
         assertNotNull(cr.getSpec().getCreatedDate());
         assertNotNull(cr.getSpec().getUserAttributes(), "the profile attribute snapshot must be stored");
-        assertTrue(cr.getSpec().getUserAttributes().containsKey("firstName"),
-                "snapshot must carry the readable profile attributes: " + cr.getSpec().getUserAttributes());
+        assertTrue(
+                cr.getSpec().getUserAttributes().containsKey("firstName"),
+                "snapshot must carry the readable profile attributes: "
+                        + cr.getSpec().getUserAttributes());
 
         // list + update: the revision rolls, the snapshot refreshes
         HttpResponse<String> listed = vcRequest("GET", userId, "credentials", null);
@@ -185,12 +199,19 @@ public class Oid4vcAreaStorageTest {
         assertEquals(200, updated.statusCode(), () -> "updating the credential failed: " + updated.body());
         String rolledRevision = JSON.readTree(updated.body()).path("revision").asText();
         assertNotEquals(initialRevision, rolledRevision, "an update must roll the revision");
-        assertEquals(rolledRevision, credentialCrs().stream()
-                .filter(candidate -> userId.equals(candidate.getSpec().getUserId()))
-                .findFirst().orElseThrow().getSpec().getRevision());
+        assertEquals(
+                rolledRevision,
+                credentialCrs().stream()
+                        .filter(candidate -> userId.equals(candidate.getSpec().getUserId()))
+                        .findFirst()
+                        .orElseThrow()
+                        .getSpec()
+                        .getRevision());
 
         // revoke deletes the CR
-        assertEquals(204, vcRequest("DELETE", userId, "credentials/" + SCOPE_NAME, null).statusCode());
+        assertEquals(
+                204,
+                vcRequest("DELETE", userId, "credentials/" + SCOPE_NAME, null).statusCode());
         Await.await("verifiable-credential CR to be deleted on revocation", () -> credentialCrs().stream()
                 .noneMatch(candidate -> userId.equals(candidate.getSpec().getUserId())));
     }
@@ -218,7 +239,9 @@ public class Oid4vcAreaStorageTest {
             issued.setExpiresAt(System.currentTimeMillis() + 3_600_000L);
             issued = session.users().addIssuedVerifiableCredential(issued);
 
-            long issuedCount = session.users().getIssuedVerifiableCredentialsStreamByUser(user.getId()).count();
+            long issuedCount = session.users()
+                    .getIssuedVerifiableCredentialsStreamByUser(user.getId())
+                    .count();
             return "credentialId=" + credential.getId() + " credentialRevision=" + credential.getRevision()
                     + " issuedId=" + issued.getId() + " issuedRevision=" + issued.getRevision()
                     + " issuedCount=" + issuedCount;
@@ -232,7 +255,8 @@ public class Oid4vcAreaStorageTest {
         assertEquals("wallet-client", issuedCr.getSpec().getClientId());
         assertNotNull(issuedCr.getSpec().getExpiresAt(), "issuances expire - expiresAt drives the reaper");
         assertTrue(report.contains("issuedRevision=" + issuedCr.getSpec().getRevision()));
-        assertTrue(report.contains("credentialRevision=" + issuedCr.getSpec().getRevision()),
+        assertTrue(
+                report.contains("credentialRevision=" + issuedCr.getSpec().getRevision()),
                 "an issuance without an explicit revision inherits the credential's revision");
 
         // removing the verifiable credential removes its issuances too (upstream parity)
@@ -245,9 +269,13 @@ public class Oid4vcAreaStorageTest {
             return "removed=" + removed;
         });
         assertTrue(removal.contains("removed=true"), removal);
-        Await.await("credential and issuance CRs to be deleted together", () ->
-                credentialCrs().stream().noneMatch(candidate -> userId.equals(candidate.getSpec().getUserId()))
-                        && issuedCrs().stream().noneMatch(candidate ->
-                                userId.equals(candidate.getSpec().getUserId())));
+        Await.await(
+                "credential and issuance CRs to be deleted together",
+                () -> credentialCrs().stream()
+                                .noneMatch(candidate ->
+                                        userId.equals(candidate.getSpec().getUserId()))
+                        && issuedCrs().stream()
+                                .noneMatch(candidate ->
+                                        userId.equals(candidate.getSpec().getUserId())));
     }
 }

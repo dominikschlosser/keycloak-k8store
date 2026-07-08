@@ -59,8 +59,8 @@ public class AuthSessionCrProviderFactory extends AbstractCrProviderFactory<Auth
     @Override
     public void invalidate(KeycloakSession session, InvalidableObjectType type, Object... params) {
         if (type == CLIENT_RENAMED) {
-            create(session).onClientRenamed(
-                    (RealmModel) params[0], ((ClientModel) params[1]).getId(), (String) params[2]);
+            create(session)
+                    .onClientRenamed((RealmModel) params[0], ((ClientModel) params[1]).getId(), (String) params[2]);
         }
     }
 }

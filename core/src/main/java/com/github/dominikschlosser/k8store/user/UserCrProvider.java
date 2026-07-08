@@ -15,10 +15,10 @@
  */
 package com.github.dominikschlosser.k8store.user;
 
-import com.github.dominikschlosser.k8store.common.ListRewrites;
 import static org.keycloak.utils.StreamsUtil.paginatedStream;
 
 import com.github.dominikschlosser.k8store.common.LikePatterns;
+import com.github.dominikschlosser.k8store.common.ListRewrites;
 import com.github.dominikschlosser.k8store.crd.IssuedVerifiableCredentialSpec;
 import com.github.dominikschlosser.k8store.crd.UserConsentSpec;
 import com.github.dominikschlosser.k8store.crd.UserSpec;
@@ -106,8 +106,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     }
 
     private UserAdapter adapt(RealmModel realm, UserSpec spec) {
-        return knownAdapters.computeIfAbsent(K8sStorageBackend.key(realm.getId(), spec.getId()),
-                key -> new UserAdapter(session, realm, spec));
+        return knownAdapters.computeIfAbsent(
+                K8sStorageBackend.key(realm.getId(), spec.getId()), key -> new UserAdapter(session, realm, spec));
     }
 
     private Stream<UserSpec> specs(RealmModel realm) {
@@ -143,15 +143,15 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     }
 
     @Override
-    public UserModel addUser(RealmModel realm, String id, String username,
-                             boolean addDefaultRoles, boolean addDefaultRequiredActions) {
+    public UserModel addUser(
+            RealmModel realm, String id, String username, boolean addDefaultRoles, boolean addDefaultRequiredActions) {
         if (username == null || username.isBlank()) {
             throw new ModelException("Username cannot be null or blank");
         }
         String normalized = username.toLowerCase();
         if (getUserByUsername(realm, normalized) != null) {
-            throw new ModelDuplicateException("User with username " + normalized + " exists in realm "
-                    + realm.getName());
+            throw new ModelDuplicateException(
+                    "User with username " + normalized + " exists in realm " + realm.getName());
         }
         String userId = id != null ? id : normalized;
         if (UserCrStore.exists(realm.getId(), userId)) {
@@ -246,9 +246,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
             return null;
         }
         String normalized = email.toLowerCase();
-        List<UserSpec> matches = specs(realm)
-                .filter(spec -> normalized.equals(spec.getEmail()))
-                .collect(Collectors.toList());
+        List<UserSpec> matches =
+                specs(realm).filter(spec -> normalized.equals(spec.getEmail())).collect(Collectors.toList());
         if (matches.isEmpty()) {
             return null;
         }
@@ -256,8 +255,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
             if (realm.isDuplicateEmailsAllowed()) {
                 return null;
             }
-            throw new ModelDuplicateException("Multiple users with email " + normalized + " exist in realm "
-                    + realm.getName());
+            throw new ModelDuplicateException(
+                    "Multiple users with email " + normalized + " exist in realm " + realm.getName());
         }
         return adapt(realm, matches.get(0));
     }
@@ -281,8 +280,9 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         Set<String> restrictedGroupIds = sessionGroupRestriction();
         Stream<UserModel> users = specs(realm)
                 .filter(predicate)
-                .filter(spec -> restrictedGroupIds == null || (spec.getGroups() != null
-                        && spec.getGroups().stream().anyMatch(restrictedGroupIds::contains)))
+                .filter(spec -> restrictedGroupIds == null
+                        || (spec.getGroups() != null
+                                && spec.getGroups().stream().anyMatch(restrictedGroupIds::contains)))
                 .map(spec -> (UserModel) adapt(realm, spec))
                 .sorted(UserModel.COMPARE_BY_USERNAME);
         return paginatedStream(users, firstResult, maxResults);
@@ -309,15 +309,17 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     @Override
     public Stream<UserModel> getGroupMembersStream(
             RealmModel realm, GroupModel group, Integer firstResult, Integer maxResults) {
-        return paginatedStream(memberSpecs(realm, group)
-                .map(spec -> (UserModel) adapt(realm, spec))
-                .sorted(UserModel.COMPARE_BY_USERNAME), firstResult, maxResults);
+        return paginatedStream(
+                memberSpecs(realm, group)
+                        .map(spec -> (UserModel) adapt(realm, spec))
+                        .sorted(UserModel.COMPARE_BY_USERNAME),
+                firstResult,
+                maxResults);
     }
 
     @Override
     public Stream<UserModel> getGroupMembersStream(
-            RealmModel realm, GroupModel group, String search, Boolean exact, Integer firstResult,
-            Integer maxResults) {
+            RealmModel realm, GroupModel group, String search, Boolean exact, Integer firstResult, Integer maxResults) {
         Stream<UserSpec> members = memberSpecs(realm, group);
         if (search != null && !search.isBlank()) {
             Predicate<String> match = Boolean.TRUE.equals(exact)
@@ -325,9 +327,10 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
                     : field -> LikePatterns.insensitiveLike(field, "%" + search + "%");
             members = members.filter(spec -> UserSearch.anySearchField(spec, match));
         }
-        return paginatedStream(members
-                .map(spec -> (UserModel) adapt(realm, spec))
-                .sorted(UserModel.COMPARE_BY_USERNAME), firstResult, maxResults);
+        return paginatedStream(
+                members.map(spec -> (UserModel) adapt(realm, spec)).sorted(UserModel.COMPARE_BY_USERNAME),
+                firstResult,
+                maxResults);
     }
 
     private Stream<UserSpec> memberSpecs(RealmModel realm, GroupModel group) {
@@ -341,15 +344,20 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         Predicate<UserSpec> hasGrant;
         if (role.isClientRole()) {
             hasGrant = spec -> spec.getClientRoles() != null
-                    && spec.getClientRoles().getOrDefault(role.getContainerId(), List.of())
+                    && spec.getClientRoles()
+                            .getOrDefault(role.getContainerId(), List.of())
                             .contains(role.getName());
         } else {
-            hasGrant = spec -> spec.getRealmRoles() != null && spec.getRealmRoles().contains(role.getName());
+            hasGrant =
+                    spec -> spec.getRealmRoles() != null && spec.getRealmRoles().contains(role.getName());
         }
-        return paginatedStream(specs(realm)
-                .filter(hasGrant)
-                .map(spec -> (UserModel) adapt(realm, spec))
-                .sorted(UserModel.COMPARE_BY_USERNAME), firstResult, maxResults);
+        return paginatedStream(
+                specs(realm)
+                        .filter(hasGrant)
+                        .map(spec -> (UserModel) adapt(realm, spec))
+                        .sorted(UserModel.COMPARE_BY_USERNAME),
+                firstResult,
+                maxResults);
     }
 
     // ------------------------------------------------------------------ counts
@@ -375,8 +383,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         }
         return (int) specs(realm)
                 .filter(spec -> spec.getServiceAccountClientId() == null)
-                .filter(spec -> spec.getGroups() != null
-                        && spec.getGroups().stream().anyMatch(groupIds::contains))
+                .filter(spec ->
+                        spec.getGroups() != null && spec.getGroups().stream().anyMatch(groupIds::contains))
                 .count();
     }
 
@@ -392,7 +400,9 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
 
     @Override
     public int getUsersCount(RealmModel realm, Map<String, String> params) {
-        return (int) specs(realm).filter(UserSearch.predicate(params == null ? Map.of() : params)).count();
+        return (int) specs(realm)
+                .filter(UserSearch.predicate(params == null ? Map.of() : params))
+                .count();
     }
 
     @Override
@@ -402,8 +412,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         }
         return (int) specs(realm)
                 .filter(UserSearch.predicate(params == null ? Map.of() : params))
-                .filter(spec -> spec.getGroups() != null
-                        && spec.getGroups().stream().anyMatch(groupIds::contains))
+                .filter(spec ->
+                        spec.getGroups() != null && spec.getGroups().stream().anyMatch(groupIds::contains))
                 .count();
     }
 
@@ -459,8 +469,7 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         UserAdapter adapter = requireAdapter(realm, userId);
         String clientId = consent.getClient().getId();
         if (findConsent(adapter.spec(), clientId) != null) {
-            throw new ModelDuplicateException("Consent already exists for client " + clientId
-                    + " and user " + userId);
+            throw new ModelDuplicateException("Consent already exists for client " + clientId + " and user " + userId);
         }
         long now = Time.currentTimeMillis();
         consent.setCreatedDate(now);
@@ -491,9 +500,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         if (consents == null) {
             return Stream.empty();
         }
-        return new ArrayList<>(consents).stream()
-                .map(rep -> consentToModel(realm, rep))
-                .filter(Objects::nonNull);
+        return new ArrayList<>(consents)
+                .stream().map(rep -> consentToModel(realm, rep)).filter(Objects::nonNull);
     }
 
     @Override
@@ -501,8 +509,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         UserAdapter adapter = requireAdapter(realm, userId);
         UserConsentSpec rep = findConsent(adapter.spec(), consent.getClient().getId());
         if (rep == null) {
-            throw new ModelException("Consent not found for client " + consent.getClient().getId()
-                    + " and user " + userId);
+            throw new ModelException(
+                    "Consent not found for client " + consent.getClient().getId() + " and user " + userId);
         }
         consent.setLastUpdatedDate(Time.currentTimeMillis());
         rep.setGrantedClientScopes(consent.getGrantedClientScopes().stream()
@@ -519,8 +527,7 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         if (adapter == null || adapter.spec().getConsents() == null) {
             return false;
         }
-        boolean removed = adapter.spec().getConsents()
-                .removeIf(rep -> clientInternalId.equals(rep.getClientId()));
+        boolean removed = adapter.spec().getConsents().removeIf(rep -> clientInternalId.equals(rep.getClientId()));
         if (removed) {
             adapter.persist();
         }
@@ -587,8 +594,10 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         UserConsentModel consent = new UserConsentModel(client);
         consent.setCreatedDate(rep.getCreatedDate());
         consent.setLastUpdatedDate(rep.getLastUpdatedDate());
-        if (rep.getGrantedClientScopes() != null && !rep.getGrantedClientScopes().isEmpty()) {
-            Map<String, ClientScopeModel> byName = session.clientScopes().getClientScopesStream(realm)
+        if (rep.getGrantedClientScopes() != null
+                && !rep.getGrantedClientScopes().isEmpty()) {
+            Map<String, ClientScopeModel> byName = session.clientScopes()
+                    .getClientScopesStream(realm)
                     .collect(Collectors.toMap(ClientScopeModel::getName, Function.identity(), (a, b) -> a));
             for (String scopeName : rep.getGrantedClientScopes()) {
                 ClientScopeModel scope = byName.get(scopeName);
@@ -634,7 +643,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         if (adapter == null || adapter.spec().getFederatedIdentities() == null) {
             return false;
         }
-        boolean removed = adapter.spec().getFederatedIdentities()
+        boolean removed = adapter.spec()
+                .getFederatedIdentities()
                 .removeIf(rep -> socialProvider.equals(rep.getIdentityProvider()));
         if (removed) {
             if (adapter.spec().getFederatedIdentityTokens() != null) {
@@ -685,9 +695,11 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     @Override
     public UserModel getUserByFederatedIdentity(RealmModel realm, FederatedIdentityModel socialLink) {
         List<UserSpec> matches = specs(realm)
-                .filter(spec -> spec.getFederatedIdentities() != null && spec.getFederatedIdentities().stream()
-                        .anyMatch(rep -> socialLink.getIdentityProvider().equals(rep.getIdentityProvider())
-                                && Objects.equals(socialLink.getUserId(), rep.getUserId())))
+                .filter(spec -> spec.getFederatedIdentities() != null
+                        && spec.getFederatedIdentities().stream()
+                                .anyMatch(
+                                        rep -> socialLink.getIdentityProvider().equals(rep.getIdentityProvider())
+                                                && Objects.equals(socialLink.getUserId(), rep.getUserId())))
                 .collect(Collectors.toList());
         if (matches.isEmpty()) {
             return null;
@@ -766,12 +778,14 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     @Override
     public void updateCredential(RealmModel realm, UserModel user, CredentialModel credential) {
         UserAdapter adapter = adapterOf(realm, user);
-        List<CredentialRepresentation> credentials = adapter == null ? null : adapter.spec().getCredentials();
+        List<CredentialRepresentation> credentials =
+                adapter == null ? null : adapter.spec().getCredentials();
         if (credentials == null) {
             return;
         }
         for (int i = 0; i < credentials.size(); i++) {
-            if (credential.getId() != null && credential.getId().equals(credentials.get(i).getId())) {
+            if (credential.getId() != null
+                    && credential.getId().equals(credentials.get(i).getId())) {
                 credentials.set(i, credentialToRepresentation(credential));
                 adapter.persist();
                 return;
@@ -782,7 +796,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     @Override
     public boolean removeStoredCredential(RealmModel realm, UserModel user, String id) {
         UserAdapter adapter = adapterOf(realm, user);
-        List<CredentialRepresentation> credentials = adapter == null ? null : adapter.spec().getCredentials();
+        List<CredentialRepresentation> credentials =
+                adapter == null ? null : adapter.spec().getCredentials();
         if (credentials == null) {
             return false;
         }
@@ -805,7 +820,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     @Override
     public Stream<CredentialModel> getStoredCredentialsStream(RealmModel realm, UserModel user) {
         UserAdapter adapter = adapterOf(realm, user);
-        List<CredentialRepresentation> credentials = adapter == null ? null : adapter.spec().getCredentials();
+        List<CredentialRepresentation> credentials =
+                adapter == null ? null : adapter.spec().getCredentials();
         if (credentials == null) {
             return Stream.empty();
         }
@@ -814,16 +830,15 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
 
     @Override
     public Stream<CredentialModel> getStoredCredentialsByTypeStream(RealmModel realm, UserModel user, String type) {
-        return getStoredCredentialsStream(realm, user)
-                .filter(credential -> Objects.equals(type, credential.getType()));
+        return getStoredCredentialsStream(realm, user).filter(credential -> Objects.equals(type, credential.getType()));
     }
 
     @Override
     public CredentialModel getStoredCredentialByNameAndType(
             RealmModel realm, UserModel user, String name, String type) {
         return getStoredCredentialsStream(realm, user)
-                .filter(credential -> Objects.equals(type, credential.getType())
-                        && Objects.equals(name, credential.getUserLabel()))
+                .filter(credential ->
+                        Objects.equals(type, credential.getType()) && Objects.equals(name, credential.getUserLabel()))
                 .findFirst()
                 .orElse(null);
     }
@@ -831,7 +846,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     @Override
     public boolean moveCredentialTo(RealmModel realm, UserModel user, String id, String newPreviousCredentialId) {
         UserAdapter adapter = adapterOf(realm, user);
-        List<CredentialRepresentation> credentials = adapter == null ? null : adapter.spec().getCredentials();
+        List<CredentialRepresentation> credentials =
+                adapter == null ? null : adapter.spec().getCredentials();
         if (credentials == null) {
             return false;
         }
@@ -913,8 +929,7 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     }
 
     private static ModelException oid4vcDisabled() {
-        return new ModelException(
-                "OID4VC verifiable-credential storage requires the oid4vc-vci feature");
+        return new ModelException("OID4VC verifiable-credential storage requires the oid4vc-vci feature");
     }
 
     private String contextRealmId() {
@@ -946,7 +961,9 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
             throw new ModelException("User " + userId + " not found in realm " + realm.getName());
         }
         UserProfileProvider profiles = session.getProvider(UserProfileProvider.class);
-        return profiles.create(UserProfileContext.USER_API, user).getAttributes().getReadable();
+        return profiles.create(UserProfileContext.USER_API, user)
+                .getAttributes()
+                .getReadable();
     }
 
     @Override
@@ -967,15 +984,17 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         spec.setRealm(realm.getId());
         spec.setUserId(userId);
         spec.setClientScopeId(credential.getClientScopeId());
-        spec.setRevision(credential.getRevision() != null
-                ? credential.getRevision()
-                : SecretGenerator.getInstance().generateSecureID());
+        spec.setRevision(
+                credential.getRevision() != null
+                        ? credential.getRevision()
+                        : SecretGenerator.getInstance().generateSecureID());
         long created = credential.getCreatedDate() != null ? credential.getCreatedDate() : Time.currentTimeMillis();
         spec.setCreatedDate(created);
         spec.setUpdatedDate(credential.getUpdatedDate() != null ? credential.getUpdatedDate() : created);
-        spec.setUserAttributes(credential.getUserAttributes() != null
-                ? credential.getUserAttributes()
-                : profileAttributeSnapshot(realm, userId));
+        spec.setUserAttributes(
+                credential.getUserAttributes() != null
+                        ? credential.getUserAttributes()
+                        : profileAttributeSnapshot(realm, userId));
         VerifiableCredentialCrStore.saveCredential(spec);
         return credentialSpecToModel(spec);
     }
@@ -1071,8 +1090,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
             // upstream parity: an issuance without an explicit revision inherits the
             // referenced credential's current revision - and requires it to exist
             if (referenced == null) {
-                throw new ModelException("Verifiable credential " + credential.getVerifiableCredentialId()
-                        + " not found");
+                throw new ModelException(
+                        "Verifiable credential " + credential.getVerifiableCredentialId() + " not found");
             }
             revision = referenced.getRevision();
         }
@@ -1100,8 +1119,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         }
         return issuedSpecsOfUser(userId)
                 .map(UserCrProvider::issuedSpecToModel)
-                .sorted(Comparator.comparing(IssuedVerifiableCredentialModel::getIssuedAt,
-                        Comparator.nullsLast(Comparator.reverseOrder())));
+                .sorted(Comparator.comparing(
+                        IssuedVerifiableCredentialModel::getIssuedAt, Comparator.nullsLast(Comparator.reverseOrder())));
     }
 
     @Override
@@ -1125,8 +1144,7 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
     }
 
     private static UserVerifiableCredentialModel credentialSpecToModel(UserVerifiableCredentialSpec spec) {
-        UserVerifiableCredentialModel model =
-                new UserVerifiableCredentialModel(spec.getId(), spec.getClientScopeId());
+        UserVerifiableCredentialModel model = new UserVerifiableCredentialModel(spec.getId(), spec.getClientScopeId());
         model.setRevision(spec.getRevision());
         model.setCreatedDate(spec.getCreatedDate());
         model.setUpdatedDate(spec.getUpdatedDate());
@@ -1238,8 +1256,7 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
                 changed = ListRewrites.replaceInList(spec.getRealmRoles(), oldName, newName);
             }
             if (changed) {
-                LOG.tracef("Rewriting renamed role %s to %s in grants of user %s",
-                        oldName, newName, spec.getId());
+                LOG.tracef("Rewriting renamed role %s to %s in grants of user %s", oldName, newName, spec.getId());
                 UserCrStore.save(spec);
             }
         });
@@ -1312,7 +1329,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
                 changed = true;
             }
             if (changed) {
-                LOG.tracef("Rewriting renamed client %s to %s in grants of user %s",
+                LOG.tracef(
+                        "Rewriting renamed client %s to %s in grants of user %s",
                         oldClientId, newClientId, spec.getId());
                 UserCrStore.save(spec);
             }
@@ -1366,8 +1384,7 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
                 VerifiableCredentialCrStore.issuedInRealm(realm.getId()).stream()
                         .filter(vc -> credentialIds.contains(vc.getVerifiableCredentialId()))
                         .forEach(vc -> VerifiableCredentialCrStore.deleteIssued(realm.getId(), vc.getId()));
-                scopeCredentials.forEach(
-                        vc -> VerifiableCredentialCrStore.deleteCredential(realm.getId(), vc.getId()));
+                scopeCredentials.forEach(vc -> VerifiableCredentialCrStore.deleteCredential(realm.getId(), vc.getId()));
             }
         }
     }
@@ -1419,7 +1436,8 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         specs(realm).forEach(spec -> {
             boolean changed = spec.getFederatedIdentities() != null
                     && spec.getFederatedIdentities().removeIf(rep -> alias.equals(rep.getIdentityProvider()));
-            if (spec.getFederatedIdentityTokens() != null && spec.getFederatedIdentityTokens().remove(alias) != null) {
+            if (spec.getFederatedIdentityTokens() != null
+                    && spec.getFederatedIdentityTokens().remove(alias) != null) {
                 changed = true;
             }
             if (changed) {

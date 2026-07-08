@@ -15,9 +15,9 @@
  */
 package com.github.dominikschlosser.k8store.group;
 
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.GROUP_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.GROUP_BEFORE_REMOVE;
-import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.REALM_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_BEFORE_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.ROLE_RENAMED;

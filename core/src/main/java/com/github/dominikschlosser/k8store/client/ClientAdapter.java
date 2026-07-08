@@ -34,8 +34,8 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.ClientScopeModel;
-import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.ProtocolMapperModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
@@ -61,8 +61,11 @@ public class ClientAdapter implements ClientModel {
     private final ClientSpec spec;
     private final Map<String, Map<String, Integer>> registeredNodesStore;
 
-    public ClientAdapter(KeycloakSession session, RealmModel realm, ClientSpec spec,
-                         Map<String, Map<String, Integer>> registeredNodesStore) {
+    public ClientAdapter(
+            KeycloakSession session,
+            RealmModel realm,
+            ClientSpec spec,
+            Map<String, Map<String, Integer>> registeredNodesStore) {
         Objects.requireNonNull(realm, "realm");
         Objects.requireNonNull(spec, "spec");
         this.session = session;

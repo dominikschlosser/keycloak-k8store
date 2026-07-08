@@ -105,11 +105,11 @@ public class AuthzCrStoreProviderFactory extends AbstractCrProviderFactory<Store
         if (type == CLIENT_BEFORE_REMOVE) {
             ((CrStoreFactory) create(session)).clientRemoved((RealmModel) params[0], (ClientModel) params[1]);
         } else if (type == CLIENT_RENAMED) {
-            ((CrStoreFactory) create(session)).clientRenamed(
-                    (RealmModel) params[0], (ClientModel) params[1], (String) params[2]);
+            ((CrStoreFactory) create(session))
+                    .clientRenamed((RealmModel) params[0], (ClientModel) params[1], (String) params[2]);
         } else if (type == ROLE_RENAMED) {
-            ((CrStoreFactory) create(session)).roleRenamed(
-                    (RealmModel) params[0], (RoleModel) params[1], (String) params[2]);
+            ((CrStoreFactory) create(session))
+                    .roleRenamed((RealmModel) params[0], (RoleModel) params[1], (String) params[2]);
         } else if (type == ROLE_BEFORE_REMOVE) {
             ((CrStoreFactory) create(session)).roleRemoved((RealmModel) params[0], (RoleModel) params[1]);
         } else if (type == REALM_BEFORE_REMOVE) {

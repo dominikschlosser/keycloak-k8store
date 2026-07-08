@@ -138,7 +138,9 @@ class RoleCrProviderRenameTest {
         new RoleCrProvider(null).roleRenamed(realm, clientRole(realm, "web-internal", "view"), "read");
 
         Composites read = RoleCrStore.read("master", "parent").getComposites();
-        assertEquals(List.of("create", "read", "delete"), read.getClient().get("web-internal"),
+        assertEquals(
+                List.of("create", "read", "delete"),
+                read.getClient().get("web-internal"),
                 "client composite keeps position and swaps the renamed role, key unchanged");
     }
 
@@ -179,7 +181,9 @@ class RoleCrProviderRenameTest {
 
         Composites readComposites = RoleCrStore.read("master", "parent").getComposites();
         assertNull(readComposites.getClient().get("web"), "the old clientId composite key is gone");
-        assertEquals(List.of("view"), readComposites.getClient().get("portal"),
+        assertEquals(
+                List.of("view"),
+                readComposites.getClient().get("portal"),
                 "the composite client section is rekeyed to the new clientId");
     }
 }

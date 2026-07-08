@@ -60,25 +60,31 @@ final class UserSearch {
                 case UserModel.FIRST_NAME -> predicates.add(fieldPredicate(UserSpec::getFirstName, value, exact));
                 case UserModel.LAST_NAME -> predicates.add(fieldPredicate(UserSpec::getLastName, value, exact));
                 case UserModel.EMAIL -> predicates.add(fieldPredicate(UserSpec::getEmail, value, exact));
-                case UserModel.ENABLED -> predicates.add(
-                        spec -> Boolean.TRUE.equals(spec.isEnabled()) == Boolean.parseBoolean(value));
-                case UserModel.EMAIL_VERIFIED -> predicates.add(
-                        spec -> Boolean.TRUE.equals(spec.isEmailVerified()) == Boolean.parseBoolean(value));
-                case UserModel.IDP_ALIAS -> predicates.add(spec -> spec.getFederatedIdentities() != null
-                        && spec.getFederatedIdentities().stream()
-                                .anyMatch(fi -> value.equals(fi.getIdentityProvider())));
-                case UserModel.IDP_USER_ID -> predicates.add(spec -> spec.getFederatedIdentities() != null
-                        && spec.getFederatedIdentities().stream()
-                                .anyMatch(fi -> value.equals(fi.getUserId())));
-                case UserModel.CREATED_AFTER -> predicates.add(spec -> spec.getCreatedTimestamp() != null
-                        && spec.getCreatedTimestamp() >= Long.parseLong(value));
-                case UserModel.CREATED_BEFORE -> predicates.add(spec -> spec.getCreatedTimestamp() != null
-                        && spec.getCreatedTimestamp() <= Long.parseLong(value));
+                case UserModel.ENABLED ->
+                    predicates.add(spec -> Boolean.TRUE.equals(spec.isEnabled()) == Boolean.parseBoolean(value));
+                case UserModel.EMAIL_VERIFIED ->
+                    predicates.add(spec -> Boolean.TRUE.equals(spec.isEmailVerified()) == Boolean.parseBoolean(value));
+                case UserModel.IDP_ALIAS ->
+                    predicates.add(spec -> spec.getFederatedIdentities() != null
+                            && spec.getFederatedIdentities().stream()
+                                    .anyMatch(fi -> value.equals(fi.getIdentityProvider())));
+                case UserModel.IDP_USER_ID ->
+                    predicates.add(spec -> spec.getFederatedIdentities() != null
+                            && spec.getFederatedIdentities().stream().anyMatch(fi -> value.equals(fi.getUserId())));
+                case UserModel.CREATED_AFTER ->
+                    predicates.add(spec ->
+                            spec.getCreatedTimestamp() != null && spec.getCreatedTimestamp() >= Long.parseLong(value));
+                case UserModel.CREATED_BEFORE ->
+                    predicates.add(spec ->
+                            spec.getCreatedTimestamp() != null && spec.getCreatedTimestamp() <= Long.parseLong(value));
                 case UserModel.EXACT, UserModel.INCLUDE_SERVICE_ACCOUNT -> {
                     // handled above
                 }
-                default -> predicates.add(spec -> spec.getAttributes() != null
-                        && spec.getAttributes().getOrDefault(entry.getKey(), List.of()).contains(value));
+                default ->
+                    predicates.add(spec -> spec.getAttributes() != null
+                            && spec.getAttributes()
+                                    .getOrDefault(entry.getKey(), List.of())
+                                    .contains(value));
             }
         }
         return spec -> predicates.stream().allMatch(p -> p.test(spec));

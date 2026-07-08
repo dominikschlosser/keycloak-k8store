@@ -28,13 +28,13 @@ import com.github.dominikschlosser.k8store.clientscope.ClientScopeCrStore;
 import com.github.dominikschlosser.k8store.crd.ClientScopeSpec;
 import com.github.dominikschlosser.k8store.crd.ClientSpec;
 import com.github.dominikschlosser.k8store.crd.GroupSpec;
+import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.crd.RoleSpec;
 import com.github.dominikschlosser.k8store.group.GroupCrStore;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakClientCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRealmCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRoleCr;
-import com.github.dominikschlosser.k8store.crd.RealmSpec;
 import com.github.dominikschlosser.k8store.realm.RealmCrStore;
 import com.github.dominikschlosser.k8store.role.RoleCrStore;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -107,7 +107,8 @@ class K8sStorageBackendTest {
 
     private KeycloakRealmCr realmCr(String name, RealmSpec spec) {
         KeycloakRealmCr cr = new KeycloakRealmCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName(name).withNamespace("test").build());
+        cr.setMetadata(
+                new ObjectMetaBuilder().withName(name).withNamespace("test").build());
         cr.setSpec(spec);
         return cr;
     }
@@ -152,7 +153,10 @@ class K8sStorageBackendTest {
 
         awaitNonNull(() -> RealmCrStore.read("late"));
 
-        client.resources(KeycloakRealmCr.class).inNamespace("test").withName("late").delete();
+        client.resources(KeycloakRealmCr.class)
+                .inNamespace("test")
+                .withName("late")
+                .delete();
         awaitNull(() -> RealmCrStore.read("late"));
     }
 
@@ -166,10 +170,13 @@ class K8sStorageBackendTest {
         spec.setRealm("master");
         ClientCrStore.save(spec);
 
-        List<KeycloakClientCr> crs =
-                client.resources(KeycloakClientCr.class).inNamespace("test").list().getItems();
+        List<KeycloakClientCr> crs = client.resources(KeycloakClientCr.class)
+                .inNamespace("test")
+                .list()
+                .getItems();
         assertEquals(1, crs.size());
-        assertTrue(crs.get(0).getMetadata().getName().matches("master\\.my-client-[0-9a-f]{8}"),
+        assertTrue(
+                crs.get(0).getMetadata().getName().matches("master\\.my-client-[0-9a-f]{8}"),
                 crs.get(0).getMetadata().getName());
         assertEquals("my-client", crs.get(0).getSpec().getClientId());
         assertEquals("master", crs.get(0).getMetadata().getLabels().get(K8sStorageBackend.REALM_LABEL));
@@ -179,7 +186,11 @@ class K8sStorageBackendTest {
 
         ClientCrStore.delete("master", "my-client");
         assertNull(ClientCrStore.read("master", "my-client"));
-        assertTrue(client.resources(KeycloakClientCr.class).inNamespace("test").list().getItems().isEmpty());
+        assertTrue(client.resources(KeycloakClientCr.class)
+                .inNamespace("test")
+                .list()
+                .getItems()
+                .isEmpty());
     }
 
     @Test
@@ -221,7 +232,9 @@ class K8sStorageBackendTest {
         assertNotNull(read);
         assertEquals("openid-connect", read.getProtocol());
         assertEquals("true", read.getAttributes().get("include.in.token.scope"));
-        assertEquals(List.of("offline_access"), read.getRealmScopeMappings(),
+        assertEquals(
+                List.of("offline_access"),
+                read.getRealmScopeMappings(),
                 "scope mappings must round-trip through the CR spec");
 
         ClientScopeCrStore.delete("master", "email");
@@ -249,12 +262,15 @@ class K8sStorageBackendTest {
 
         // specs carry no write-through machinery: mutations reach the CR via an explicit save
         realm.setDisplayName("Changed");
-        assertNull(RealmCrStore.read("mutable").getDisplayName(),
+        assertNull(
+                RealmCrStore.read("mutable").getDisplayName(),
                 "mutating a saved spec without saving again must not leak into the store");
         RealmCrStore.save(realm);
 
-        KeycloakRealmCr cr =
-                client.resources(KeycloakRealmCr.class).inNamespace("test").withName("mutable").get();
+        KeycloakRealmCr cr = client.resources(KeycloakRealmCr.class)
+                .inNamespace("test")
+                .withName("mutable")
+                .get();
         assertEquals("Changed", cr.getSpec().getDisplayName());
     }
 
@@ -306,7 +322,10 @@ class K8sStorageBackendTest {
         // and through the write client's actual serialization: fabric8's own mapper setup keeps
         // null map values by default and must not undo the null-dropping
         KeycloakClientCr cr = new KeycloakClientCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName("no-null-values").withNamespace("test").build());
+        cr.setMetadata(new ObjectMetaBuilder()
+                .withName("no-null-values")
+                .withNamespace("test")
+                .build());
         cr.setSpec(spec);
         String wireJson = K8sStorageBackend.buildSerialization().asJson(cr);
         assertTrue(wireJson.contains("multivalued"), wireJson);
@@ -347,12 +366,16 @@ class K8sStorageBackendTest {
         spec.setName("stamped-role");
         RoleCrStore.save(spec);
 
-        List<KeycloakRoleCr> crs =
-                client.resources(KeycloakRoleCr.class).inNamespace("test").list().getItems();
+        List<KeycloakRoleCr> crs = client.resources(KeycloakRoleCr.class)
+                .inNamespace("test")
+                .list()
+                .getItems();
         assertEquals(1, crs.size());
         Map<String, String> labels = crs.get(0).getMetadata().getLabels();
         assertEquals("master", labels.get(K8sStorageBackend.REALM_LABEL));
-        assertEquals(Version.VERSION, labels.get(K8sStorageBackend.VERSION_LABEL),
+        assertEquals(
+                Version.VERSION,
+                labels.get(K8sStorageBackend.VERSION_LABEL),
                 "every CR written by Keycloak must be stamped with the writing server's version");
 
         // read-your-write without waiting for the watch, and mirror isolation: the caller's
@@ -360,12 +383,17 @@ class K8sStorageBackendTest {
         RoleSpec read = RoleCrStore.read("master", "stamped-role");
         assertNotNull(read);
         spec.setDescription("mutated-after-save");
-        assertNull(RoleCrStore.read("master", "stamped-role").getDescription(),
+        assertNull(
+                RoleCrStore.read("master", "stamped-role").getDescription(),
                 "mutating a saved spec without saving again must not leak into the mirror");
 
         RoleCrStore.delete("master", "stamped-role");
         assertNull(RoleCrStore.read("master", "stamped-role"));
-        assertTrue(client.resources(KeycloakRoleCr.class).inNamespace("test").list().getItems().isEmpty());
+        assertTrue(client.resources(KeycloakRoleCr.class)
+                .inNamespace("test")
+                .list()
+                .getItems()
+                .isEmpty());
     }
 
     @Test
@@ -384,7 +412,9 @@ class K8sStorageBackendTest {
         GroupSpec read = GroupCrStore.read("master", "team-a");
         assertNotNull(read);
         assertEquals("parent-group", read.getParentId());
-        assertEquals(List.of("gold", "silver"), read.getAttributes().get("tier"),
+        assertEquals(
+                List.of("gold", "silver"),
+                read.getAttributes().get("tier"),
                 "multi-valued attributes must round-trip losslessly");
     }
 
@@ -404,8 +434,7 @@ class K8sStorageBackendTest {
         composites.setRealm(Set.of("other-role"));
         spec.setComposites(composites);
 
-        String json = K8sStorageBackend.configureMapper(new ObjectMapper())
-                .writeValueAsString(spec);
+        String json = K8sStorageBackend.configureMapper(new ObjectMapper()).writeValueAsString(spec);
         assertTrue(json.contains("present"), json);
         assertFalse(json.contains("absent"), json);
         assertFalse(json.contains(":null"), json);
@@ -437,8 +466,10 @@ class K8sStorageBackendTest {
         assertTrue(!K8sStorageBackend.crName(KeycloakClientCr.class, "acme prod", "web")
                 .equals(K8sStorageBackend.crName(KeycloakClientCr.class, "acme", "prod web")));
         // consecutive dots must never survive into a CR name (invalid DNS-1123)
-        assertTrue(!K8sStorageBackend.crName(KeycloakClientCr.class, "master", "my..app").contains(".."));
-        assertTrue(!K8sStorageBackend.crName(KeycloakRealmCr.class, "a..b", "a..b").contains(".."));
+        assertTrue(!K8sStorageBackend.crName(KeycloakClientCr.class, "master", "my..app")
+                .contains(".."));
+        assertTrue(
+                !K8sStorageBackend.crName(KeycloakRealmCr.class, "a..b", "a..b").contains(".."));
 
         // a very long id whose truncation boundary lands on a hyphen must not leave a trailing
         // hyphen on any label, and every dot-separated label must stay within 63 characters
@@ -477,7 +508,11 @@ class K8sStorageBackendTest {
         realm.setRealm("no-session");
         RealmCrStore.save(realm);
 
-        assertNotNull(client.resources(KeycloakRealmCr.class).inNamespace("test").withName("no-session").get(),
+        assertNotNull(
+                client.resources(KeycloakRealmCr.class)
+                        .inNamespace("test")
+                        .withName("no-session")
+                        .get(),
                 "without a session the write must reach the API server immediately");
     }
 
@@ -493,21 +528,31 @@ class K8sStorageBackendTest {
             realm.setDisplayName("v" + i);
             RealmCrStore.save(realm);
         }
-        assertEquals(before, server.getRequestCount(),
+        assertEquals(
+                before,
+                server.getRequestCount(),
                 "buffered saves must not produce any API-server request before commit");
 
         // read-your-write from the mirror before the commit
         assertEquals("v3", RealmCrStore.read("buffered").getDisplayName());
-        assertNull(client.resources(KeycloakRealmCr.class).inNamespace("test").withName("buffered").get(),
+        assertNull(
+                client.resources(KeycloakRealmCr.class)
+                        .inNamespace("test")
+                        .withName("buffered")
+                        .get(),
                 "the CR must not exist on the server before commit");
 
         session.getTransactionManager().commit();
 
-        KeycloakRealmCr cr =
-                client.resources(KeycloakRealmCr.class).inNamespace("test").withName("buffered").get();
+        KeycloakRealmCr cr = client.resources(KeycloakRealmCr.class)
+                .inNamespace("test")
+                .withName("buffered")
+                .get();
         assertNotNull(cr, "commit must flush the buffered write to the API server");
         assertEquals("v3", cr.getSpec().getDisplayName(), "the last buffered state wins");
-        assertEquals(Version.VERSION, cr.getMetadata().getLabels().get(K8sStorageBackend.VERSION_LABEL),
+        assertEquals(
+                Version.VERSION,
+                cr.getMetadata().getLabels().get(K8sStorageBackend.VERSION_LABEL),
                 "flushed CRs carry the version stamp");
     }
 
@@ -524,11 +569,14 @@ class K8sStorageBackendTest {
         // the write is buffered: mirror has it, the server LIST does not. A reconcile in this
         // window must not drop it, or the transaction loses its own write before commit.
         backend.reconcileNow();
-        assertNotNull(RealmCrStore.read("in-flight"),
-                "reconcile must not remove a buffered-but-unflushed write");
+        assertNotNull(RealmCrStore.read("in-flight"), "reconcile must not remove a buffered-but-unflushed write");
 
         session.getTransactionManager().commit();
-        assertNotNull(client.resources(KeycloakRealmCr.class).inNamespace("test").withName("in-flight").get(),
+        assertNotNull(
+                client.resources(KeycloakRealmCr.class)
+                        .inNamespace("test")
+                        .withName("in-flight")
+                        .get(),
                 "commit still flushes the write");
         // after commit the guard is released and reconcile is a plain no-op diff
         backend.reconcileNow();
@@ -590,11 +638,18 @@ class K8sStorageBackendTest {
 
         session.getTransactionManager().rollback();
 
-        assertEquals("original", RealmCrStore.read("keep").getDisplayName(),
+        assertEquals(
+                "original",
+                RealmCrStore.read("keep").getDisplayName(),
                 "rollback must repair the mirror from the API server");
-        assertNull(RealmCrStore.read("fresh"),
+        assertNull(
+                RealmCrStore.read("fresh"),
                 "an entity created in the rolled-back transaction must vanish from the mirror");
-        assertNull(client.resources(KeycloakRealmCr.class).inNamespace("test").withName("fresh").get(),
+        assertNull(
+                client.resources(KeycloakRealmCr.class)
+                        .inNamespace("test")
+                        .withName("fresh")
+                        .get(),
                 "nothing of the rolled-back transaction may reach the API server");
     }
 
@@ -613,7 +668,11 @@ class K8sStorageBackendTest {
         session.getTransactionManager().rollback();
 
         assertNotNull(RealmCrStore.read("undelete"), "rollback must restore the deleted mirror entry");
-        assertNotNull(client.resources(KeycloakRealmCr.class).inNamespace("test").withName("undelete").get(),
+        assertNotNull(
+                client.resources(KeycloakRealmCr.class)
+                        .inNamespace("test")
+                        .withName("undelete")
+                        .get(),
                 "the CR must never have been deleted from the API server");
     }
 
@@ -640,10 +699,17 @@ class K8sStorageBackendTest {
         session.getTransactionManager().commit();
 
         assertNull(RealmCrStore.read("gone"));
-        assertNull(client.resources(KeycloakRealmCr.class).inNamespace("test").withName("gone").get(),
+        assertNull(
+                client.resources(KeycloakRealmCr.class)
+                        .inNamespace("test")
+                        .withName("gone")
+                        .get(),
                 "the buffered delete must win over the earlier buffered update");
         assertNull(RealmCrStore.read("ephemeral"));
-        assertNull(client.resources(KeycloakRealmCr.class).inNamespace("test").withName("ephemeral").get());
+        assertNull(client.resources(KeycloakRealmCr.class)
+                .inNamespace("test")
+                .withName("ephemeral")
+                .get());
     }
 
     @Test
@@ -664,8 +730,10 @@ class K8sStorageBackendTest {
 
         session.getTransactionManager().commit();
 
-        KeycloakRealmCr cr =
-                client.resources(KeycloakRealmCr.class).inNamespace("test").withName("phoenix").get();
+        KeycloakRealmCr cr = client.resources(KeycloakRealmCr.class)
+                .inNamespace("test")
+                .withName("phoenix")
+                .get();
         assertNotNull(cr);
         assertEquals("new", cr.getSpec().getDisplayName(), "the last buffered state wins over the delete");
     }
@@ -759,8 +827,8 @@ class K8sStorageBackendTest {
         }
 
         @Override
-        public <T extends Provider> T getComponentProvider(Class<T> clazz, String componentId,
-                Function<KeycloakSessionFactory, ComponentModel> modelGetter) {
+        public <T extends Provider> T getComponentProvider(
+                Class<T> clazz, String componentId, Function<KeycloakSessionFactory, ComponentModel> modelGetter) {
             throw new UnsupportedOperationException();
         }
 

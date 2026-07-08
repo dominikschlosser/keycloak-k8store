@@ -39,16 +39,15 @@ final class Expirations {
         boolean rememberMe = Boolean.TRUE.equals(spec.getRememberMe());
         long started = spec.getStarted() == null ? 0 : spec.getStarted();
         long lastRefresh = spec.getLastSessionRefresh() == null ? started : spec.getLastSessionRefresh();
-        long lifespan = SessionExpirationUtils.calculateUserSessionMaxLifespanTimestamp(
-                offline, rememberMe, started, realm);
-        long idle = SessionExpirationUtils.calculateUserSessionIdleTimestamp(
-                offline, rememberMe, lastRefresh, realm);
+        long lifespan =
+                SessionExpirationUtils.calculateUserSessionMaxLifespanTimestamp(offline, rememberMe, started, realm);
+        long idle = SessionExpirationUtils.calculateUserSessionIdleTimestamp(offline, rememberMe, lastRefresh, realm);
         spec.setExpiresAt(combine(lifespan, idle));
     }
 
     /** Recomputes and stamps the absolute expiration of an embedded client session. */
-    static void stampClientSession(RealmModel realm, ClientModel client,
-                                   UserSessionSpec parent, ClientSessionSpec spec) {
+    static void stampClientSession(
+            RealmModel realm, ClientModel client, UserSessionSpec parent, ClientSessionSpec spec) {
         boolean offline = Boolean.TRUE.equals(parent.getOffline());
         boolean rememberMe = Boolean.TRUE.equals(parent.getRememberMe());
         long userSessionStarted = parent.getStarted() == null ? 0 : parent.getStarted();

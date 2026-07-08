@@ -79,7 +79,8 @@ class AuthSessionClientRenameTest {
 
         new AuthSessionCrProvider(null).onClientRenamed(realm, "web", "portal");
 
-        AuthTabSpec rekeyed = AuthSessionCrStore.read("master", "root-1").getTabs().get("tab-1");
+        AuthTabSpec rekeyed =
+                AuthSessionCrStore.read("master", "root-1").getTabs().get("tab-1");
         assertEquals("portal", rekeyed.getClientId(), "the tab now points at the renamed client");
     }
 }

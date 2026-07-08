@@ -66,20 +66,22 @@ class K8sAuthzKindsTest {
 
     @Test
     void authorizationAreaIsOptInButJoinsAll() {
-        assertFalse(K8sStoreConfig.configAreas().contains(Area.AUTHORIZATION),
+        assertFalse(
+                K8sStoreConfig.configAreas().contains(Area.AUTHORIZATION),
                 "the config default must stay backward-compatible - authorization is opt-in");
         assertFalse(K8sStoreConfig.parseAreas("config").contains(Area.AUTHORIZATION));
-        assertTrue(K8sStoreConfig.parseAreas("all").contains(Area.AUTHORIZATION),
-                "the authorization area joins 'all'");
-        assertTrue(K8sStoreConfig.parseAreas("realm,client,authorization").contains(Area.AUTHORIZATION),
+        assertTrue(K8sStoreConfig.parseAreas("all").contains(Area.AUTHORIZATION), "the authorization area joins 'all'");
+        assertTrue(
+                K8sStoreConfig.parseAreas("realm,client,authorization").contains(Area.AUTHORIZATION),
                 "explicit lists may name the authorization area");
-        assertFalse(Area.AUTHORIZATION.isDynamic(),
-                "authorization data is configuration-class (read-only mode applies)");
+        assertFalse(
+                Area.AUTHORIZATION.isDynamic(), "authorization data is configuration-class (read-only mode applies)");
     }
 
     @Test
     void authorizationAreaRequiresTheClientArea() {
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> K8sStoreConfig.of(false, EnumSet.of(Area.REALM, Area.AUTHORIZATION), "test", false, 30),
                 "resource servers are keyed by their client - the client area is required");
         K8sStoreConfig.reset();
@@ -91,11 +93,12 @@ class K8sAuthzKindsTest {
     @Test
     void configOnlyAreasRegisterNoAuthorizationKinds() {
         K8sStorageBackend backend = start(false, K8sStoreConfig.configAreas());
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> backend.read(ResourceServerSpec.class, "master", "my-app"),
                 "without the authorization area its kinds must not be registered (no informers, no CRDs needed)");
-        assertThrows(IllegalArgumentException.class,
-                () -> backend.read(PermissionTicketSpec.class, "master", "some-id"));
+        assertThrows(
+                IllegalArgumentException.class, () -> backend.read(PermissionTicketSpec.class, "master", "some-id"));
     }
 
     // ------------------------------------------------------------------ writability split
@@ -107,7 +110,8 @@ class K8sAuthzKindsTest {
         ResourceServerSpec server = new ResourceServerSpec();
         server.setClientId("my-app");
         server.setRealm("master");
-        assertThrows(ReadOnlyException.class,
+        assertThrows(
+                ReadOnlyException.class,
                 () -> K8sStorageBackend.update(ResourceServerSpec.class, "master", "my-app", server),
                 "resource servers are configuration: writes must be rejected in read-only mode");
 
@@ -115,7 +119,8 @@ class K8sAuthzKindsTest {
         policy.setId("policy-1");
         policy.setRealm("master");
         policy.setResourceServer("my-app");
-        assertThrows(ReadOnlyException.class,
+        assertThrows(
+                ReadOnlyException.class,
                 () -> K8sStorageBackend.update(AuthzPolicySpec.class, "master", "policy-1", policy),
                 "policies are configuration: writes must be rejected in read-only mode");
 
@@ -127,12 +132,20 @@ class K8sAuthzKindsTest {
         ticket.setRequester("requester");
         ticket.setCreatedTimestamp(Time.currentTimeMillis());
         K8sStorageBackend.update(PermissionTicketSpec.class, "master", "ticket-1", ticket);
-        assertEquals(1, client.resources(KeycloakPermissionTicketCr.class).inNamespace("test")
-                        .list().getItems().size(),
+        assertEquals(
+                1,
+                client.resources(KeycloakPermissionTicketCr.class)
+                        .inNamespace("test")
+                        .list()
+                        .getItems()
+                        .size(),
                 "permission tickets are UMA runtime data: writable despite read-only mode");
         K8sStorageBackend.delete(PermissionTicketSpec.class, "master", "ticket-1");
-        assertTrue(client.resources(KeycloakPermissionTicketCr.class).inNamespace("test")
-                .list().getItems().isEmpty());
+        assertTrue(client.resources(KeycloakPermissionTicketCr.class)
+                .inNamespace("test")
+                .list()
+                .getItems()
+                .isEmpty());
     }
 
     // ------------------------------------------------------------------ spec round trip
@@ -166,7 +179,10 @@ class K8sAuthzKindsTest {
 
         // the wire form drops null properties and null config values (422 on a real API server)
         KeycloakAuthzPolicyCr cr = new KeycloakAuthzPolicyCr();
-        cr.setMetadata(new ObjectMetaBuilder().withName("permission-1").withNamespace("test").build());
+        cr.setMetadata(new ObjectMetaBuilder()
+                .withName("permission-1")
+                .withNamespace("test")
+                .build());
         cr.setSpec(spec);
         String wireJson = K8sStorageBackend.buildSerialization().asJson(cr);
         assertFalse(wireJson.contains(":null"), wireJson);

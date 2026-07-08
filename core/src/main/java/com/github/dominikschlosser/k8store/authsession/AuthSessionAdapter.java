@@ -113,9 +113,9 @@ public class AuthSessionAdapter implements AuthenticationSessionModel {
     public Map<String, CommonClientSessionModel.ExecutionStatus> getExecutionStatus() {
         Map<String, CommonClientSessionModel.ExecutionStatus> result = new LinkedHashMap<>();
         if (spec.getExecutionStatus() != null) {
-            spec.getExecutionStatus().forEach(
-                    (executionId, status) -> result.put(executionId,
-                            CommonClientSessionModel.ExecutionStatus.valueOf(status)));
+            spec.getExecutionStatus()
+                    .forEach((executionId, status) ->
+                            result.put(executionId, CommonClientSessionModel.ExecutionStatus.valueOf(status)));
         }
         return result;
     }
@@ -146,8 +146,8 @@ public class AuthSessionAdapter implements AuthenticationSessionModel {
         if (LightweightUserAdapter.isLightweightUser(userId)) {
             LightweightUserAdapter user = LightweightUserAdapter.fromString(
                     session, parent.getRealm(), getUserSessionNotes().get(Constants.SESSION_NOTE_LIGHTWEIGHT_USER));
-            user.setUpdateHandler(updated ->
-                    setUserSessionNote(Constants.SESSION_NOTE_LIGHTWEIGHT_USER, updated.serialize()));
+            user.setUpdateHandler(
+                    updated -> setUserSessionNote(Constants.SESSION_NOTE_LIGHTWEIGHT_USER, updated.serialize()));
             return user;
         }
         return session.users().getUserById(parent.getRealm(), userId);
@@ -167,8 +167,8 @@ public class AuthSessionAdapter implements AuthenticationSessionModel {
         if (LightweightUserAdapter.isLightweightUser(user)) {
             LightweightUserAdapter lightweight = (LightweightUserAdapter) user;
             setUserSessionNote(Constants.SESSION_NOTE_LIGHTWEIGHT_USER, lightweight.serialize());
-            lightweight.setUpdateHandler(updated ->
-                    setUserSessionNote(Constants.SESSION_NOTE_LIGHTWEIGHT_USER, updated.serialize()));
+            lightweight.setUpdateHandler(
+                    updated -> setUserSessionNote(Constants.SESSION_NOTE_LIGHTWEIGHT_USER, updated.serialize()));
         }
         persist();
     }

@@ -22,10 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRealmCr;
-import com.github.dominikschlosser.k8store.crd.RoleSpec;
-import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRoleCr;
 import com.github.dominikschlosser.k8store.crd.RealmSpec;
+import com.github.dominikschlosser.k8store.crd.RoleSpec;
+import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRealmCr;
+import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakRoleCr;
 import com.github.dominikschlosser.k8store.tests.config.ReadOnlyK8StoreServerConfig;
 import com.github.dominikschlosser.k8store.tests.framework.Await;
 import com.github.dominikschlosser.k8store.tests.framework.InjectKindCluster;
@@ -73,49 +73,51 @@ public class ReadOnlyStorageTest {
         RealmRepresentation master = adminClient.realm("master").toRepresentation();
         assertNotNull(master);
         assertEquals("master", master.getRealm());
-        assertTrue(adminClient.realm("master").clients().findByClientId("admin-cli").size() > 0);
+        assertTrue(adminClient
+                        .realm("master")
+                        .clients()
+                        .findByClientId("admin-cli")
+                        .size()
+                > 0);
     }
 
     @Test
     public void configWritesAreRejected() {
         RealmRepresentation master = adminClient.realm("master").toRepresentation();
         master.setDisplayName("should-not-work");
-        WebApplicationException updateFailure = assertThrows(WebApplicationException.class,
-                () -> adminClient.realm("master").update(master));
+        WebApplicationException updateFailure = assertThrows(
+                WebApplicationException.class, () -> adminClient.realm("master").update(master));
         assertTrue(updateFailure.getResponse().getStatus() >= 400);
 
         RealmRepresentation newRealm = new RealmRepresentation();
         newRealm.setRealm("read-only-reject");
         newRealm.setEnabled(true);
-        WebApplicationException createFailure =
-                assertThrows(WebApplicationException.class, () -> adminClient.realms().create(newRealm));
+        WebApplicationException createFailure = assertThrows(
+                WebApplicationException.class, () -> adminClient.realms().create(newRealm));
         assertTrue(createFailure.getResponse().getStatus() >= 400);
 
         RoleRepresentation role = new RoleRepresentation();
         role.setName("read-only-role");
-        WebApplicationException roleFailure = assertThrows(WebApplicationException.class,
+        WebApplicationException roleFailure = assertThrows(
+                WebApplicationException.class,
                 () -> adminClient.realm("master").roles().create(role));
         assertTrue(roleFailure.getResponse().getStatus() >= 400);
     }
 
     @Test
     public void outOfBandCrChangesBecomeVisibleWithoutRestart() {
-        KeycloakRealmCr masterCr = kube.client()
-                .resources(KeycloakRealmCr.class)
-                .inNamespace(namespace.name())
-                .list()
-                .getItems()
-                .stream()
-                .filter(cr -> "master".equals(cr.getSpec().getRealm()))
-                .findFirst()
-                .orElseThrow();
+        KeycloakRealmCr masterCr =
+                kube.client().resources(KeycloakRealmCr.class).inNamespace(namespace.name()).list().getItems().stream()
+                        .filter(cr -> "master".equals(cr.getSpec().getRealm()))
+                        .findFirst()
+                        .orElseThrow();
 
         // out-of-band change, the way a GitOps pipeline would do it
         masterCr.getSpec().setDisplayName("changed-out-of-band");
         kube.client().resource(masterCr).update();
 
-        Await.await("display name change to propagate through the informer", () ->
-                "changed-out-of-band".equals(adminClient.realm("master").toRepresentation().getDisplayName()));
+        Await.await("display name change to propagate through the informer", () -> "changed-out-of-band"
+                .equals(adminClient.realm("master").toRepresentation().getDisplayName()));
     }
 
     @Test
@@ -155,42 +157,51 @@ public class ReadOnlyStorageTest {
 
     @Test
     public void existingClientUpdateAndDeleteAreRejected() {
-        String adminCliId = adminClient.realm("master").clients().findByClientId("admin-cli").get(0).getId();
-        ClientRepresentation update = adminClient.realm("master").clients().get(adminCliId).toRepresentation();
+        String adminCliId = adminClient
+                .realm("master")
+                .clients()
+                .findByClientId("admin-cli")
+                .get(0)
+                .getId();
+        ClientRepresentation update =
+                adminClient.realm("master").clients().get(adminCliId).toRepresentation();
         update.setDescription("read-only-should-fail");
 
-        WebApplicationException updateFailure = assertThrows(WebApplicationException.class,
+        WebApplicationException updateFailure = assertThrows(
+                WebApplicationException.class,
                 () -> adminClient.realm("master").clients().get(adminCliId).update(update));
         assertTrue(updateFailure.getResponse().getStatus() >= 400);
 
-        WebApplicationException deleteFailure = assertThrows(WebApplicationException.class,
+        WebApplicationException deleteFailure = assertThrows(
+                WebApplicationException.class,
                 () -> adminClient.realm("master").clients().get(adminCliId).remove());
         assertTrue(deleteFailure.getResponse().getStatus() >= 400);
 
-        assertEquals(1, adminClient.realm("master").clients().findByClientId("admin-cli").size(),
+        assertEquals(
+                1,
+                adminClient
+                        .realm("master")
+                        .clients()
+                        .findByClientId("admin-cli")
+                        .size(),
                 "the client must survive the rejected delete");
     }
 
     @Test
     public void outOfBandNewRealmBecomesVisibleWithoutRestart() {
-        KeycloakRealmCr masterCr = kube.client()
-                .resources(KeycloakRealmCr.class)
-                .inNamespace(namespace.name())
-                .list()
-                .getItems()
-                .stream()
-                .filter(cr -> "master".equals(cr.getSpec().getRealm()))
-                .findFirst()
-                .orElseThrow();
-        KeycloakRoleCr masterDefaultRoleCr = kube.client()
-                .resources(KeycloakRoleCr.class)
-                .inNamespace(namespace.name())
-                .list()
-                .getItems()
-                .stream()
-                .filter(cr -> masterCr.getSpec().getDefaultRole().getName().equals(cr.getSpec().getName()))
-                .findFirst()
-                .orElseThrow();
+        KeycloakRealmCr masterCr =
+                kube.client().resources(KeycloakRealmCr.class).inNamespace(namespace.name()).list().getItems().stream()
+                        .filter(cr -> "master".equals(cr.getSpec().getRealm()))
+                        .findFirst()
+                        .orElseThrow();
+        KeycloakRoleCr masterDefaultRoleCr =
+                kube.client().resources(KeycloakRoleCr.class).inNamespace(namespace.name()).list().getItems().stream()
+                        .filter(cr -> masterCr.getSpec()
+                                .getDefaultRole()
+                                .getName()
+                                .equals(cr.getSpec().getName()))
+                        .findFirst()
+                        .orElseThrow();
 
         // build the new realm the way a GitOps pipeline would: clone the master CR specs as
         // templates (both are plain Keycloak representations) and adjust identity on the JSON
@@ -206,9 +217,7 @@ public class ReadOnlyStorageTest {
         realmJson.put("id", "gitops-realm");
         realmJson.put("realm", "gitops-realm");
         realmJson.put("displayName", "Provisioned out of band");
-        realmJson.putObject("defaultRole")
-                .put("id", "gitops-default-role")
-                .put("name", "default-roles-gitops-realm");
+        realmJson.putObject("defaultRole").put("id", "gitops-default-role").put("name", "default-roles-gitops-realm");
 
         KeycloakRoleCr roleCr = new KeycloakRoleCr();
         KeycloakRealmCr realmCr = new KeycloakRealmCr();
@@ -225,10 +234,10 @@ public class ReadOnlyStorageTest {
         kube.client().resource(roleCr).create();
         kube.client().resource(realmCr).create();
 
-        Await.await("out-of-band realm to appear in the realm listing", () ->
-                adminClient.realms().findAll().stream()
-                        .anyMatch(r -> "gitops-realm".equals(r.getRealm())));
-        assertEquals("Provisioned out of band",
+        Await.await("out-of-band realm to appear in the realm listing", () -> adminClient.realms().findAll().stream()
+                .anyMatch(r -> "gitops-realm".equals(r.getRealm())));
+        assertEquals(
+                "Provisioned out of band",
                 adminClient.realm("gitops-realm").toRepresentation().getDisplayName());
     }
 
@@ -240,6 +249,7 @@ public class ReadOnlyStorageTest {
         try (Response response = adminClient.realm("master").users().create(user)) {
             assertEquals(201, response.getStatus());
         }
-        assertTrue(adminClient.realm("master").users().search("readonly-mode-user").size() > 0);
+        assertTrue(
+                adminClient.realm("master").users().search("readonly-mode-user").size() > 0);
     }
 }

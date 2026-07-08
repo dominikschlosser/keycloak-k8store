@@ -52,8 +52,8 @@ public class OrganizationAdapter implements OrganizationModel {
     private final OrganizationSpec spec;
     private final OrganizationCrProvider provider;
 
-    OrganizationAdapter(KeycloakSession session, RealmModel realm, OrganizationSpec spec,
-            OrganizationCrProvider provider) {
+    OrganizationAdapter(
+            KeycloakSession session, RealmModel realm, OrganizationSpec spec, OrganizationCrProvider provider) {
         Objects.requireNonNull(realm, "realm");
         Objects.requireNonNull(spec, "spec");
         this.session = session;
@@ -196,8 +196,8 @@ public class OrganizationAdapter implements OrganizationModel {
                 // domain removed: strip the domain assignment from identity providers linked
                 // to it, like the upstream adapter
                 getIdentityProviders()
-                        .filter(idp -> Objects.equals(existing.getName(),
-                                idp.getConfig().get(ORGANIZATION_DOMAIN_ATTRIBUTE)))
+                        .filter(idp -> Objects.equals(
+                                existing.getName(), idp.getConfig().get(ORGANIZATION_DOMAIN_ATTRIBUTE)))
                         .forEach(idp -> {
                             idp.getConfig().remove(ORGANIZATION_DOMAIN_ATTRIBUTE);
                             session.identityProviders().update(idp);

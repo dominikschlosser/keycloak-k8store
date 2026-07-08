@@ -64,9 +64,7 @@ public class ClientScopeCrProvider implements ClientScopeProvider {
 
     @Override
     public Stream<ClientScopeModel> getClientScopesStream(RealmModel realm) {
-        return specs(realm)
-                .map(spec -> adapt(realm, spec))
-                .sorted(Comparator.comparing(ClientScopeModel::getName));
+        return specs(realm).map(spec -> adapt(realm, spec)).sorted(Comparator.comparing(ClientScopeModel::getName));
     }
 
     @Override
@@ -79,12 +77,11 @@ public class ClientScopeCrProvider implements ClientScopeProvider {
             throw new ModelDuplicateException("Client scope exists: " + id);
         }
         if (ClientScopeCrStore.exists(realm.getId(), scopeName)) {
-            throw new ModelDuplicateException(
-                    "Client scope with name '" + scopeName + "' in realm " + realm.getName());
+            throw new ModelDuplicateException("Client scope with name '" + scopeName + "' in realm " + realm.getName());
         }
         if (id != null && !id.equals(scopeName)) {
-            LOG.debugv("Ignoring requested client scope id {0}: this store uses the scope name {1} as id",
-                    id, scopeName);
+            LOG.debugv(
+                    "Ignoring requested client scope id {0}: this store uses the scope name {1} as id", id, scopeName);
         }
 
         ClientScopeSpec spec = new ClientScopeSpec();
@@ -166,7 +163,8 @@ public class ClientScopeCrProvider implements ClientScopeProvider {
     void roleRemoved(RealmModel realm, RoleModel removed) {
         specs(realm).forEach(spec -> {
             if (ScopeMappingSupport.removeRole(spec, removed)) {
-                LOG.tracef("Dropping removed role %s from scope mappings of client scope %s",
+                LOG.tracef(
+                        "Dropping removed role %s from scope mappings of client scope %s",
                         removed.getName(), spec.getName());
                 ClientScopeCrStore.save(spec);
             }
@@ -177,7 +175,8 @@ public class ClientScopeCrProvider implements ClientScopeProvider {
     void roleRenamed(RealmModel realm, RoleModel renamed, String newName) {
         specs(realm).forEach(spec -> {
             if (ScopeMappingSupport.renameRole(spec, renamed, newName)) {
-                LOG.tracef("Rewriting renamed role %s to %s in scope mappings of client scope %s",
+                LOG.tracef(
+                        "Rewriting renamed role %s to %s in scope mappings of client scope %s",
                         renamed.getName(), newName, spec.getName());
                 ClientScopeCrStore.save(spec);
             }

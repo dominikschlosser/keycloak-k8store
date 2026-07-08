@@ -82,10 +82,11 @@ class UserSessionClientRenameTest {
 
         new UserSessionCrProvider(null).onClientRenamed(realm, "web", "portal");
 
-        Map<String, ClientSessionSpec> rekeyed = UserSessionCrStore.read("master", "session-1").getClientSessions();
+        Map<String, ClientSessionSpec> rekeyed =
+                UserSessionCrStore.read("master", "session-1").getClientSessions();
         assertTrue(rekeyed.containsKey("portal"), "the client session is rekeyed to the new clientId");
         assertFalse(rekeyed.containsKey("web"), "the old clientId key is gone");
-        assertEquals("portal", rekeyed.get("portal").getClientId(),
-                "the embedded client-session clientId is updated too");
+        assertEquals(
+                "portal", rekeyed.get("portal").getClientId(), "the embedded client-session clientId is updated too");
     }
 }

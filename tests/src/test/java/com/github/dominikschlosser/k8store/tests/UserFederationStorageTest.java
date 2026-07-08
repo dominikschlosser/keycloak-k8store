@@ -94,16 +94,19 @@ public class UserFederationStorageTest {
     }
 
     private List<KeycloakUserCr> userCrs() {
-        return kube.client().resources(KeycloakUserCr.class)
-                .inNamespace(namespace.name()).list().getItems();
+        return kube.client()
+                .resources(KeycloakUserCr.class)
+                .inNamespace(namespace.name())
+                .list()
+                .getItems();
     }
 
     private int passwordGrant(String username, String password) throws Exception {
         String form = "grant_type=password&client_id=admin-cli"
                 + "&username=" + URLEncoder.encode(username, StandardCharsets.UTF_8)
                 + "&password=" + URLEncoder.encode(password, StandardCharsets.UTF_8);
-        HttpRequest request = HttpRequest.newBuilder(URI.create(
-                        urls.getBase() + "/realms/" + realm.getName() + "/protocol/openid-connect/token"))
+        HttpRequest request = HttpRequest.newBuilder(
+                        URI.create(urls.getBase() + "/realms/" + realm.getName() + "/protocol/openid-connect/token"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(form))
                 .build();
@@ -116,7 +119,9 @@ public class UserFederationStorageTest {
         component.setProviderId(TestFederationUserStorage.PROVIDER_ID);
         component.setProviderType(UserStorageProvider.class.getName());
         try (Response response = realm.admin().components().add(component)) {
-            assertEquals(201, response.getStatus(),
+            assertEquals(
+                    201,
+                    response.getStatus(),
                     () -> "registering the test federation provider must succeed (is the test classpath "
                             + "provider deployed?): " + response.readEntity(String.class));
             return CreatedResponseUtil.getCreatedId(response);
@@ -126,8 +131,10 @@ public class UserFederationStorageTest {
     @Test
     @Order(1)
     public void usersAreServedThroughTheFederationAwareStorageManager() {
-        String report = runOnServer.fetchString(session -> session.users().getClass().getName());
-        assertTrue(report.contains(UserStorageManager.class.getName()),
+        String report =
+                runOnServer.fetchString(session -> session.users().getClass().getName());
+        assertTrue(
+                report.contains(UserStorageManager.class.getName()),
                 "session.users() must be the federation-aware UserStorageManager, got: " + report);
     }
 
@@ -139,23 +146,27 @@ public class UserFederationStorageTest {
             // the first login triggers the import: lookup miss in the CR local storage, the
             // federation provider creates the shadow user (a KeycloakUser CR) and validates
             // the password itself (the CR stores no credentials for this user)
-            assertEquals(200, passwordGrant(TestFederationUserStorage.USERNAME,
-                    TestFederationUserStorage.PASSWORD), "federated login must succeed");
+            assertEquals(
+                    200,
+                    passwordGrant(TestFederationUserStorage.USERNAME, TestFederationUserStorage.PASSWORD),
+                    "federated login must succeed");
 
             KeycloakUserCr imported = userCr(TestFederationUserStorage.USERNAME);
             assertNotNull(imported, "the imported federated user must be a KeycloakUser CR");
-            assertEquals(componentId, imported.getSpec().getFederationLink(),
+            assertEquals(
+                    componentId,
+                    imported.getSpec().getFederationLink(),
                     "the CR must carry the federation link to the storage provider component");
             assertEquals(TestFederationUserStorage.EMAIL, imported.getSpec().getEmail());
-            assertNull(imported.getSpec().getCredentials(),
+            assertNull(
+                    imported.getSpec().getCredentials(),
                     "the shadow user must not store credentials - validation stays federated");
 
             // wrong password: the federated validator rejects, no local fallback
             assertEquals(400, passwordGrant(TestFederationUserStorage.USERNAME, "wrong-password"));
 
             // the imported user is visible through the admin API (import validation passes)
-            List<UserRepresentation> found = realm.admin().users()
-                    .search(TestFederationUserStorage.USERNAME, true);
+            List<UserRepresentation> found = realm.admin().users().search(TestFederationUserStorage.USERNAME, true);
             assertEquals(1, found.size(), "admin search must find the imported user");
             assertEquals(componentId, found.get(0).getFederationLink());
 
@@ -170,14 +181,18 @@ public class UserFederationStorageTest {
             String realmName = realm.getName();
             runOnServer.run(session -> {
                 var realmModel = session.realms().getRealmByName(realmName);
-                session.users().getUserByUsername(realmModel, TestFederationUserStorage.USERNAME)
+                session.users()
+                        .getUserByUsername(realmModel, TestFederationUserStorage.USERNAME)
                         .setFederationLink(componentId);
             });
-            assertEquals(componentId, userCr(TestFederationUserStorage.USERNAME).getSpec().getFederationLink());
+            assertEquals(
+                    componentId,
+                    userCr(TestFederationUserStorage.USERNAME).getSpec().getFederationLink());
 
             // remove-imported-users deletes the linked shadow CRs
             realm.admin().userStorage().removeImportedUsers(componentId);
-            Await.await("imported user CR to be removed with remove-imported-users",
+            Await.await(
+                    "imported user CR to be removed with remove-imported-users",
                     () -> userCr(TestFederationUserStorage.USERNAME) == null);
         } finally {
             realm.admin().components().component(componentId).remove();

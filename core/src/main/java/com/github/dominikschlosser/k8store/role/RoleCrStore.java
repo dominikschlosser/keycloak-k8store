@@ -26,8 +26,7 @@ import java.util.List;
  */
 public final class RoleCrStore {
 
-    private static final CrStore<RoleSpec> STORE =
-            new CrStore<>(RoleSpec.class, RoleSpec::getRealm, RoleSpec::getId);
+    private static final CrStore<RoleSpec> STORE = new CrStore<>(RoleSpec.class, RoleSpec::getRealm, RoleSpec::getId);
 
     private RoleCrStore() {}
 

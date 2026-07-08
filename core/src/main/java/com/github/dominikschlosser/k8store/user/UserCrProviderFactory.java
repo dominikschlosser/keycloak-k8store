@@ -101,8 +101,10 @@ public class UserCrProviderFactory extends AbstractCrProviderFactory<UserCrProvi
     public void postInit(KeycloakSessionFactory factory) {
         factory.register(event -> {
             if (event instanceof RealmModel.IdentityProviderRemovedEvent idpRemoved) {
-                create(idpRemoved.getKeycloakSession()).identityProviderRemoved(
-                        idpRemoved.getRealm(), idpRemoved.getRemovedIdentityProvider().getAlias());
+                create(idpRemoved.getKeycloakSession())
+                        .identityProviderRemoved(
+                                idpRemoved.getRealm(),
+                                idpRemoved.getRemovedIdentityProvider().getAlias());
             }
         });
     }

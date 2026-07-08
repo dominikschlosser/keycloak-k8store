@@ -15,12 +15,12 @@
  */
 package com.github.dominikschlosser.k8store.client;
 
-import com.github.dominikschlosser.k8store.common.ListRewrites;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_AFTER_REMOVE;
 import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_BEFORE_REMOVE;
 import static org.keycloak.utils.StreamsUtil.paginatedStream;
 
 import com.github.dominikschlosser.k8store.common.LikePatterns;
+import com.github.dominikschlosser.k8store.common.ListRewrites;
 import com.github.dominikschlosser.k8store.common.ProtocolMapperSupport;
 import com.github.dominikschlosser.k8store.common.ScopeMappingSupport;
 import com.github.dominikschlosser.k8store.crd.ClientSpec;
@@ -121,9 +121,7 @@ public class ClientCrProvider implements ClientProvider {
 
     @Override
     public Stream<ClientModel> getClientsStream(RealmModel realm) {
-        return specs(realm)
-                .map(spec -> adapt(realm, spec))
-                .sorted(Comparator.comparing(ClientModel::getClientId));
+        return specs(realm).map(spec -> adapt(realm, spec)).sorted(Comparator.comparing(ClientModel::getClientId));
     }
 
     @Override
@@ -164,8 +162,9 @@ public class ClientCrProvider implements ClientProvider {
     public Stream<ClientModel> searchClientsByAttributes(
             RealmModel realm, Map<String, String> attributes, Integer firstResult, Integer maxResults) {
         Stream<ClientModel> clients = specs(realm)
-                .filter(spec -> attributes.entrySet().stream().allMatch(entry -> spec.getAttributes() != null
-                        && Objects.equals(spec.getAttributes().get(entry.getKey()), entry.getValue())))
+                .filter(spec -> attributes.entrySet().stream()
+                        .allMatch(entry -> spec.getAttributes() != null
+                                && Objects.equals(spec.getAttributes().get(entry.getKey()), entry.getValue())))
                 .map(spec -> adapt(realm, spec))
                 .sorted(Comparator.comparing(ClientModel::getClientId));
         return paginatedStream(clients, firstResult, maxResults);
@@ -206,7 +205,8 @@ public class ClientCrProvider implements ClientProvider {
     void roleRemoved(RealmModel realm, RoleModel removed) {
         specs(realm).forEach(spec -> {
             if (ScopeMappingSupport.removeRole(spec, removed)) {
-                LOG.tracef("Dropping removed role %s from scope mappings of client %s",
+                LOG.tracef(
+                        "Dropping removed role %s from scope mappings of client %s",
                         removed.getName(), spec.getClientId());
                 ClientCrStore.save(spec);
             }
@@ -217,7 +217,8 @@ public class ClientCrProvider implements ClientProvider {
     void roleRenamed(RealmModel realm, RoleModel renamed, String newName) {
         specs(realm).forEach(spec -> {
             if (ScopeMappingSupport.renameRole(spec, renamed, newName)) {
-                LOG.tracef("Rewriting renamed role %s to %s in scope mappings of client %s",
+                LOG.tracef(
+                        "Rewriting renamed role %s to %s in scope mappings of client %s",
                         renamed.getName(), newName, spec.getClientId());
                 ClientCrStore.save(spec);
             }
@@ -350,8 +351,8 @@ public class ClientCrProvider implements ClientProvider {
 
     @Override
     public void addClientScopeToAllClients(RealmModel realm, ClientScopeModel clientScope, boolean defaultClientScope) {
-        getClientsStream(realm).forEach(client ->
-                addClientScopes(realm, client, Set.of(clientScope), defaultClientScope));
+        getClientsStream(realm)
+                .forEach(client -> addClientScopes(realm, client, Set.of(clientScope), defaultClientScope));
     }
 
     @Override
@@ -365,7 +366,8 @@ public class ClientCrProvider implements ClientProvider {
             return new HashMap<>();
         }
         String clientProtocol = ProtocolMapperSupport.effectiveProtocol(spec);
-        Map<String, ClientScopeModel> byName = session.clientScopes().getClientScopesStream(realm)
+        Map<String, ClientScopeModel> byName = session.clientScopes()
+                .getClientScopesStream(realm)
                 .collect(Collectors.toMap(ClientScopeModel::getName, Function.identity(), (a, b) -> a));
         Map<String, ClientScopeModel> result = new LinkedHashMap<>();
         for (String name : names) {
@@ -387,7 +389,8 @@ public class ClientCrProvider implements ClientProvider {
     public Map<ClientModel, Set<String>> getAllRedirectUrisOfEnabledClients(RealmModel realm) {
         return specs(realm)
                 .filter(spec -> Boolean.TRUE.equals(spec.isEnabled()))
-                .filter(spec -> spec.getRedirectUris() != null && !spec.getRedirectUris().isEmpty())
+                .filter(spec -> spec.getRedirectUris() != null
+                        && !spec.getRedirectUris().isEmpty())
                 .collect(Collectors.toMap(spec -> adapt(realm, spec), spec -> new HashSet<>(spec.getRedirectUris())));
     }
 

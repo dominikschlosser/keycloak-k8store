@@ -93,16 +93,13 @@ public class RealmCrProvider implements RealmProvider {
 
     @Override
     public Stream<RealmModel> getRealmsStream() {
-        return RealmCrStore.readAll().stream()
-                .map(this::adapt)
-                .sorted(Comparator.comparing(RealmModel::getName));
+        return RealmCrStore.readAll().stream().map(this::adapt).sorted(Comparator.comparing(RealmModel::getName));
     }
 
     @Override
     public Stream<RealmModel> getRealmsWithProviderTypeStream(Class<?> type) {
-        return getRealmsStream()
-                .filter(realm -> realm.getComponentsStream()
-                        .anyMatch(component -> type.getName().equals(component.getProviderType())));
+        return getRealmsStream().filter(realm -> realm.getComponentsStream()
+                .anyMatch(component -> type.getName().equals(component.getProviderType())));
     }
 
     @Override
@@ -133,8 +130,7 @@ public class RealmCrProvider implements RealmProvider {
             boolean changed = entries.removeIf(entry -> {
                 Integer expiration = entry.getExpiration();
                 Integer timestamp = entry.getTimestamp();
-                return expiration != null && expiration > 0
-                        && timestamp != null && timestamp + expiration < now;
+                return expiration != null && expiration > 0 && timestamp != null && timestamp + expiration < now;
             });
             if (changed) {
                 RealmCrStore.save(spec);
@@ -162,7 +158,9 @@ public class RealmCrProvider implements RealmProvider {
 
     @Override
     public boolean updateLocalizationText(RealmModel realm, String locale, String key, String text) {
-        if (locale == null || key == null || text == null
+        if (locale == null
+                || key == null
+                || text == null
                 || !realm.getRealmLocalizationTextsByLocale(locale).containsKey(key)) {
             return false;
         }
@@ -177,7 +175,8 @@ public class RealmCrProvider implements RealmProvider {
 
     @Override
     public boolean deleteLocalizationText(RealmModel realm, String locale, String key) {
-        if (locale == null || key == null
+        if (locale == null
+                || key == null
                 || !realm.getRealmLocalizationTextsByLocale(locale).containsKey(key)) {
             return false;
         }

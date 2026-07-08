@@ -63,8 +63,8 @@ class CrResourceStore implements ResourceStore {
     @Override
     public Resource create(ResourceServer resourceServer, String id, String name, String owner) {
         if (findByName(resourceServer, name, owner) != null) {
-            throw new ModelDuplicateException("Resource with name [" + name + "] already exists for owner ["
-                    + owner + "] in resource server [" + resourceServer.getId() + "]");
+            throw new ModelDuplicateException("Resource with name [" + name + "] already exists for owner [" + owner
+                    + "] in resource server [" + resourceServer.getId() + "]");
         }
         AuthzResourceSpec spec = new AuthzResourceSpec();
         spec.setId(id != null ? id : KeycloakModelUtils.generateId());
@@ -89,8 +89,9 @@ class CrResourceStore implements ResourceStore {
             return null;
         }
         ResourceAdapter resource = factory.resourceById(factory.realmOf(resourceServer), id);
-        if (resource == null || (resourceServer != null
-                && !resourceServer.getId().equals(resource.spec().getResourceServer()))) {
+        if (resource == null
+                || (resourceServer != null
+                        && !resourceServer.getId().equals(resource.spec().getResourceServer()))) {
             return null;
         }
         return resource;
@@ -106,16 +107,22 @@ class CrResourceStore implements ResourceStore {
 
     @Override
     public List<Resource> findByResourceServer(ResourceServer resourceServer) {
-        return specs(resourceServer).map(factory::wrap).map(Resource.class::cast).toList();
+        return specs(resourceServer)
+                .map(factory::wrap)
+                .map(Resource.class::cast)
+                .toList();
     }
 
     @Override
-    public List<Resource> find(ResourceServer resourceServer, Map<Resource.FilterOption, String[]> attributes,
-                               Integer firstResult, Integer maxResults) {
+    public List<Resource> find(
+            ResourceServer resourceServer,
+            Map<Resource.FilterOption, String[]> attributes,
+            Integer firstResult,
+            Integer maxResults) {
         Stream<AuthzResourceSpec> matches = specs(resourceServer)
                 .filter(spec -> matchesFilters(spec, attributes))
-                .sorted(Comparator.comparing(AuthzResourceSpec::getName,
-                        Comparator.nullsFirst(Comparator.naturalOrder())));
+                .sorted(Comparator.comparing(
+                        AuthzResourceSpec::getName, Comparator.nullsFirst(Comparator.naturalOrder())));
         return paginatedStream(matches, firstResult, maxResults)
                 .map(factory::wrap)
                 .map(Resource.class::cast)
@@ -126,20 +133,25 @@ class CrResourceStore implements ResourceStore {
         for (Map.Entry<Resource.FilterOption, String[]> filter : attributes.entrySet()) {
             String[] value = filter.getValue();
             // Arrays.asList, not List.of: contains(null) must answer false, not throw
-            boolean matches = switch (filter.getKey()) {
-                case ID -> Arrays.asList(value).contains(spec.getId());
-                case OWNER -> Arrays.asList(value).contains(spec.getOwner());
-                case SCOPE_ID -> spec.getScopeIds() != null
-                        && spec.getScopeIds().stream().anyMatch(Arrays.asList(value)::contains);
-                case OWNER_MANAGED_ACCESS ->
-                        Boolean.TRUE.equals(spec.getOwnerManagedAccess()) == Boolean.parseBoolean(value[0]);
-                case URI -> spec.getUris() != null
-                        && spec.getUris().stream().anyMatch(uri -> uri.equalsIgnoreCase(value[0]));
-                case URI_NOT_NULL -> spec.getUris() != null && !spec.getUris().isEmpty();
-                case NAME -> LikePatterns.containsTerm(spec.getName(), value[0], false);
-                case TYPE -> LikePatterns.containsTerm(spec.getType(), value[0], false);
-                case EXACT_NAME -> spec.getName() != null && spec.getName().equalsIgnoreCase(value[0]);
-            };
+            boolean matches =
+                    switch (filter.getKey()) {
+                        case ID -> Arrays.asList(value).contains(spec.getId());
+                        case OWNER -> Arrays.asList(value).contains(spec.getOwner());
+                        case SCOPE_ID ->
+                            spec.getScopeIds() != null
+                                    && spec.getScopeIds().stream().anyMatch(Arrays.asList(value)::contains);
+                        case OWNER_MANAGED_ACCESS ->
+                            Boolean.TRUE.equals(spec.getOwnerManagedAccess()) == Boolean.parseBoolean(value[0]);
+                        case URI ->
+                            spec.getUris() != null
+                                    && spec.getUris().stream().anyMatch(uri -> uri.equalsIgnoreCase(value[0]));
+                        case URI_NOT_NULL ->
+                            spec.getUris() != null && !spec.getUris().isEmpty();
+                        case NAME -> LikePatterns.containsTerm(spec.getName(), value[0], false);
+                        case TYPE -> LikePatterns.containsTerm(spec.getType(), value[0], false);
+                        case EXACT_NAME ->
+                            spec.getName() != null && spec.getName().equalsIgnoreCase(value[0]);
+                    };
             if (!matches) {
                 return false;
             }

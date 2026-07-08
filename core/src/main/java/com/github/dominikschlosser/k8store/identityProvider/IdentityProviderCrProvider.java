@@ -237,7 +237,8 @@ public class IdentityProviderCrProvider implements IdentityProviderStorageProvid
         int first = firstResult == null || firstResult < 0 ? 0 : firstResult;
         long limit = maxResults == null || maxResults < 0 ? Long.MAX_VALUE : maxResults;
         return realm().getIdentityProviderMappersStream()
-                .filter(mapper -> options == null || options.isEmpty()
+                .filter(mapper -> options == null
+                        || options.isEmpty()
                         || mapper.getConfig().entrySet().containsAll(options.entrySet()))
                 .sorted(Comparator.comparing(IdentityProviderMapperModel::getName))
                 .skip(first)
