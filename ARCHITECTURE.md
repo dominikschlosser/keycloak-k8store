@@ -328,7 +328,10 @@ injectable, GLOBAL-lifecycle value types:
 
 * `KindCluster` (`@InjectKindCluster`): resolves the kubeconfig context (`K8STORE_TEST_CONTEXT`,
   default `kind-k8store`), applies the committed CRDs, and injects the `context` server option
-  into every embedded boot.
+  into every embedded boot. It **reuses an already-running cluster** on that context and, when
+  none is reachable in embedded mode, **creates one on the fly** (1 control-plane + 2 workers) so
+  `mvn verify` needs no manual `kind-up.sh` step; the created cluster is left running and reused
+  by later runs.
 * `TestNamespace` (`@InjectTestNamespace`): an ephemeral `k8store-test-*` namespace per run,
   cleaned up by the framework. The `areas=all` server uses a separate namespace ref, because the
   embedded servers of one JVM share the dev database and a users-as-CRs server bootstraps its
@@ -342,6 +345,15 @@ classes); that jar is never shipped. Default mode is embedded (`KC_TEST_SERVER=e
 `remote` runs the same suite against the deployed 2-replica cluster via port-forward, asserting
 cross-replica visibility of out-of-band CR changes. Ordered classes cover the write-then-flip-to-
 read-only flow (the test namespace and dev DB outlive server restarts).
+
+The cluster is provisioned through the **`kind` CLI** (a `ProcessBuilder` in `KindClusterSupplier`,
+or `scripts/kind-up.sh`), not a testcontainers library (`kindcontainer` / testcontainers-k3s). The
+deciding reason is the **multi-node** requirement: the remote tier pins two Keycloak replicas to
+separate worker nodes to exercise the cross-replica informer consistency the store relies on, which
+a single-node in-container API server cannot reproduce. kind builds that topology and has no JVM
+binding, so the CLI is the only way to drive real multi-node kind from Java; the embedded
+auto-create uses the same kind so both tiers share one cluster technology. (The library route would
+be Docker-only with automatic teardown, but those conveniences did not outweigh needing multi-node.)
 
 ## Repository layout
 
