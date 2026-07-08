@@ -30,8 +30,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * representation ({@link ClientSpec}); {@code spec.clientId} is the store id and defaults to
  * {@code metadata.name}, {@code spec.realm} is required (or supplied via the realm label).
  */
-@Group(KeycloakClientCr.GROUP)
-@Version(value = KeycloakClientCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakClient")
 @Singular("keycloakclient")
 @Plural("keycloakclients")
@@ -48,7 +48,4 @@ public class KeycloakClientCr extends CustomResource<ClientSpec, Void> implement
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

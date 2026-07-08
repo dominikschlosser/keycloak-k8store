@@ -30,8 +30,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * ({@code authorization} area). The spec is {@link ResourceServerSpec}; {@code spec.clientId}
  * defaults to {@code metadata.name}.
  */
-@Group(KeycloakResourceServerCr.GROUP)
-@Version(value = KeycloakResourceServerCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakResourceServer")
 @Singular("keycloakresourceserver")
 @Plural("keycloakresourceservers")
@@ -48,7 +48,4 @@ public class KeycloakResourceServerCr extends CustomResource<ResourceServerSpec,
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

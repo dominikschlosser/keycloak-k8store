@@ -35,8 +35,8 @@ import org.keycloak.representations.idm.CredentialRepresentation;
  * <p><strong>Security:</strong> these CRs carry credential hashes (and broker tokens when token
  * storage is on) - lock down RBAC read access to {@code keycloakusers}.
  */
-@Group(KeycloakUserCr.GROUP)
-@Version(value = KeycloakUserCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakUser")
 @Singular("keycloakuser")
 @Plural("keycloakusers")
@@ -57,7 +57,4 @@ public class KeycloakUserCr extends CustomResource<UserSpec, Void> implements Na
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

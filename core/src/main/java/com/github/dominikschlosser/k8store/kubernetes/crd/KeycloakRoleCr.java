@@ -30,8 +30,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * Keycloak's role representation ({@link RoleSpec}); {@code spec.id} defaults to
  * {@code metadata.name}, {@code spec.realm} is required (or supplied via the realm label).
  */
-@Group(KeycloakRoleCr.GROUP)
-@Version(value = KeycloakRoleCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakRole")
 @Singular("keycloakrole")
 @Plural("keycloakroles")
@@ -48,7 +48,4 @@ public class KeycloakRoleCr extends CustomResource<RoleSpec, Void> implements Na
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

@@ -31,8 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * defaults to {@code metadata.name}. Resource/scope/policy references are id sets in the spec -
  * plain strings, so the schema has no recursion.
  */
-@Group(KeycloakAuthzPolicyCr.GROUP)
-@Version(value = KeycloakAuthzPolicyCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakAuthzPolicy")
 @Singular("keycloakauthzpolicy")
 @Plural("keycloakauthzpolicies")
@@ -49,7 +49,4 @@ public class KeycloakAuthzPolicyCr extends CustomResource<AuthzPolicySpec, Void>
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

@@ -31,8 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * never authored by hand. The spec is the original {@link RevokedTokenSpec};
  * {@code spec.tokenId} is the store id.
  */
-@Group(KeycloakRevokedTokenCr.GROUP)
-@Version(value = KeycloakRevokedTokenCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakRevokedToken")
 @Singular("keycloakrevokedtoken")
 @Plural("keycloakrevokedtokens")
@@ -49,7 +49,4 @@ public class KeycloakRevokedTokenCr extends CustomResource<RevokedTokenSpec, Voi
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

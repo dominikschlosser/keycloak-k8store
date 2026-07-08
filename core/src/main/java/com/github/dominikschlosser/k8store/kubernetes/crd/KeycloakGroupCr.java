@@ -35,8 +35,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * schema generator cannot express unbounded recursion, and this store never reads it): author
  * one CR per subgroup instead.
  */
-@Group(KeycloakGroupCr.GROUP)
-@Version(value = KeycloakGroupCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakGroup")
 @Singular("keycloakgroup")
 @Plural("keycloakgroups")
@@ -53,7 +53,4 @@ public class KeycloakGroupCr extends CustomResource<GroupSpec, Void> implements 
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }
