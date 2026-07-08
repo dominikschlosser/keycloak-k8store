@@ -31,8 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * The spec is the original {@link LoginFailureSpec}; {@code spec.userId} defaults to
  * {@code metadata.name}.
  */
-@Group(KeycloakLoginFailureCr.GROUP)
-@Version(value = KeycloakLoginFailureCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakLoginFailure")
 @Singular("keycloakloginfailure")
 @Plural("keycloakloginfailures")
@@ -49,7 +49,4 @@ public class KeycloakLoginFailureCr extends CustomResource<LoginFailureSpec, Voi
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

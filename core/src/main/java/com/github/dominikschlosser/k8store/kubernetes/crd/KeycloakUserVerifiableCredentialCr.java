@@ -31,8 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * - never authored by hand. The spec is the original {@link UserVerifiableCredentialSpec};
  * {@code spec.id} is the store id.
  */
-@Group(KeycloakUserVerifiableCredentialCr.GROUP)
-@Version(value = KeycloakUserVerifiableCredentialCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakUserVerifiableCredential")
 @Singular("keycloakuserverifiablecredential")
 @Plural("keycloakuserverifiablecredentials")
@@ -50,7 +50,4 @@ public class KeycloakUserVerifiableCredentialCr extends CustomResource<UserVerif
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

@@ -31,8 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * {@code metadata.name}. Unlike the other authorization kinds these CRs are runtime data,
  * created by UMA flows - the kind stays writable in read-only mode.
  */
-@Group(KeycloakPermissionTicketCr.GROUP)
-@Version(value = KeycloakPermissionTicketCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakPermissionTicket")
 @Singular("keycloakpermissionticket")
 @Plural("keycloakpermissiontickets")
@@ -49,7 +49,4 @@ public class KeycloakPermissionTicketCr extends CustomResource<PermissionTicketS
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

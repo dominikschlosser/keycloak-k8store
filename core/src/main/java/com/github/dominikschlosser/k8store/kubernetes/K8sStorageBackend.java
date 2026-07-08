@@ -39,6 +39,7 @@ import com.github.dominikschlosser.k8store.crd.UserSessionSpec;
 import com.github.dominikschlosser.k8store.crd.UserSpec;
 import com.github.dominikschlosser.k8store.crd.UserVerifiableCredentialSpec;
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
+import com.github.dominikschlosser.k8store.kubernetes.crd.K8sCrd;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakAuthSessionCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakAuthzPolicyCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakAuthzResourceCr;
@@ -513,7 +514,7 @@ public final class K8sStorageBackend implements AutoCloseable {
                     throw new IllegalStateException("k8store: informer for "
                             + informer.getApiTypeClass().getSimpleName()
                             + " did not sync within " + config.getSyncTimeoutSeconds() + "s. Are the "
-                            + KeycloakRealmCr.GROUP + " CRDs installed and does the service account have list/watch"
+                            + K8sCrd.GROUP + " CRDs installed and does the service account have list/watch"
                             + " permissions?");
                 }
                 try {

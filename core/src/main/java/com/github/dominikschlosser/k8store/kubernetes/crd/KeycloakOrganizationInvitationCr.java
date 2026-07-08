@@ -30,8 +30,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * ({@code organization} area, runtime data - writable in read-only mode). These CRs are
  * Keycloak-managed by the invitation flows and never authored by hand.
  */
-@Group(KeycloakOrganizationInvitationCr.GROUP)
-@Version(value = KeycloakOrganizationInvitationCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakOrganizationInvitation")
 @Singular("keycloakorganizationinvitation")
 @Plural("keycloakorganizationinvitations")
@@ -49,7 +49,4 @@ public class KeycloakOrganizationInvitationCr extends CustomResource<Organizatio
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

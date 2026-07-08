@@ -31,8 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * on every login/refresh, deleted on logout or expiry - never authored by hand. The spec is the
  * original {@link UserSessionSpec}; {@code spec.id} defaults to {@code metadata.name}.
  */
-@Group(KeycloakUserSessionCr.GROUP)
-@Version(value = KeycloakUserSessionCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakUserSession")
 @Singular("keycloakusersession")
 @Plural("keycloakusersessions")
@@ -49,7 +49,4 @@ public class KeycloakUserSessionCr extends CustomResource<UserSessionSpec, Void>
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

@@ -30,8 +30,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * scope), stored as a Kubernetes custom resource ({@code authorization} area). The spec is
  * {@link AuthzScopeSpec}; {@code spec.id} defaults to {@code metadata.name}.
  */
-@Group(KeycloakAuthzScopeCr.GROUP)
-@Version(value = KeycloakAuthzScopeCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakAuthzScope")
 @Singular("keycloakauthzscope")
 @Plural("keycloakauthzscopes")
@@ -48,7 +48,4 @@ public class KeycloakAuthzScopeCr extends CustomResource<AuthzScopeSpec, Void> i
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

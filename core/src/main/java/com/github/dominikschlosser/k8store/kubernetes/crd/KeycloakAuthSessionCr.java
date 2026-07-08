@@ -31,8 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * never authored by hand. The spec is the original {@link AuthSessionSpec}; {@code spec.id}
  * defaults to {@code metadata.name}.
  */
-@Group(KeycloakAuthSessionCr.GROUP)
-@Version(value = KeycloakAuthSessionCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakAuthSession")
 @Singular("keycloakauthsession")
 @Plural("keycloakauthsessions")
@@ -49,7 +49,4 @@ public class KeycloakAuthSessionCr extends CustomResource<AuthSessionSpec, Void>
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

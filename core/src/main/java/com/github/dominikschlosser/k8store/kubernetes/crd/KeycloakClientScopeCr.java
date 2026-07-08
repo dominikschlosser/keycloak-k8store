@@ -31,8 +31,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * defaults to {@code metadata.name}, {@code spec.realm} is required (or supplied via the realm
  * label).
  */
-@Group(KeycloakClientScopeCr.GROUP)
-@Version(value = KeycloakClientScopeCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakClientScope")
 @Singular("keycloakclientscope")
 @Plural("keycloakclientscopes")
@@ -49,7 +49,4 @@ public class KeycloakClientScopeCr extends CustomResource<ClientScopeSpec, Void>
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

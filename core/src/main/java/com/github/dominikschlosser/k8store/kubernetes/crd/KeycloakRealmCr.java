@@ -37,8 +37,8 @@ import org.keycloak.representations.idm.ComponentExportRepresentation;
  * unrolled to a fixed depth - 3 levels, matching what the upstream keycloak-operator uses for
  * the same representation graph.
  */
-@Group(KeycloakRealmCr.GROUP)
-@Version(value = KeycloakRealmCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakRealm")
 @Singular("keycloakrealm")
 @Plural("keycloakrealms")
@@ -56,7 +56,4 @@ public class KeycloakRealmCr extends CustomResource<RealmSpec, Void> implements 
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }

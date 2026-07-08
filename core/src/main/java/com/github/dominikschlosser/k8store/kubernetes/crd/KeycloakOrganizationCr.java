@@ -32,8 +32,8 @@ import io.fabric8.kubernetes.model.annotation.Version;
  * organization groups and identity-provider linkage live in their own storage (users, {@code
  * KeycloakGroup} CRs with {@code type: organization}, the realm CR's identity providers).
  */
-@Group(KeycloakOrganizationCr.GROUP)
-@Version(value = KeycloakOrganizationCr.VERSION, served = true, storage = true)
+@Group(K8sCrd.GROUP)
+@Version(value = K8sCrd.VERSION, served = true, storage = true)
 @Kind("KeycloakOrganization")
 @Singular("keycloakorganization")
 @Plural("keycloakorganizations")
@@ -50,7 +50,4 @@ public class KeycloakOrganizationCr extends CustomResource<OrganizationSpec, Voi
     protected Void initStatus() {
         return null;
     }
-
-    public static final String GROUP = "k8store.dominikschlosser.github.io";
-    public static final String VERSION = "v1alpha1";
 }
