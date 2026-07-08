@@ -1248,7 +1248,6 @@ public class RealmAdapter implements StorageProviderRealmModel {
         }
     }
 
-
     @Override
     public Stream<ClientScopeModel> getDefaultClientScopesStream(boolean defaultScope) {
         List<String> names = defaultScope ? spec.getDefaultDefaultClientScopes() : spec.getDefaultOptionalClientScopes();

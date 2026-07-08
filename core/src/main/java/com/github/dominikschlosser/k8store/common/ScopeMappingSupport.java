@@ -143,7 +143,6 @@ public final class ScopeMappingSupport {
         return ListRewrites.replaceInList(spec.getRealmScopeMappings(), oldName, newName);
     }
 
-
     /** Scope-mapping client keys are client ids (= clientIds in this store); resolve either way. */
     private static ClientModel resolveClient(KeycloakSession session, RealmModel realm, String clientKey) {
         ClientModel client = session.clients().getClientById(realm, clientKey);

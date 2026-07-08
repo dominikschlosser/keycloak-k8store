@@ -360,7 +360,6 @@ public class RoleCrProvider implements RoleProvider {
         });
     }
 
-
     /**
      * Client-rename cascade: the client id is this store's container id, so it appears both as the
      * key of the client section of every role's composites and inside the renamed client's own
