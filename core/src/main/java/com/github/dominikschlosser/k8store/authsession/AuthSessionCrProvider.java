@@ -92,6 +92,39 @@ public class AuthSessionCrProvider implements AuthenticationSessionProvider {
         AuthSessionCrStore.delete(realm.getId(), authSession.getId());
     }
 
+    /**
+     * Retargets embedded tabs when a client's clientId changes. A tab records its client by
+     * clientId (this store's client id); a rename would otherwise leave the tab pointing at the
+     * old id, so the flow's tab lookup ({@code client.getId()} vs {@code tab.getClientId()} in
+     * {@link RootAuthSessionAdapter#getAuthenticationSession}) fails and the in-flight login for
+     * that client aborts. Mirrors the user-session rekey, driven off the k8store
+     * {@code CLIENT_RENAMED} event (Keycloak has no upstream client-rename hook for sessions).
+     */
+    public void onClientRenamed(RealmModel realm, String oldClientId, String newClientId) {
+        if (oldClientId == null || newClientId == null || oldClientId.equals(newClientId)) {
+            return;
+        }
+        for (AuthSessionSpec spec : AuthSessionCrStore.allInRealm(realm.getId())) {
+            Map<String, AuthTabSpec> tabs = spec.getTabs();
+            if (tabs == null) {
+                continue;
+            }
+            boolean changed = false;
+            for (AuthTabSpec tab : tabs.values()) {
+                if (oldClientId.equals(tab.getClientId())) {
+                    tab.setClientId(newClientId);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                // drop any adapter memoized on the pre-rename spec, so a later persist in the same
+                // request cannot re-write the old clientId from its stale copy
+                knownAdapters.remove(spec.getId());
+                AuthSessionCrStore.save(spec);
+            }
+        }
+    }
+
     @Override
     public void removeAllExpired() {
         // the storage backend filters expired sessions on read and reaps their CRs
