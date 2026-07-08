@@ -1245,7 +1245,6 @@ public class UserCrProvider implements UserProvider, UserCredentialStore {
         });
     }
 
-
     /** Group removal cascade: purge the removed group from every user's membership. */
     void groupRemoved(RealmModel realm, GroupModel removed) {
         specs(realm).forEach(spec -> {

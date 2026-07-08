@@ -272,7 +272,6 @@ public class GroupAdapter implements GroupModel {
         }
     }
 
-
     @Override
     public Stream<RoleModel> getRoleMappingsStream() {
         Stream<RoleModel> realmRoles = spec.getRealmRoles() == null

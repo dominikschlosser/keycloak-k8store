@@ -275,7 +275,6 @@ public class ClientCrProvider implements ClientProvider {
         });
     }
 
-
     // ------------------------------------------------------------------ client scope assignment
 
     /**
