@@ -15,16 +15,21 @@
  */
 package com.github.dominikschlosser.k8store.authsession;
 
+import static com.github.dominikschlosser.k8store.spi.StoreInvalidation.CLIENT_RENAMED;
+
 import com.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig;
 import com.github.dominikschlosser.k8store.spi.AbstractCrProviderFactory;
 import com.google.auto.service.AutoService;
+import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.RealmModel;
+import org.keycloak.provider.InvalidationHandler;
 import org.keycloak.sessions.AuthenticationSessionProviderFactory;
 import org.keycloak.userprofile.DeclarativeUserProfileProviderFactory;
 
 @AutoService(AuthenticationSessionProviderFactory.class)
 public class AuthSessionCrProviderFactory extends AbstractCrProviderFactory<AuthSessionCrProvider>
-        implements AuthenticationSessionProviderFactory<AuthSessionCrProvider> {
+        implements AuthenticationSessionProviderFactory<AuthSessionCrProvider>, InvalidationHandler {
 
     public AuthSessionCrProviderFactory() {
         super(AuthSessionCrProvider.class, K8sStoreConfig.Area.AUTH_SESSION);
@@ -44,5 +49,18 @@ public class AuthSessionCrProviderFactory extends AbstractCrProviderFactory<Auth
     @Override
     public int order() {
         return DeclarativeUserProfileProviderFactory.PROVIDER_PRIORITY + 1;
+    }
+
+    /**
+     * A clientId rename must retarget embedded auth-session tabs (which record their client by
+     * clientId), otherwise an in-flight login for the renamed client aborts. The broadcasting
+     * adapter still reports the old clientId, so {@code params[1].getId()} is the old value.
+     */
+    @Override
+    public void invalidate(KeycloakSession session, InvalidableObjectType type, Object... params) {
+        if (type == CLIENT_RENAMED) {
+            create(session).onClientRenamed(
+                    (RealmModel) params[0], ((ClientModel) params[1]).getId(), (String) params[2]);
+        }
     }
 }
