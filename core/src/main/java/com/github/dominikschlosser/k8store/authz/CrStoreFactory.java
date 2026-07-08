@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.jboss.logging.Logger;
 import org.keycloak.authorization.model.ResourceServer;
@@ -344,24 +345,7 @@ public class CrStoreFactory implements StoreFactory {
             return;
         }
         for (AuthzPolicySpec policy : AuthzCrStore.policies(realmId)) {
-            Map<String, String> config = policy.getConfig();
-            List<Map<String, Object>> roles = parseConfigList(config, "roles", ROLE_ENTRIES, policy.getId());
-            if (roles == null) {
-                continue;
-            }
-            boolean changed = false;
-            for (Iterator<Map<String, Object>> it = roles.iterator(); it.hasNext();) {
-                Map<String, Object> entry = it.next();
-                if (oldRoleId.equals(entry.get("id"))) {
-                    if (newRoleId == null) {
-                        it.remove();
-                    } else {
-                        entry.put("id", newRoleId);
-                    }
-                    changed = true;
-                }
-            }
-            if (changed && writeConfigList(config, "roles", roles, policy.getId())) {
+            if (rewriteRolesConfig(policy, id -> oldRoleId.equals(id) ? newRoleId : id)) {
                 AuthzCrStore.save(policy);
             }
         }
@@ -386,37 +370,59 @@ public class CrStoreFactory implements StoreFactory {
                 .map(role -> oldClientId + ":" + role.getName())
                 .collect(Collectors.toSet());
         for (AuthzPolicySpec policy : AuthzCrStore.policies(realmId)) {
-            Map<String, String> config = policy.getConfig();
-            boolean changed = false;
-
-            List<String> clients = parseConfigList(config, "clients", CLIENT_ENTRIES, policy.getId());
-            if (clients != null) {
-                boolean rewritten = false;
-                for (int i = 0; i < clients.size(); i++) {
-                    if (oldClientId.equals(clients.get(i))) {
-                        clients.set(i, newClientId);
-                        rewritten = true;
-                    }
-                }
-                changed |= rewritten && writeConfigList(config, "clients", clients, policy.getId());
-            }
-
-            List<Map<String, Object>> roles = parseConfigList(config, "roles", ROLE_ENTRIES, policy.getId());
-            if (roles != null) {
-                boolean rewritten = false;
-                for (Map<String, Object> entry : roles) {
-                    if (entry.get("id") instanceof String id && renamedRoleIds.contains(id)) {
-                        entry.put("id", newClientId + ":" + id.substring(oldClientId.length() + 1));
-                        rewritten = true;
-                    }
-                }
-                changed |= rewritten && writeConfigList(config, "roles", roles, policy.getId());
-            }
-
+            boolean changed = rewriteClientsConfig(policy, oldClientId, newClientId);
+            changed |= rewriteRolesConfig(policy, id -> renamedRoleIds.contains(id)
+                    ? newClientId + ":" + id.substring(oldClientId.length() + 1) : id);
             if (changed) {
                 AuthzCrStore.save(policy);
             }
         }
+    }
+
+    /**
+     * Walks a policy's {@code roles} config array, applying {@code rewriter} to each entry's id:
+     * a different id replaces it, {@code null} drops the entry, the same id leaves it. Returns
+     * whether the config changed (and the rewritten array was written back to the config map).
+     */
+    private boolean rewriteRolesConfig(AuthzPolicySpec policy, UnaryOperator<String> rewriter) {
+        Map<String, String> config = policy.getConfig();
+        List<Map<String, Object>> roles = parseConfigList(config, "roles", ROLE_ENTRIES, policy.getId());
+        if (roles == null) {
+            return false;
+        }
+        boolean changed = false;
+        for (Iterator<Map<String, Object>> it = roles.iterator(); it.hasNext();) {
+            Map<String, Object> entry = it.next();
+            if (!(entry.get("id") instanceof String id)) {
+                continue;
+            }
+            String rewritten = rewriter.apply(id);
+            if (rewritten == null) {
+                it.remove();
+                changed = true;
+            } else if (!rewritten.equals(id)) {
+                entry.put("id", rewritten);
+                changed = true;
+            }
+        }
+        return changed && writeConfigList(config, "roles", roles, policy.getId());
+    }
+
+    /** Replaces {@code oldClientId} with {@code newClientId} in a policy's {@code clients} array. */
+    private boolean rewriteClientsConfig(AuthzPolicySpec policy, String oldClientId, String newClientId) {
+        Map<String, String> config = policy.getConfig();
+        List<String> clients = parseConfigList(config, "clients", CLIENT_ENTRIES, policy.getId());
+        if (clients == null) {
+            return false;
+        }
+        boolean changed = false;
+        for (int i = 0; i < clients.size(); i++) {
+            if (oldClientId.equals(clients.get(i))) {
+                clients.set(i, newClientId);
+                changed = true;
+            }
+        }
+        return changed && writeConfigList(config, "clients", clients, policy.getId());
     }
 
     /** Parses a JSON-array policy config value, or null when absent, blank or unparseable. */
