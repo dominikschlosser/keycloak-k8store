@@ -178,6 +178,6 @@ public class K8sDatastoreProvider extends DefaultDatastoreProvider {
     @Override
     public MigrationManager getMigrationManager() {
         // CR-backed config entities are managed out-of-band; schema migrations do not apply
-        return K8sStoreConfig.isAreaEnabled(Area.REALM) ? new CrMigrationManager() : super.getMigrationManager();
+        return K8sStoreConfig.isAreaEnabled(Area.REALM) ? new CrMigrationManager(session) : super.getMigrationManager();
     }
 }

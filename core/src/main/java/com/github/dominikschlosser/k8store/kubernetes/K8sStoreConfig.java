@@ -57,6 +57,15 @@ import org.keycloak.common.Profile;
  *   <li>{@code expiration-sweep-seconds} (default {@code 300}) - interval of the background
  *       reaper deleting expired CRs of the dynamic kinds; only runs when a dynamic area is
  *       enabled. {@code 0} disables it (reads filter expired entities regardless).
+ *   <li>{@code resources-version-seed} - fixes the theme <em>resources tag</em> used to cache-bust
+ *       {@code /resources/{tag}/} URLs. Unset (default), the tag is the random per-database value
+ *       Keycloak stores in {@code MIGRATION_MODEL}, which differs between clusters and across a
+ *       database reset - during a rolling update a replica reading a different tag serves 404s for
+ *       assets whose URLs an in-flight page already rendered. Set to any stable string, the tag
+ *       becomes a deterministic hash of {@code (seed, Keycloak version)}: identical on every replica
+ *       and redeploy of the same version (so rolling updates keep in-flight asset URLs valid), and
+ *       still rotating on a Keycloak upgrade (whose bundled assets change anyway). See
+ *       {@link com.github.dominikschlosser.k8store.CrMigrationManager}.
  * </ul>
  */
 public final class K8sStoreConfig {
@@ -177,6 +186,7 @@ public final class K8sStoreConfig {
     private final String context;
     private final int reconcileIntervalSeconds;
     private final int expirationSweepSeconds;
+    private final String resourcesVersionSeed;
 
     private K8sStoreConfig(
             boolean readOnly, Set<Area> areas, String namespace, boolean allNamespaces, int syncTimeoutSeconds) {
@@ -188,6 +198,7 @@ public final class K8sStoreConfig {
         this.context = null;
         this.reconcileIntervalSeconds = 5;
         this.expirationSweepSeconds = 300;
+        this.resourcesVersionSeed = null;
     }
 
     /** Programmatic configuration for tests, used with {@code K8sStorageBackend.initWithClient}. */
@@ -208,6 +219,7 @@ public final class K8sStoreConfig {
         this.context = scope.get("context");
         this.reconcileIntervalSeconds = scope.getInt("reconcile-interval-seconds", 60);
         this.expirationSweepSeconds = scope.getInt("expiration-sweep-seconds", 300);
+        this.resourcesVersionSeed = scope.get("resources-version-seed");
         validateAreas(this.areas);
         validateOrganizationFeatureCoupling(this.areas);
     }
@@ -287,6 +299,11 @@ public final class K8sStoreConfig {
 
     public boolean isReadOnly() {
         return readOnly;
+    }
+
+    // The configured resources-version-seed, or null to use Keycloak's default tag.
+    public String getResourcesVersionSeed() {
+        return resourcesVersionSeed;
     }
 
     public Set<Area> getAreas() {

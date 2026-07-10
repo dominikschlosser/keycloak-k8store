@@ -16,23 +16,58 @@
 package com.github.dominikschlosser.k8store;
 
 import org.jboss.logging.Logger;
+import org.keycloak.common.Version;
+import org.keycloak.migration.MigrationModel;
+import org.keycloak.migration.ModelVersion;
+import org.keycloak.models.DeploymentStateProvider;
+import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.storage.MigrationManager;
 
 /**
- * No-op migration manager used while realms are CR-backed. Keycloak's {@code MigrateTo*} steps
+ * Migration manager used while realms are CR-backed. Keycloak's per-realm {@code MigrateTo*} steps
  * assume the JPA model and must not run against custom resources; content-level migration of CRs
  * across Keycloak versions is an out-of-band concern (the version stamp warning at startup and
  * the CRD schema diff tooling are the operator's signals). This is a documented limitation.
+ *
+ * <p>The realm migrators are skipped, but the server-global bookkeeping that stock
+ * {@code DefaultMigrationManager.migrate()} performs is reproduced here, because it seeds the theme
+ * <em>resources tag</em> that cache-busts {@code /resources/{tag}/} URLs. When the stored version is
+ * missing or older, {@link MigrationModel#setStoredVersion} writes the {@code MIGRATION_MODEL} row,
+ * which generates a fresh per-database tag; {@link QuarkusJpaConnectionProviderFactory}-style boot
+ * code then publishes {@link MigrationModel#getResourcesTag()} into {@link Version#RESOURCES_VERSION}
+ * (the mutable static both the resource-URL builder and the static-resource route read). Without the
+ * row that tag is null and Keycloak falls back to {@link Version#VERSION}, which no static route
+ * matches - every themed asset (admin console, login pages) then 404s. Re-publishing the freshly read
+ * tag here as well makes the writing replica correct in the same boot (no restart).
+ *
+ * <p>The <em>fixed</em> {@code resources-version-seed} deployment option is handled in
+ * {@link K8sDatastoreProviderFactory#postInit}, not here: {@code migrate()} only runs on migration
+ * boots, whereas the seed must be applied on every boot.
  */
 public class CrMigrationManager implements MigrationManager {
 
     private static final Logger LOG = Logger.getLogger(CrMigrationManager.class);
 
+    private final KeycloakSession session;
+
+    public CrMigrationManager(KeycloakSession session) {
+        this.session = session;
+    }
+
     @Override
     public void migrate() {
-        LOG.info("Skipping model migrations: CR-backed config entities are managed out-of-band");
+        LOG.info("Skipping realm model migrations: CR-backed config entities are managed out-of-band");
+        MigrationModel model =
+                session.getProvider(DeploymentStateProvider.class).getMigrationModel();
+        String stored = model.getStoredVersion();
+        if (stored == null || new ModelVersion(stored).lessThan(new ModelVersion(Version.VERSION))) {
+            // Persists the MIGRATION_MODEL row and (re)generates the theme resources tag.
+            model.setStoredVersion(Version.VERSION);
+        }
+        // Publish the tag so the writing replica sees it too (no restart needed).
+        Version.RESOURCES_VERSION = model.getResourcesTag();
     }
 
     @Override
