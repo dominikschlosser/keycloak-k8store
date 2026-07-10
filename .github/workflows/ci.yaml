@@ -1,12 +1,8 @@
 # CI for keycloak-k8store.
 #
-# IMPORTANT: this project builds against Keycloak nightly (999.0.0-SNAPSHOT,
-# resolved from https://central.sonatype.com/repository/maven-snapshots/).
-# That is a moving target that changes daily - a red build here can mean
-# upstream Keycloak drift rather than a bug in this repo. That is exactly why
-# nobody pushes. When a previously green commit turns red overnight, suspect
-# Keycloak nightly first (bump/regenerate CRDs via scripts/update-crds.sh and
-# check scripts/crd-tools.sh).
+# This project builds against the pinned Keycloak release 26.7.0. When bumping
+# the keycloak.version property, regenerate CRDs via scripts/update-crds.sh and
+# check scripts/crd-tools.sh for drift.
 #
 # Job graph:
 #   build-and-unit ──> integration   (kind cluster, mvn test -pl tests)
@@ -62,7 +58,7 @@ jobs:
         run: mvn -B -ntp test -pl core -pl crd-tools
 
       # The CRDs committed under crds/ must match what the current Keycloak
-      # nightly entity model generates. Drift here usually means upstream
+      # entity model generates. Drift here usually means upstream
       # Keycloak changed the model: rerun scripts/update-crds.sh locally,
       # review with scripts/crd-tools.sh, and commit the result.
       - name: CRD drift check
@@ -115,7 +111,7 @@ jobs:
 
       - name: Note on failures
         if: failure()
-        run: echo "::notice::This build runs against Keycloak nightly (999.0.0-SNAPSHOT), a moving target. If this commit was green before, the failure is likely upstream Keycloak drift, not a regression in this repo."
+        run: echo "::notice::This build runs against the pinned Keycloak release 26.7.0. Investigate the failure as a regression in this repo or a test-env issue."
 
       - name: Upload surefire reports
         if: failure()
@@ -166,7 +162,7 @@ jobs:
 
       - name: Note on failures
         if: failure()
-        run: echo "::notice::This build runs against Keycloak nightly (999.0.0-SNAPSHOT), a moving target. If this commit was green before, the failure is likely upstream Keycloak drift, not a regression in this repo."
+        run: echo "::notice::This build runs against the pinned Keycloak release 26.7.0. Investigate the failure as a regression in this repo or a test-env issue."
 
       - name: Collect Keycloak pod logs
         if: failure()

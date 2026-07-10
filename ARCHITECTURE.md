@@ -8,7 +8,7 @@ read-write mode exists for bootstrapping and tests. Opt-in areas extend the spli
 Authorization Services, Organizations, and - experimentally - every remaining area including
 users and sessions.
 
-Requires **Keycloak nightly** (`999.0.0-SNAPSHOT`) with the **`stateless`** feature.
+Requires **Keycloak 26.7.0+** with the **`stateless`** feature.
 
 ## How it works - at a glance
 
@@ -113,7 +113,7 @@ The apply runs in the transaction manager's *prepare* phase, before the JPA comm
 rejected CR write fails the request and rolls the database back. It is not two-phase commit -
 see the drift window in [Known limitations](#known-limitations).
 
-## Why nightly + stateless
+## Why stateless
 
 The `stateless` feature ([keycloak#49469](https://github.com/keycloak/keycloak/issues/49469),
 named `cacheless` before its 26.7 rename) removes all Infinispan distributed caches: sessions,
@@ -370,7 +370,7 @@ docs/          BENCHMARK.md - k8store-vs-vanilla load-test results (scripts/benc
 ## Configuration reference (Keycloak server options)
 
 ```
---features=stateless                                    # required (nightly)
+--features=stateless                                    # required
 --spi-datastore--provider=k8store
 --spi-datastore--k8store--read-only=true                # default: true (config kinds; dynamic kinds stay writable)
 --spi-datastore--k8store--areas=config                  # config (default) | all | explicit list

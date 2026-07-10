@@ -23,8 +23,7 @@
   </modules>
 
   <properties>
-    <!-- k8store requires the CACHELESS feature, only available in Keycloak nightly -->
-    <keycloak.version>999.0.0-SNAPSHOT</keycloak.version>
+    <keycloak.version>26.7.0</keycloak.version>
     <fabric8.version>7.8.0</fabric8.version>
     <auto-service.version>1.1.1</auto-service.version>
     <junit.version>5.13.4</junit.version>
@@ -59,21 +58,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-        <updatePolicy>daily</updatePolicy>
-      </snapshots>
-      <id>central-snapshots</id>
-      <name>Maven Central Snapshots (Keycloak nightly)</name>
-      <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-    </repository>
-  </repositories>
 
   <build>
     <pluginManagement>

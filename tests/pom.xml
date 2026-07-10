@@ -78,9 +78,15 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!--
+      The standalone keycloak-admin-client was decoupled into its own release train (frozen at
+      26.0.x); the server repo ships its own admin REST client as keycloak-admin-client-tests at
+      the server version, which is what the Keycloak test framework uses. Same packages/classes
+      (org.keycloak.admin.client.*), just versioned with the server.
+    -->
     <dependency>
       <groupId>org.keycloak</groupId>
-      <artifactId>keycloak-admin-client</artifactId>
+      <artifactId>keycloak-admin-client-tests</artifactId>
       <version>${keycloak.version}</version>
       <scope>test</scope>
     </dependency>

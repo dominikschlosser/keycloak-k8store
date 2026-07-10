@@ -18,7 +18,7 @@ scripts/benchmark.sh
 |---|---|
 | Machine | Apple M5 Max, Docker Desktop VM limited to 18 CPUs / 8 GiB |
 | Cluster | kind v0.32.0, Kubernetes v1.36.1, 1 control-plane + 2 workers |
-| Keycloak | `quay.io/keycloak/keycloak:nightly` (999.0.0-SNAPSHOT, digest `fe0c86c665fe`, 2026-07-07) |
+| Keycloak | `999.0.0-SNAPSHOT` pre-release (digest `fe0c86c665fe`, 2026-07-07); the project now pins 26.7.0 |
 | Topology | 2 Keycloak replicas (required pod anti-affinity, one per worker), 1 postgres:17 (emptyDir), no resource limits, no metrics-server |
 | Load generator | kcb 999.0.0-SNAPSHOT in an `eclipse-temurin:21-jdk` pod pinned to the control-plane node |
 | Access path | in-cluster, ClusterIP service `http://keycloak.keycloak:8080` |
@@ -36,9 +36,9 @@ and the exact same base image digest; each starts from a freshly deleted namespa
 
 | Variant | Image | Server options |
 |---|---|---|
-| `k8store` | `deploy/Dockerfile` (nightly + provider jars) | `--features=stateless --db=postgres --spi-datastore--provider=k8store ...` - config entities (realm/client/scope/role/group/IdP) served from CR informer mirrors, users/sessions in postgres, write mode |
-| `vanilla-stateless` | stock nightly | `--features=stateless --db=postgres` - same feature set, config entities from postgres via JPA (the stateless feature disables the embedded caches), sessions in postgres |
-| `vanilla-default` | stock nightly | `--db=postgres` (default features) - embedded Infinispan caches and clustering, as Keycloak is commonly run today; the 2 replicas formed a jdbc-ping cluster (verified 2-member ISPN view) |
+| `k8store` | `deploy/Dockerfile` (base image + provider jars) | `--features=stateless --db=postgres --spi-datastore--provider=k8store ...` - config entities (realm/client/scope/role/group/IdP) served from CR informer mirrors, users/sessions in postgres, write mode |
+| `vanilla-stateless` | stock `999.0.0-SNAPSHOT` | `--features=stateless --db=postgres` - same feature set, config entities from postgres via JPA (the stateless feature disables the embedded caches), sessions in postgres |
+| `vanilla-default` | stock `999.0.0-SNAPSHOT` | `--db=postgres` (default features) - embedded Infinispan caches and clustering, as Keycloak is commonly run today; the 2 replicas formed a jdbc-ping cluster (verified 2-member ISPN view) |
 
 `vanilla-stateless` isolates exactly the storage-layer difference under the same feature set;
 `vanilla-default` is the conventional baseline.
