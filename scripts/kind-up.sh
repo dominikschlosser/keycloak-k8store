@@ -33,6 +33,16 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
+  # Map host ports to the keycloak Service's NodePorts (deploy/30-keycloak.yaml) so
+  # http://localhost:8080 reaches Keycloak with no port-forward. NodePorts answer on
+  # every node, so binding them on the control-plane still routes to the worker pods.
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 8080
+    protocol: TCP
+  - containerPort: 30900
+    hostPort: 9000
+    protocol: TCP
 - role: worker
 - role: worker
 containerdConfigPatches:

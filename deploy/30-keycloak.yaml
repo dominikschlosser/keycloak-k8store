@@ -79,6 +79,12 @@ spec:
               value: mysecret
             - name: KC_SPI_DATASTORE__K8STORE__READ_ONLY
               value: "false"
+            # Pin the theme resources cache-busting tag to a fixed value so it is identical on every
+            # replica and redeploy of this Keycloak version (rolling updates keep in-flight asset
+            # URLs valid) instead of the random per-database value. Recommended when the config DB is
+            # ephemeral or you run blue/green with separate databases. Any stable string works.
+            # - name: KC_SPI_DATASTORE__K8STORE__RESOURCES_VERSION_SEED
+            #   value: "my-deployment"
           ports:
             - name: http
               containerPort: 8080
@@ -108,13 +114,20 @@ metadata:
   namespace: keycloak
   labels:
     app: keycloak
+# NodePort so the host can reach Keycloak without a port-forward: the kind config
+# (scripts/kind-up.sh) maps host 8080 -> node 30080 and host 9000 -> node 30900. A
+# NodePort is reachable on every node, so the control-plane mapping still routes to
+# the replicas pinned on the workers.
 spec:
+  type: NodePort
   selector:
     app: keycloak
   ports:
     - name: http
       port: 8080
       targetPort: 8080
+      nodePort: 30080
     - name: management
       port: 9000
       targetPort: 9000
+      nodePort: 30900
