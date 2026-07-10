@@ -2,7 +2,7 @@
 # Copyright 2026 Dominik Schlosser
 # SPDX-License-Identifier: Apache-2.0
 #
-# Builds and deploys Keycloak nightly + the k8store extension into the kind cluster
+# Builds and deploys Keycloak 26.7.0 + the k8store extension into the kind cluster
 # created by scripts/kind-up.sh.
 #
 # Usage: scripts/deploy.sh [--build] [--read-only true|false]
@@ -95,8 +95,9 @@ ${KUBECTL} -n keycloak get pods -o wide
 cat <<'EOF'
 
 Deployment done. Useful commands:
-  Port-forward for the test framework (KC_TEST_SERVER=remote):
-    kubectl -n keycloak port-forward svc/keycloak 8080:8080 9000:9000
+  Keycloak is exposed on the host via NodePort (kind extraPortMappings), no port-forward needed:
+    http://localhost:8080  (admin console; bootstrap admin/admin)
+    http://localhost:9000  (management: health/metrics)
   Inspect the CRs backing the config store:
     kubectl -n keycloak get keycloakrealms
     kubectl -n keycloak get keycloakclients
