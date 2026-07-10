@@ -1483,19 +1483,27 @@ public final class K8sStorageBackend implements AutoCloseable {
     // ------------------------------------------------------------------ naming
 
     /**
-     * Deterministic DNS-1123 name for a CR written by Keycloak. A realm CR keeps its plain
-     * readable name when the realm id is already a valid label; otherwise, and for every scoped
-     * CR, a hash over the exact {@code (realmId, id)} pair is appended, because {@link #dnsLabel}
-     * is lossy (arbitrary ids fold to DNS characters) and only the hash guarantees distinct
-     * entities never collide on one name. Scoped CRs are named {@code <realm>.<id>-<hash>}, two
-     * dot-separated DNS-1123 labels.
+     * Deterministic DNS-1123 name for a CR written by Keycloak. A realm CR is named {@code <id>};
+     * a scoped CR {@code <realm>.<id>}, two dot-separated DNS-1123 labels. A hash suffix is appended
+     * only when {@link #dnsLabel} actually changed a component: {@code dnsLabel} is lossy (it folds
+     * arbitrary ids to DNS characters and truncates), so two entities that sanitize alike would
+     * otherwise collide on one name; the hash over the exact {@code (realmId, id)} pair keeps them
+     * apart. When every component survives {@code dnsLabel} unchanged there is nothing to
+     * disambiguate - distinct clean pairs already yield distinct names - so the readable name is
+     * used as-is (e.g. {@code master.web-origins}).
      */
     static String crName(Class<?> crClass, String realmId, String id) {
         if (crClass == KeycloakRealmCr.class) {
             String label = dnsLabel(id);
             return label.equals(id) ? label : label + "-" + shortHash(id);
         }
-        return dnsLabel(realmId) + "." + dnsLabel(id) + "-" + shortHash(key(realmId, id));
+        String realmLabel = dnsLabel(realmId);
+        String idLabel = dnsLabel(id);
+        String name = realmLabel + "." + idLabel;
+        if (realmLabel.equals(realmId) && idLabel.equals(id)) {
+            return name;
+        }
+        return name + "-" + shortHash(key(realmId, id));
     }
 
     /**

@@ -175,9 +175,10 @@ class K8sStorageBackendTest {
                 .list()
                 .getItems();
         assertEquals(1, crs.size());
-        assertTrue(
-                crs.get(0).getMetadata().getName().matches("master\\.my-client-[0-9a-f]{8}"),
-                crs.get(0).getMetadata().getName());
+        assertEquals(
+                "master.my-client",
+                crs.get(0).getMetadata().getName(),
+                "a DNS-clean realm and id get a readable name with no hash suffix");
         assertEquals("my-client", crs.get(0).getSpec().getClientId());
         assertEquals("master", crs.get(0).getMetadata().getLabels().get(K8sStorageBackend.REALM_LABEL));
 
@@ -448,14 +449,11 @@ class K8sStorageBackendTest {
 
     @Test
     void crNamesAreSanitizedDeterministically() {
-        // realms keep plain readable names when lossless
+        // realms and scoped kinds keep plain readable names when every component is DNS-clean
         assertEquals("my-realm", K8sStorageBackend.crName(KeycloakRealmCr.class, "my-realm", "my-realm"));
-        // scoped kinds always carry a hash over the exact (realmId, id) pair: the readable
-        // prefix is lossy, only the hash prevents distinct pairs from colliding on one CR name
-        String account = K8sStorageBackend.crName(KeycloakClientCr.class, "master", "account");
-        assertTrue(account.matches("master\\.account-[0-9a-f]{8}"), account);
-        assertEquals(account, K8sStorageBackend.crName(KeycloakClientCr.class, "master", "account"));
-
+        assertEquals("master.account", K8sStorageBackend.crName(KeycloakClientCr.class, "master", "account"));
+        // a hash over the exact (realmId, id) pair is added only when dnsLabel mangles a component,
+        // so distinct pairs that sanitize alike cannot collide on one CR name
         String weird = K8sStorageBackend.crName(KeycloakClientCr.class, "master", "My Weird/Client");
         assertTrue(weird.matches("master\\.my-weird-client-[0-9a-f]{8}"), weird);
         assertEquals(weird, K8sStorageBackend.crName(KeycloakClientCr.class, "master", "My Weird/Client"));
