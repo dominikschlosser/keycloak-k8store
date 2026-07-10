@@ -43,6 +43,14 @@
       <version>${keycloak.version}</version>
       <scope>provided</scope>
     </dependency>
+    <!-- Deployment-state override delegates its MigrationModel to the JPA one (JpaConnectionProvider
+         + MigrationModelAdapter). Present at runtime: config is CR-backed, users/sessions stay JPA. -->
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-model-jpa</artifactId>
+      <version>${keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
 
     <!-- Kubernetes client (shaded into the provider jar) -->
     <dependency>

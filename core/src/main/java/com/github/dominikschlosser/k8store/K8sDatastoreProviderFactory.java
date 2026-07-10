@@ -29,7 +29,7 @@ import org.keycloak.storage.datastore.DefaultDatastoreProviderFactory;
 
 /**
  * Activated with {@code --spi-datastore--provider=k8store}. Requires the {@code stateless}
- * feature (Keycloak nightly): with it, the only state left besides the database are the config
+ * feature (Keycloak 26.7+): with it, the only state left besides the database are the config
  * entities this datastore serves from Kubernetes custom resources.
  */
 @AutoService(DatastoreProviderFactory.class)
@@ -71,7 +71,7 @@ public class K8sDatastoreProviderFactory implements DatastoreProviderFactory {
         if (!Profile.isFeatureEnabled(REQUIRED_FEATURE)) {
             throw new IllegalStateException("The k8store datastore requires the '"
                     + REQUIRED_FEATURE.getKey()
-                    + "' feature. Start Keycloak (nightly) with --features=" + REQUIRED_FEATURE.getKey());
+                    + "' feature. Start Keycloak with --features=" + REQUIRED_FEATURE.getKey());
         }
         // Fail fast at boot: connect to the Kubernetes API and sync all informer caches so the
         // node never serves partial configuration.
