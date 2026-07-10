@@ -6,7 +6,7 @@ identity providers) live in CRs while dynamic data (users, sessions) stays in th
 ideal for GitOps: your platform writes `KeycloakRealm`/`KeycloakClient` manifests, Keycloak
 serves them read-only. Optionally, **every** storage area can be CR-backed.
 
-Requires **Keycloak nightly** with the `stateless` feature. See [ARCHITECTURE.md](ARCHITECTURE.md)
+Requires **Keycloak 26.7.0+** with the `stateless` feature. See [ARCHITECTURE.md](ARCHITECTURE.md)
 for the design and the full details behind everything below.
 
 ```yaml
@@ -94,7 +94,7 @@ Keycloak service account `get,list,watch` (plus write verbs in write mode) on th
 Build options (`kc.sh build`, see `deploy/Dockerfile`):
 
 ```
---features=stateless                             # required (nightly)
+--features=stateless                             # required
 --spi-datastore--provider=k8store
 --spi-realm--jpa--enabled=false
 --spi-realm-cache--default--enabled=false        # the CR mirror replaces the realm cache

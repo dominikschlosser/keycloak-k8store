@@ -10,16 +10,15 @@
 # Variants (run sequentially, same manifests, same postgres, fresh namespace + DB each):
 #   k8store            deploy/Dockerfile image: config entities served from CR informer
 #                      mirrors, users/sessions in postgres (read-only=false)
-#   vanilla-stateless  stock nightly, --features=stateless --db=postgres: the same feature
+#   vanilla-stateless  stock 26.7.0, --features=stateless --db=postgres: the same feature
 #                      set with the JPA config store - isolates the storage-layer difference
-#   vanilla-default    stock nightly, default features: embedded Infinispan caches with
+#   vanilla-default    stock 26.7.0, default features: embedded Infinispan caches with
 #                      jdbc-ping clustering, as Keycloak is commonly run today
 # The vanilla variants reuse deploy/30-keycloak.yaml and are patched at runtime (image/args/
 # env). Keycloak's non-optimized `start` re-augments inside the pod, so the runtime args are
 # authoritative - no second Dockerfile needed. All variants share the exact same base image:
-# the locally cached quay.io/keycloak/keycloak:nightly (also the k8store image base) is pushed
-# to the local registry as keycloak-vanilla:dev, so quay's rolling :nightly tag cannot drift
-# between variants.
+# the locally cached quay.io/keycloak/keycloak:26.7.0 (also the k8store image base) is pushed
+# to the local registry as keycloak-vanilla:dev, so all variants share one fixed base.
 #
 # Access path: the load generator runs INSIDE the cluster as pod kcb (eclipse-temurin:21-jdk,
 # pinned to the control-plane node so it does not share a worker with a Keycloak replica) and
@@ -56,7 +55,7 @@ KCB_DIST_URL="https://github.com/keycloak/keycloak-benchmark/releases/download/$
 KCB_DIR=".benchmark-cache/keycloak-benchmark-${KCB_VERSION}"
 KUBECTL="kubectl --context kind-k8store"
 VANILLA_IMAGE=localhost:5001/keycloak-vanilla:dev
-NIGHTLY_IMAGE=quay.io/keycloak/keycloak:nightly
+IMAGE=quay.io/keycloak/keycloak:26.7.0
 SERVER_URL=http://keycloak.keycloak:8080   # in-cluster, from the kcb pod
 PF_URL=http://localhost:18080              # host-side, seeding/sanity only
 RESULTS=benchmark-results
@@ -122,12 +121,12 @@ EOF
 # ---------------------------------------------------------------------------- images
 
 ensure_vanilla_image() {
-  # Reuse the locally cached nightly (the same image the k8store build is based on) instead of
-  # letting the nodes pull quay's rolling tag - keeps all variants on one image digest.
-  if ! docker image inspect "${NIGHTLY_IMAGE}" >/dev/null 2>&1; then
-    docker pull "${NIGHTLY_IMAGE}"
+  # Reuse the locally cached base image (the same image the k8store build is based on) so all
+  # variants run on one image digest.
+  if ! docker image inspect "${IMAGE}" >/dev/null 2>&1; then
+    docker pull "${IMAGE}"
   fi
-  docker tag "${NIGHTLY_IMAGE}" "${VANILLA_IMAGE}"
+  docker tag "${IMAGE}" "${VANILLA_IMAGE}"
   docker push "${VANILLA_IMAGE}" >/dev/null
   echo "Vanilla image pushed: ${VANILLA_IMAGE}"
 }
@@ -161,7 +160,7 @@ deploy_variant() {
 
 record_cluster_view() {
   # vanilla-default only: verify the two replicas actually formed an Infinispan cluster
-  # (nightly's default JGroups stack is jdbc-ping, discovery via the shared postgres).
+  # (Keycloak's default JGroups stack is jdbc-ping, discovery via the shared postgres).
   local out=$1 view=""
   for pod in $(${KUBECTL} -n keycloak get pods -l app=keycloak -o name); do
     view=$(${KUBECTL} -n keycloak logs "${pod}" 2>/dev/null | grep ISPN000094 | tail -1 || true)

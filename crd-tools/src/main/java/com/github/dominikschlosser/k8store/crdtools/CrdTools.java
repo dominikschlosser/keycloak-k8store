@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * CLI for keycloak-k8store CRD lifecycle management across Keycloak (nightly) upgrades:
+ * CLI for keycloak-k8store CRD lifecycle management across Keycloak upgrades:
  * diff regenerated CRD schemas against a previous state or a running cluster, classify
  * changes as breaking vs. compatible, and roll out CRD updates via server-side apply.
  */

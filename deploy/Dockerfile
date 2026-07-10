@@ -1,8 +1,8 @@
-# Two-stage build: bake the k8store provider into a pre-built (--optimized) Keycloak nightly image.
+# Two-stage build: bake the k8store provider into a pre-built (--optimized) Keycloak 26.7.0 image.
 # Build context must be the repo root. The provider is the thin jar plus its runtime
 # dependency jars, all staged by the core build into core/target/providers/ (no shading,
 # fabric8 with the JDK HTTP client).
-FROM quay.io/keycloak/keycloak:nightly AS builder
+FROM quay.io/keycloak/keycloak:26.7.0 AS builder
 
 COPY core/target/providers/*.jar /opt/keycloak/providers/
 
@@ -23,6 +23,6 @@ RUN /opt/keycloak/bin/kc.sh build \
       --health-enabled=true \
       --metrics-enabled=true
 
-FROM quay.io/keycloak/keycloak:nightly
+FROM quay.io/keycloak/keycloak:26.7.0
 COPY --from=builder /opt/keycloak/ /opt/keycloak/
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
