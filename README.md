@@ -27,37 +27,28 @@ are served by every Keycloak node within milliseconds - no restarts, no cache in
 ## How it fits together
 
 ```mermaid
-flowchart LR
-    admin["Admin console / API users<br/>OIDC clients"]
+flowchart TD
+    admin["Admin console / API<br/>OIDC clients"]
     gitops["GitOps / platform<br/>kubectl, CI"]
 
-    subgraph cluster["Kubernetes cluster"]
-        apiserver["API server + etcd<br/>CRDs and Keycloak CRs,<br/>namespaced"]
-        subgraph ns["namespace: keycloak"]
-            subgraph podA["Keycloak pod A"]
-                dsA["K8sDatastoreProvider<br/>routes per area"]
-                crpA["CR providers<br/>realm, client, role, ..."]
-                beA["K8sStorageBackend<br/>in-memory mirror, informers,<br/>tx write buffer,<br/>reconcile + expiry timers"]
-                dsA --> crpA
-                crpA -->|"reads: mirror lookup,<br/>no API round trip"| beA
-            end
-            subgraph podB["Keycloak pod B"]
-                stackB["same stack,<br/>its own complete mirror"]
-            end
-            pg[("PostgreSQL<br/>dynamic data: users,<br/>sessions, tokens")]
-        end
+    subgraph pod["Keycloak pod &nbsp;·&nbsp; × N identical replicas, each with its own mirror"]
+        direction TB
+        ds["K8sDatastoreProvider<br/>routes per area"]
+        crp["CR providers<br/>realm, client, role, …"]
+        be["K8sStorageBackend<br/>in-memory mirror + informers,<br/>tx write buffer, reconcile / expiry timers"]
+        ds --> crp
+        crp -->|"read: local mirror,<br/>no API call"| be
     end
 
-    admin -->|"HTTPS"| dsA
-    admin -->|"HTTPS"| stackB
-    gitops -->|"kubectl apply CRs"| apiserver
-    apiserver -.->|"WATCH stream<br/>one per CRD kind"| beA
-    apiserver -.->|"WATCH stream<br/>one per CRD kind"| stackB
-    beA -->|"periodic LIST reconcile"| apiserver
-    beA ==>|"server-side apply at tx prepare,<br/>write mode only"| apiserver
-    stackB ==>|"server-side apply,<br/>write mode only"| apiserver
-    dsA -->|"JPA, non-CR areas"| pg
-    stackB -->|"JPA"| pg
+    api["Kubernetes API server + etcd<br/>Keycloak CRs, namespaced"]
+    pg[("PostgreSQL<br/>users, sessions, tokens")]
+
+    admin -->|"HTTPS"| ds
+    gitops -->|"kubectl apply CRs"| api
+    api -.->|"watch, 1 per CRD kind"| be
+    be -->|"periodic LIST reconcile"| api
+    be ==>|"server-side apply at tx prepare,<br/>write mode only"| api
+    ds -->|"JPA, non-CR areas"| pg
 ```
 
 Every pod keeps its own watch-synchronized in-memory mirror of the CRs, so reads never hit the
@@ -180,12 +171,8 @@ writes, so references stay intact.
 `scripts/update-crds.sh`). Config: `KeycloakRealm` (kr), `KeycloakClient` (kc),
 `KeycloakClientScope` (kcs), `KeycloakRole` (kro), `KeycloakGroup` (kg); authorization:
 krs/kazr/kazs/kazp/kpt; organizations: korg/korginv; dynamic: ku/kus/kas/klf/ksuo/krt/kuvc/kivc.
-Identity providers are embedded in the realm spec.
-
-On Keycloak version bumps: `scripts/update-crds.sh` regenerates the schemas,
-`scripts/crd-tools.sh` classifies the changes (compatible vs breaking) and applies them
-server-side without downtime; CRs are stamped with the writing Keycloak version and drift is
-warned at boot.
+Identity providers are embedded in the realm spec. On Keycloak version bumps the CRDs regenerate
+and apply without downtime - see below.
 
 ## Keycloak version upgrades
 
