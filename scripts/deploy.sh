@@ -95,9 +95,12 @@ ${KUBECTL} -n keycloak get pods -o wide
 cat <<'EOF'
 
 Deployment done. Useful commands:
-  Keycloak is exposed on the host via NodePort (kind extraPortMappings), no port-forward needed:
+  Reach Keycloak on the host. If the cluster was created with
+  KIND_PUBLISH_KEYCLOAK_PORTS=1 scripts/kind-up.sh, the NodePorts are already on the host:
     http://localhost:8080  (admin console; bootstrap admin/admin)
     http://localhost:9000  (management: health/metrics)
+  Otherwise (the default, which keeps 8080/9000 free for the integration tests), port-forward:
+    kubectl -n keycloak port-forward svc/keycloak 8080:8080 9000:9000
   Inspect the CRs backing the config store:
     kubectl -n keycloak get keycloakrealms
     kubectl -n keycloak get keycloakclients

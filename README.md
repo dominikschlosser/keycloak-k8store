@@ -24,7 +24,7 @@ spec:
 CRs use Keycloak's own representation JSON as their spec. Changes applied with `kubectl`/GitOps
 are served by every Keycloak node within milliseconds - no restarts, no cache invalidation.
 
-## How it fits together
+## Architecture
 
 ```mermaid
 flowchart TD
@@ -204,6 +204,10 @@ Two things happen on a Keycloak version bump, and only one of them is automatic:
 - Fine-grained admin permissions v2 needs write mode.
 - Switching an area on existing data is an unassisted migration event.
 - Realm renames don't rewrite child CRs.
+- Areas can't be split from their prerequisites: an area whose data lives in another area's CR
+  forces that area onto CRs too (`organization` pulls in `group`, `identity-provider`, `realm`;
+  `authorization` pulls in `client`). So you can't, e.g., serve organizations from CRs while
+  keeping groups in the database.
 - OID4VC and parameterized scopes are experimental upstream.
 
 Details in [ARCHITECTURE.md](ARCHITECTURE.md).
