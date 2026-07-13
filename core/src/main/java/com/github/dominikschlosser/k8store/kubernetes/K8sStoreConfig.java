@@ -15,7 +15,9 @@
  */
 package com.github.dominikschlosser.k8store.kubernetes;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
@@ -97,18 +99,19 @@ public final class K8sStoreConfig {
          * Not part of the {@code config} default for backward compatibility (deployments that
          * predate this area keep authorization on JPA and their CRD set unchanged); joins
          * {@code all} and explicit lists. Requires the {@code authorization} feature to be
-         * enabled (it is by default upstream) and the {@code client} area (resource servers are
-         * keyed by their client).
+         * enabled (it is by default upstream); pulls in the {@code client} area automatically
+         * (resource servers are keyed by their client) - see {@link #directDependencies}.
          */
         AUTHORIZATION("authorization", false, false),
         /**
          * Keycloak Organizations: the organization definitions (name, alias, domains,
          * attributes, redirect URL) plus their invitations. Configuration-class and opt-in like
          * {@link #AUTHORIZATION} - joins {@code all} and explicit lists, never the {@code
-         * config} default. Requires the {@code group} area (each organization is backed by a
-         * group created through {@code session.groups()}, membership is group membership) and
-         * the {@code identity-provider} area (the organization linkage lives on the identity
-         * provider, stored in the realm CR). Organization <em>membership</em> lives on the user
+         * config} default. Pulls in the {@code group} area automatically (each organization is
+         * backed by a group created through {@code session.groups()}, membership is group
+         * membership) and the {@code identity-provider} area (the organization linkage lives on
+         * the identity provider, stored in the realm CR) - see {@link #directDependencies}.
+         * Organization <em>membership</em> lives on the user
          * side and the invitation kind is runtime data - both stay writable in read-only mode;
          * only the organization definitions themselves are read-only config.
          */
@@ -145,6 +148,34 @@ public final class K8sStoreConfig {
          */
         public boolean isDynamic() {
             return dynamic;
+        }
+
+        /**
+         * Areas this one cannot function without, because its data lives inside another area's
+         * custom resource. {@link K8sStoreConfig#withDependencies} pulls these in transitively
+         * rather than rejecting the boot, so e.g. {@code areas=organization} implicitly enables
+         * {@code group}, {@code identity-provider} and (through the latter) {@code realm}.
+         *
+         * <ul>
+         *   <li>{@code identity-provider} needs {@code realm}: IdPs are embedded in the realm CR,
+         *       so serving them from CRs while realms stay on JPA makes the IdP provider delegate
+         *       to the JPA realm adapter, which delegates straight back - infinite recursion.
+         *   <li>{@code authorization} needs {@code client}: resource servers are keyed by their
+         *       client.
+         *   <li>{@code organization} needs {@code group} (every organization is backed by a group
+         *       and membership is group membership - Keycloak's JPA organization store even does a
+         *       raw {@code em.find(GroupEntity)} on it, so a CR-backed group there NPEs) and
+         *       {@code identity-provider} (the organization-to-IdP linkage is stored on the
+         *       identity providers in the realm CR).
+         * </ul>
+         */
+        Set<Area> directDependencies() {
+            return switch (this) {
+                case IDENTITY_PROVIDER -> EnumSet.of(REALM);
+                case AUTHORIZATION -> EnumSet.of(CLIENT);
+                case ORGANIZATION -> EnumSet.of(GROUP, IDENTITY_PROVIDER);
+                default -> EnumSet.noneOf(Area.class);
+            };
         }
 
         static Area fromConfigName(String name) {
@@ -187,6 +218,27 @@ public final class K8sStoreConfig {
             areas.add(Area.fromConfigName(area));
         }
         return areas;
+    }
+
+    /**
+     * Expands an area set with its transitive {@linkplain Area#directDependencies dependencies}.
+     * An area whose data lives inside another area's custom resource is only useful (and only
+     * correct) when that other area is CR-backed too, so we pull the prerequisites in rather than
+     * fail the boot: {@code areas=organization} becomes {@code organization, group,
+     * identity-provider, realm}.
+     */
+    static Set<Area> withDependencies(Set<Area> areas) {
+        Set<Area> resolved = EnumSet.noneOf(Area.class);
+        resolved.addAll(areas);
+        Deque<Area> pending = new ArrayDeque<>(areas);
+        while (!pending.isEmpty()) {
+            for (Area dependency : pending.poll().directDependencies()) {
+                if (resolved.add(dependency)) {
+                    pending.add(dependency);
+                }
+            }
+        }
+        return resolved;
     }
 
     private static volatile K8sStoreConfig instance;
@@ -235,17 +287,16 @@ public final class K8sStoreConfig {
             boolean allNamespaces,
             int syncTimeoutSeconds,
             boolean resolveReferences) {
-        validateAreas(areas);
         validateReferenceResolution(readOnly, resolveReferences);
-        K8sStoreConfig config =
-                new K8sStoreConfig(readOnly, areas, namespace, allNamespaces, syncTimeoutSeconds, resolveReferences);
+        K8sStoreConfig config = new K8sStoreConfig(
+                readOnly, withDependencies(areas), namespace, allNamespaces, syncTimeoutSeconds, resolveReferences);
         instance = config;
         return config;
     }
 
     private K8sStoreConfig(Config.Scope scope) {
         this.readOnly = scope.getBoolean("read-only", true);
-        this.areas = parseAreas(scope.get("areas"));
+        this.areas = withDependencies(parseAreas(scope.get("areas")));
         this.namespace = scope.get("namespace");
         this.allNamespaces = scope.getBoolean("all-namespaces", false);
         this.syncTimeoutSeconds = scope.getInt("sync-timeout-seconds", 120);
@@ -254,7 +305,6 @@ public final class K8sStoreConfig {
         this.expirationSweepSeconds = scope.getInt("expiration-sweep-seconds", 300);
         this.resourcesVersionSeed = scope.get("resources-version-seed");
         this.resolveReferences = scope.getBoolean("resolve-references", false);
-        validateAreas(this.areas);
         validateReferenceResolution(this.readOnly, this.resolveReferences);
         validateOrganizationFeatureCoupling(this.areas);
     }
@@ -274,34 +324,6 @@ public final class K8sStoreConfig {
                             + " resource in clear and lose the reference. Either keep"
                             + " --spi-datastore--k8store--read-only=true (the default) or disable"
                             + " --spi-datastore--k8store--resolve-references.");
-        }
-    }
-
-    /**
-     * Identity providers are embedded in the realm entity: serving them from CRs while realms
-     * stay on JPA would make the IdP provider delegate to the JPA realm adapter, which delegates
-     * straight back to the IdP provider - infinite recursion. Fail fast instead.
-     */
-    private static void validateAreas(Set<Area> areas) {
-        if (areas.contains(Area.IDENTITY_PROVIDER) && !areas.contains(Area.REALM)) {
-            throw new IllegalArgumentException(
-                    "k8store: the 'identity-provider' area requires the 'realm' area (identity providers are"
-                            + " embedded in the realm custom resource)");
-        }
-        if (areas.contains(Area.AUTHORIZATION) && !areas.contains(Area.CLIENT)) {
-            throw new IllegalArgumentException(
-                    "k8store: the 'authorization' area requires the 'client' area (resource servers are keyed"
-                            + " by their client)");
-        }
-        if (areas.contains(Area.ORGANIZATION) && !areas.contains(Area.GROUP)) {
-            throw new IllegalArgumentException(
-                    "k8store: the 'organization' area requires the 'group' area (every organization is backed"
-                            + " by a group and membership is group membership)");
-        }
-        if (areas.contains(Area.ORGANIZATION) && !areas.contains(Area.IDENTITY_PROVIDER)) {
-            throw new IllegalArgumentException(
-                    "k8store: the 'organization' area requires the 'identity-provider' area (the organization"
-                            + " linkage is stored on the identity providers in the realm custom resource)");
         }
     }
 

@@ -88,25 +88,22 @@ class K8sOrganizationKindsTest {
     }
 
     @Test
-    void organizationAreaRequiresGroupAndIdentityProviderAreas() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> K8sStoreConfig.of(
-                        false, EnumSet.of(Area.REALM, Area.IDENTITY_PROVIDER, Area.ORGANIZATION), "test", false, 30),
-                "organizations are group-backed - the group area is required");
-        K8sStoreConfig.reset();
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> K8sStoreConfig.of(
-                        false, EnumSet.of(Area.REALM, Area.GROUP, Area.ORGANIZATION), "test", false, 30),
-                "the organization-to-IdP linkage lives in the realm CR - the identity-provider area is required");
-        K8sStoreConfig.reset();
-        K8sStoreConfig.of(
-                false,
-                EnumSet.of(Area.REALM, Area.GROUP, Area.IDENTITY_PROVIDER, Area.ORGANIZATION),
-                "test",
-                false,
-                30);
+    void organizationAreaAutoActivatesGroupIdentityProviderAndRealm() {
+        // organizations are group-backed (Keycloak's JPA org store even does a raw em.find on the
+        // backing GroupEntity) and their IdP linkage lives in the realm CR, so naming just the
+        // organization area pulls in group, identity-provider and (transitively) realm.
+        Set<Area> resolved = K8sStoreConfig.of(false, EnumSet.of(Area.ORGANIZATION), "test", false, 30)
+                .getAreas();
+        assertTrue(resolved.contains(Area.GROUP), "the organization area must pull in the group area");
+        assertTrue(
+                resolved.contains(Area.IDENTITY_PROVIDER),
+                "the organization area must pull in the identity-provider area");
+        assertTrue(
+                resolved.contains(Area.REALM),
+                "identity-provider pulls in realm transitively (IdPs are embedded in the realm CR)");
+        // parseAreas is the raw grammar; dependency expansion is applied on top, not by it
+        assertTrue(K8sStoreConfig.withDependencies(K8sStoreConfig.parseAreas("organization"))
+                .containsAll(EnumSet.of(Area.ORGANIZATION, Area.GROUP, Area.IDENTITY_PROVIDER, Area.REALM)));
     }
 
     // ------------------------------------------------------------------ feature boot gate

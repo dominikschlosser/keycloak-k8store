@@ -211,7 +211,7 @@ to let Keycloak write them, then flip.
 ### Authorization Services
 
 Five CR kinds serve the UMA/fine-grained entitlement engine, gated on the `authorization` area
-(requires `client`; resource servers are keyed by their clientId). Resources, scopes, policies
+(auto-activates `client`; resource servers are keyed by their clientId). Resources, scopes, policies
 and tickets keep upstream's UUID ids and reference each other by id sets in the specs (the
 junction tables in CR shape), so the schemas stay free of the representation classes'
 resource<->scope recursion; policy-type settings (a role policy's roles) live in
@@ -226,7 +226,8 @@ so it **requires write mode**.
 
 ### Organizations
 
-Two CR kinds, gated on the `organization` area (requires `group` and `identity-provider`).
+Two CR kinds, gated on the `organization` area, which auto-activates `group`, `identity-provider`
+and (through the latter) `realm` - its data lives inside those areas' CRs.
 `KeycloakOrganization` (extends `OrganizationRepresentation`) holds the definition - name, alias,
 domains, attributes; its embedded `members`/`groups`/`identityProviders` are excluded from the
 schema. The **backing group** is a `KeycloakGroup` CR (`type: organization`, name = organization
