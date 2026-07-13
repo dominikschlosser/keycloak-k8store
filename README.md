@@ -69,14 +69,23 @@ API server and pods need no coordination - sequence diagrams and the full design
 scripts/kind-up.sh      # 2-worker kind cluster + local registry (needed by the tests too)
 mvn install             # build + unit and integration tests
 scripts/deploy.sh       # CRDs + postgres + 2 Keycloak replicas (admin/admin), write mode
-scripts/deploy.sh --read-only true    # flip to the GitOps production pattern
-kubectl -n keycloak get keycloakrealms,keycloakclients
+kubectl -n keycloak port-forward svc/keycloak 8080:8080   # then open http://localhost:8080 (admin/admin)
+kubectl -n keycloak get keycloakrealms,keycloakclients    # the master realm Keycloak just materialized
 scripts/kind-down.sh
 ```
 
+To reach the deployed Keycloak on the host without the port-forward, recreate the cluster with
+`KIND_PUBLISH_KEYCLOAK_PORTS=1 scripts/kind-up.sh` - that publishes the Service NodePorts so
+`http://localhost:8080` (console) and `http://localhost:9000` (health/metrics) hit it directly.
+It is opt-in because binding those host ports collides with the integration test server, so don't
+combine it with `mvn install` in the same run.
+
 Write mode materializes everything an admin does as CRs (useful for bootstrapping: click it
 together in the console, then `kubectl get ... -o yaml` becomes your GitOps source). Read-only
-mode rejects all config writes through Keycloak - the CRs are the single source of truth.
+mode (`scripts/deploy.sh --read-only true`) rejects all config writes through Keycloak - the CRs
+become the single source of truth, which is the GitOps production pattern. Flip a local playground
+to it only once you have CR manifests to serve; on a fresh cluster it just leaves you with the
+bootstrapped master realm and no way to add more through the console.
 
 `scripts/benchmark.sh` runs a k8store-vs-vanilla load-test comparison against this cluster
 using Keycloak's official keycloak-benchmark tool; results in [docs/BENCHMARK.md](docs/BENCHMARK.md).
