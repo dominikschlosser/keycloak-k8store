@@ -58,14 +58,18 @@ import org.keycloak.common.Profile;
  *       reaper deleting expired CRs of the dynamic kinds; only runs when a dynamic area is
  *       enabled. {@code 0} disables it (reads filter expired entities regardless).
  *   <li>{@code resources-version-seed} - fixes the theme <em>resources tag</em> used to cache-bust
- *       {@code /resources/{tag}/} URLs. Unset (default), the tag is the random per-database value
- *       Keycloak stores in {@code MIGRATION_MODEL}, which differs between clusters and across a
- *       database reset - during a rolling update a replica reading a different tag serves 404s for
- *       assets whose URLs an in-flight page already rendered. Set to any stable string, the tag
- *       becomes a deterministic hash of {@code (seed, Keycloak version)}: identical on every replica
- *       and redeploy of the same version (so rolling updates keep in-flight asset URLs valid), and
- *       still rotating on a Keycloak upgrade (whose bundled assets change anyway). See
- *       {@link com.github.dominikschlosser.k8store.CrMigrationManager}.
+ *       {@code /resources/{tag}/} URLs. With a relational database and this unset (default), the tag
+ *       is the random per-database value Keycloak stores in {@code MIGRATION_MODEL}, which differs
+ *       between clusters and across a database reset - during a rolling update a replica reading a
+ *       different tag serves 404s for assets whose URLs an in-flight page already rendered. Set to
+ *       any stable string, the tag becomes a deterministic hash of {@code (seed, Keycloak version)}:
+ *       identical on every replica and redeploy of the same version (so rolling updates keep
+ *       in-flight asset URLs valid), and still rotating on a Keycloak upgrade (whose bundled assets
+ *       change anyway). When there is <em>no</em> relational database (e.g. the dynamic areas are
+ *       served by the Cassandra extension) there is no {@code MIGRATION_MODEL} to fall back to, so an
+ *       unset seed derives the tag from the Keycloak version alone. See
+ *       {@link com.github.dominikschlosser.k8store.CrMigrationManager} and
+ *       {@link com.github.dominikschlosser.k8store.K8sDeploymentStateProviderFactory}.
  * </ul>
  */
 public final class K8sStoreConfig {
