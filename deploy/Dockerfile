@@ -9,8 +9,7 @@ COPY core/target/providers/*.jar /opt/keycloak/providers/
 # Selecting the k8store datastore is the opt-in; from there k8store self-configures. Its
 # K8sConfigDefaultsSourceFactory disables the SPI providers that would otherwise shadow the
 # CR-backed stores (the built-in JPA realm provider and the realm/authorization/organization
-# infinispan caches), so those --spi-*--enabled=false flags no longer have to be listed. Any
-# explicit --spi-* here or at runtime still wins.
+# infinispan caches). Any explicit --spi-* here or at runtime still wins.
 #
 # --features-disabled=organization: with the default areas (no 'organization' area, groups in
 # CRs) the organizations feature must stay off - the built-in JPA organization store cannot

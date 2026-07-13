@@ -373,9 +373,9 @@ docs/          BENCHMARK.md - k8store-vs-vanilla load-test results (scripts/benc
 --features-disabled=organization                        # unless the organization area is enabled
 ```
 
-The provider disables that keep an infinispan cache (or the JPA realm provider) from shadowing a
-CR-backed store are not listed because k8store contributes them itself once its datastore is
-selected: `--spi-realm--jpa--enabled=false`, `--spi-realm-cache--default--enabled=false`,
+Once its datastore is selected, k8store contributes the provider disables that keep an infinispan
+cache (or the JPA realm provider) from shadowing a CR-backed store:
+`--spi-realm--jpa--enabled=false`, `--spi-realm-cache--default--enabled=false`,
 `--spi-authorization-cache--default--enabled=false`, `--spi-organization--infinispan--enabled=false`.
 `K8sConfigDefaultsSourceFactory` - a SmallRye `ConfigSourceFactory` discovered through the same
 ServiceLoader hook Keycloak uses for its own config sources - reads the already-resolved config

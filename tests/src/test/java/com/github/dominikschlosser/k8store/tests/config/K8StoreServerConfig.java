@@ -58,10 +58,10 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
         } else {
             config.featuresDisabled(Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2, Profile.Feature.ORGANIZATION);
         }
-        // Selecting the k8store datastore is the opt-in; from there its K8sConfigDefaultsSourceFactory
-        // contributes the realm/jpa, realm-cache, authorization-cache and organization/infinispan
-        // disables as defaults, so they are not set here. Booting without those flags is exactly what
-        // proves the self-configuration is honored end-to-end.
+        // This config sets only the datastore selection and the stateless feature; k8store's
+        // K8sConfigDefaultsSourceFactory supplies the realm/jpa, realm-cache, authorization-cache and
+        // organization/infinispan disables. A green run therefore exercises that self-configuration
+        // end-to-end.
         return config.features(Profile.Feature.STATELESS)
                 .cache(CacheType.LOCAL)
                 .dependency("com.github.dominikschlosser", "keycloak-k8store")

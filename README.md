@@ -17,12 +17,20 @@ metadata:
 spec:
   realm: my-realm
   clientId: my-app
+  protocol: openid-connect
   enabled: true
+  standardFlowEnabled: true
   redirectUris: ["https://my-app.example.com/*"]
 ```
 
 CRs use Keycloak's own representation JSON as their spec. Changes applied with `kubectl`/GitOps
 are served by every Keycloak node within milliseconds - no restarts, no cache invalidation.
+
+The spec is served **verbatim**: a field you omit is not backfilled with the default the admin
+console would apply (an unset boolean reads as `false`, an unset string as `null`), so set the
+fields your entity actually needs - as the client above sets `protocol` and `standardFlowEnabled`.
+The easy way to a complete manifest is to create the entity once in [write mode](#quickstart-local)
+and export the CR Keycloak materializes (with every default filled in).
 
 ## Architecture
 
