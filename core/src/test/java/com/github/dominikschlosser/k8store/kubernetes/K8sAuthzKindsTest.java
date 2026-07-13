@@ -79,13 +79,12 @@ class K8sAuthzKindsTest {
     }
 
     @Test
-    void authorizationAreaRequiresTheClientArea() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> K8sStoreConfig.of(false, EnumSet.of(Area.REALM, Area.AUTHORIZATION), "test", false, 30),
-                "resource servers are keyed by their client - the client area is required");
-        K8sStoreConfig.reset();
-        K8sStoreConfig.of(false, EnumSet.of(Area.REALM, Area.CLIENT, Area.AUTHORIZATION), "test", false, 30);
+    void authorizationAreaAutoActivatesTheClientArea() {
+        // resource servers are keyed by their client, so naming the authorization area pulls in
+        // the client area rather than failing the boot
+        Set<Area> resolved = K8sStoreConfig.of(false, EnumSet.of(Area.REALM, Area.AUTHORIZATION), "test", false, 30)
+                .getAreas();
+        assertTrue(resolved.contains(Area.CLIENT), "the authorization area must pull in the client area");
     }
 
     // ------------------------------------------------------------------ registration gating
