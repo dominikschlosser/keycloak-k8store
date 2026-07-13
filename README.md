@@ -114,6 +114,7 @@ Datastore options (`--spi-datastore--k8store--<option>`, or env
 | `sync-timeout-seconds` | `120` | Max informer sync wait at boot |
 | `reconcile-interval-seconds` | `60` | Upper bound on staleness if a watch connection silently stops delivering events (`0` = off) |
 | `expiration-sweep-seconds` | `300` | Reaper for expired session/dynamic CRs |
+| `resolve-references` | `false` | Resolve `${env:...}` / `${secret:...}` references in CR values on read (see below) |
 
 ### Areas
 
@@ -131,6 +132,47 @@ Datastore options (`--spi-datastore--k8store--<option>`, or env
 **The dynamic areas are experimental**: every login becomes CR writes (etcd churn and size
 limits apply), and CR writes are transaction-buffered but not atomic with the database. User
 CRs contain **credential hashes and broker tokens - lock down RBAC on `keycloakusers`**.
+
+### Secret and environment references
+
+Some CR values are secrets - a client `secret`, the realm `smtpServer` password, an identity
+provider `clientSecret`, an LDAP `bindCredential`. With `resolve-references=true` these can live in
+a Kubernetes `Secret` (or an environment variable) and be referenced from the CR, so the manifest
+you commit to git only holds a reference. References are resolved on read; the CR itself is served
+verbatim, so the resolved value never lands back in the stored CR.
+
+References are placeholders inside any string value, recognized only with an explicit prefix (so
+ordinary values and Keycloak's own `${...}` tokens are untouched):
+
+- `${env:NAME}` - the pod environment variable `NAME`
+- `${env:NAME:-default}` - `NAME`, or `default` when it is unset or empty
+- `${secret:secret-name:key}` - key `key` of the `Secret` `secret-name` in the watched namespace
+- `$$` - a literal `$`
+
+```yaml
+apiVersion: k8store.dominikschlosser.github.io/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: master.my-app
+spec:
+  realm: master
+  clientId: my-app
+  secret: ${secret:kc-client-secrets:my-app}   # from Secret kc-client-secrets, key my-app
+```
+
+Referenced Secrets must live in the datastore's own namespace (a reference carries no namespace),
+and the service account needs `get,list,watch` on `secrets` (already in `deploy/20-rbac.yaml`,
+commented as such). A reference that cannot be resolved (missing Secret/key, unset variable with no
+default) is left in place verbatim and logged - it fails open, visibly.
+
+References are resolved only in the config kinds (realm, client, ...); the always-writable runtime
+kinds (users, sessions, ...) are Keycloak-owned data and are served verbatim.
+
+`resolve-references` **requires `read-only` mode** (the default) and the boot fails otherwise.
+Resolution happens on read, and the admin console reads through the same path, so it sees the
+resolved value; in write mode a save would map the whole representation back and persist that
+resolved value into the CR in clear, overwriting the reference. Read-only mode forbids config
+writes, so references stay intact.
 
 ## CRD kinds
 
