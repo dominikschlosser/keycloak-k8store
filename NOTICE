@@ -1,6 +1,0 @@
-keycloak-k8store
-Copyright 2026 Dominik Schlosser
-
-This product depends on the Fabric8 Kubernetes Client
-(https://github.com/fabric8io/kubernetes-client), Apache License 2.0,
-deployed alongside the provider jar in the Keycloak providers directory.

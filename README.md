@@ -226,5 +226,4 @@ Details in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## License
 
-Apache-2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)). The datastore-extension pattern was
-inspired by [keycloak-extension-filestore](https://github.com/opdt/keycloak-extension-filestore).
+Apache-2.0 ([LICENSE](LICENSE)
