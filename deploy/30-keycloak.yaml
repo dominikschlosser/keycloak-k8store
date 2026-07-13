@@ -52,12 +52,10 @@ spec:
             # area (e.g. KC_SPI_DATASTORE__K8STORE__AREAS=all) AND drop this flag.
             - --features-disabled=organization
             - --spi-datastore--provider=k8store
-            - --spi-realm--jpa--enabled=false
-            - --spi-realm-cache--default--enabled=false
-            # like the realm cache: with the authorization area the informer mirror is the
-            # cache; without it (default) authorization data is JPA-served and uncached reads
-            # are fine under stateless
-            - --spi-authorization-cache--default--enabled=false
+            # No cache-disable flags: selecting k8store above opts in, and its
+            # K8sConfigDefaultsSourceFactory then disables the SPI providers that would otherwise
+            # shadow the CR-backed stores (a re-augmenting start honors these defaults). Any
+            # explicit --spi-* here would still override an individual default.
             - --health-enabled=true
             - --metrics-enabled=true
             - --hostname-strict=false

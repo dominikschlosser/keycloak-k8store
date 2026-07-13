@@ -6,20 +6,21 @@ FROM quay.io/keycloak/keycloak:26.7.0 AS builder
 
 COPY core/target/providers/*.jar /opt/keycloak/providers/
 
+# Selecting the k8store datastore is the opt-in; from there k8store self-configures. Its
+# K8sConfigDefaultsSourceFactory disables the SPI providers that would otherwise shadow the
+# CR-backed stores (the built-in JPA realm provider and the realm/authorization/organization
+# infinispan caches), so those --spi-*--enabled=false flags no longer have to be listed. Any
+# explicit --spi-* here or at runtime still wins.
+#
 # --features-disabled=organization: with the default areas (no 'organization' area, groups in
 # CRs) the organizations feature must stay off - the built-in JPA organization store cannot
 # reference CR-backed groups, and the k8store boot validation rejects that combination. To use
 # organizations, enable the area (e.g. areas=all, or areas=organization which auto-pulls in
-# group + identity-provider + realm) AND the feature AND disable the infinispan organization
-# cache (--spi-organization--infinispan--enabled=false); the deployment manifest's non-optimized
-# start makes those runtime args authoritative.
+# group + identity-provider + realm) AND the feature.
 RUN /opt/keycloak/bin/kc.sh build \
       --features=stateless \
       --db=postgres \
       --spi-datastore--provider=k8store \
-      --spi-realm--jpa--enabled=false \
-      --spi-realm-cache--default--enabled=false \
-      --spi-authorization-cache--default--enabled=false \
       --features-disabled=organization \
       --health-enabled=true \
       --metrics-enabled=true

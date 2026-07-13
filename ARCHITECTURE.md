@@ -363,19 +363,26 @@ docs/          BENCHMARK.md - k8store-vs-vanilla load-test results (scripts/benc
 
 ```
 --features=stateless                                    # required
---spi-datastore--provider=k8store
+--spi-datastore--provider=k8store                       # required - opts into k8store
 --spi-datastore--k8store--read-only=true                # default: true (config kinds; dynamic kinds stay writable)
 --spi-datastore--k8store--areas=config                  # config (default) | all | explicit list
 --spi-datastore--k8store--namespace=<ns>                # default: own pod namespace
 --spi-datastore--k8store--all-namespaces=false
 --spi-datastore--k8store--reconcile-interval-seconds=60 # bounds staleness if a watch silently stalls (0 = off)
 --spi-datastore--k8store--expiration-sweep-seconds=300  # reaper for expired dynamic CRs (0 = off)
---spi-realm--jpa--enabled=false                         # disable the built-in JPA realm provider
---spi-realm-cache--default--enabled=false               # the informer mirror replaces the realm cache
---spi-authorization-cache--default--enabled=false       # when using the authorization area
---spi-organization--infinispan--enabled=false           # when using the organization area
 --features-disabled=organization                        # unless the organization area is enabled
 ```
+
+The provider disables that keep an infinispan cache (or the JPA realm provider) from shadowing a
+CR-backed store are not listed because k8store contributes them itself once its datastore is
+selected: `--spi-realm--jpa--enabled=false`, `--spi-realm-cache--default--enabled=false`,
+`--spi-authorization-cache--default--enabled=false`, `--spi-organization--infinispan--enabled=false`.
+`K8sConfigDefaultsSourceFactory` - a SmallRye `ConfigSourceFactory` discovered through the same
+ServiceLoader hook Keycloak uses for its own config sources - reads the already-resolved config
+through the factory's `ConfigSourceContext`, so it contributes each value only when unset (no ordinal
+race) and only when `--spi-datastore--provider=k8store` is the selected datastore (the opt-in;
+choosing another datastore contributes nothing). Honored at both `kc.sh build` and a re-augmenting
+`start`.
 
 RBAC: the Keycloak service account needs `get,list,watch` (plus write verbs in write mode) on all
 resources in the `k8store.dominikschlosser.github.io` API group - see `deploy/20-rbac.yaml`.

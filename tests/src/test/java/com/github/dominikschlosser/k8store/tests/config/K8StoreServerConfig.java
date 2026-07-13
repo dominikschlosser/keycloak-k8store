@@ -54,26 +54,18 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
         // permissions v2 stays disabled - preview upstream, and it writes policies at runtime
         // (incompatible with the read-only production pattern anyway).
         if (organizations) {
-            config.features(Profile.Feature.ORGANIZATION)
-                    .featuresDisabled(Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2)
-                    // the infinispan organization cache provider (order 10) hardcodes the jpa
-                    // organization store as its delegate and depends on the (disabled) realm
-                    // cache - like the realm/authorization caches it must be off so the
-                    // CR-backed organization provider wins default resolution
-                    .spiOption("organization", "infinispan", "enabled", "false");
+            config.features(Profile.Feature.ORGANIZATION).featuresDisabled(Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2);
         } else {
             config.featuresDisabled(Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2, Profile.Feature.ORGANIZATION);
         }
+        // Selecting the k8store datastore is the opt-in; from there its K8sConfigDefaultsSourceFactory
+        // contributes the realm/jpa, realm-cache, authorization-cache and organization/infinispan
+        // disables as defaults, so they are not set here. Booting without those flags is exactly what
+        // proves the self-configuration is honored end-to-end.
         return config.features(Profile.Feature.STATELESS)
                 .cache(CacheType.LOCAL)
                 .dependency("com.github.dominikschlosser", "keycloak-k8store")
                 .option("spi-datastore--provider", "k8store")
-                .option("spi-datastore--k8store--namespace", TestNamespaces.defaultName())
-                .spiOption("realm", "jpa", "enabled", "false")
-                .spiOption("realm-cache", "default", "enabled", "false")
-                // like the realm cache: the informer mirror is the cache when the authorization
-                // area is CR-backed, and the infinispan authorization cache would not observe
-                // out-of-band CR edits
-                .spiOption("authorization-cache", "default", "enabled", "false");
+                .option("spi-datastore--k8store--namespace", TestNamespaces.defaultName());
     }
 }

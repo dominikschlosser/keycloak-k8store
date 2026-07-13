@@ -86,12 +86,16 @@ Build options (`kc.sh build`, see `deploy/Dockerfile`):
 
 ```
 --features=stateless                             # required
---spi-datastore--provider=k8store
---spi-realm--jpa--enabled=false
---spi-realm-cache--default--enabled=false        # the CR mirror replaces the realm cache
---spi-authorization-cache--default--enabled=false     # when using the authorization area
---spi-organization--infinispan--enabled=false         # when using the organization area
+--spi-datastore--provider=k8store                # required — opts into k8store
 ```
+
+That's all. Selecting the k8store datastore opts in; from there k8store disables the SPI providers
+that would otherwise shadow the CR-backed stores — the built-in JPA realm provider and the realm /
+authorization / organization infinispan caches (the CR informer mirror is the cache, and the
+infinispan caches never observe out-of-band CR edits). It contributes those as config **defaults**
+from a `ConfigSourceFactory` (`K8sConfigDefaultsSourceFactory`), honored at both `kc.sh build` and a
+re-augmenting `start`, so you never set them by hand. Any explicit `--spi-*` still wins, and the
+self-configuration only activates when k8store is the selected datastore.
 
 Datastore options (`--spi-datastore--k8store--<option>`, or env
 `KC_SPI_DATASTORE__K8STORE__<OPTION>`):
