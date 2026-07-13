@@ -57,6 +57,15 @@ import org.keycloak.common.Profile;
  *   <li>{@code expiration-sweep-seconds} (default {@code 300}) - interval of the background
  *       reaper deleting expired CRs of the dynamic kinds; only runs when a dynamic area is
  *       enabled. {@code 0} disables it (reads filter expired entities regardless).
+ *   <li>{@code resolve-references} (default {@code false}) - resolve reference placeholders in CR
+ *       string values on read: {@code ${env:NAME}} / {@code ${env:NAME:-default}} from the pod
+ *       environment and {@code ${secret:name:key}} from a Kubernetes Secret in the watched
+ *       namespace. Off by default so existing CRs are served verbatim; when on, the backend also
+ *       watches Secrets (needs {@code get,list,watch} on {@code secrets}). <em>Requires
+ *       {@code read-only=true}</em> (validated at boot): resolution is on the read path, so in
+ *       write mode a saved entity would persist the resolved value back into the CR and lose the
+ *       reference. See
+ *       {@link com.github.dominikschlosser.k8store.kubernetes.references.PlaceholderResolver}.
  *   <li>{@code resources-version-seed} - fixes the theme <em>resources tag</em> used to cache-bust
  *       {@code /resources/{tag}/} URLs. With a relational database and this unset (default), the tag
  *       is the random per-database value Keycloak stores in {@code MIGRATION_MODEL}, which differs
@@ -191,9 +200,15 @@ public final class K8sStoreConfig {
     private final int reconcileIntervalSeconds;
     private final int expirationSweepSeconds;
     private final String resourcesVersionSeed;
+    private final boolean resolveReferences;
 
     private K8sStoreConfig(
-            boolean readOnly, Set<Area> areas, String namespace, boolean allNamespaces, int syncTimeoutSeconds) {
+            boolean readOnly,
+            Set<Area> areas,
+            String namespace,
+            boolean allNamespaces,
+            int syncTimeoutSeconds,
+            boolean resolveReferences) {
         this.readOnly = readOnly;
         this.areas = EnumSet.copyOf(areas);
         this.namespace = namespace;
@@ -203,13 +218,27 @@ public final class K8sStoreConfig {
         this.reconcileIntervalSeconds = 5;
         this.expirationSweepSeconds = 300;
         this.resourcesVersionSeed = null;
+        this.resolveReferences = resolveReferences;
     }
 
     /** Programmatic configuration for tests, used with {@code K8sStorageBackend.initWithClient}. */
     public static K8sStoreConfig of(
             boolean readOnly, Set<Area> areas, String namespace, boolean allNamespaces, int syncTimeoutSeconds) {
+        return of(readOnly, areas, namespace, allNamespaces, syncTimeoutSeconds, false);
+    }
+
+    /** Programmatic configuration for tests, with control over reference resolution. */
+    public static K8sStoreConfig of(
+            boolean readOnly,
+            Set<Area> areas,
+            String namespace,
+            boolean allNamespaces,
+            int syncTimeoutSeconds,
+            boolean resolveReferences) {
         validateAreas(areas);
-        K8sStoreConfig config = new K8sStoreConfig(readOnly, areas, namespace, allNamespaces, syncTimeoutSeconds);
+        validateReferenceResolution(readOnly, resolveReferences);
+        K8sStoreConfig config =
+                new K8sStoreConfig(readOnly, areas, namespace, allNamespaces, syncTimeoutSeconds, resolveReferences);
         instance = config;
         return config;
     }
@@ -224,8 +253,28 @@ public final class K8sStoreConfig {
         this.reconcileIntervalSeconds = scope.getInt("reconcile-interval-seconds", 60);
         this.expirationSweepSeconds = scope.getInt("expiration-sweep-seconds", 300);
         this.resourcesVersionSeed = scope.get("resources-version-seed");
+        this.resolveReferences = scope.getBoolean("resolve-references", false);
         validateAreas(this.areas);
+        validateReferenceResolution(this.readOnly, this.resolveReferences);
         validateOrganizationFeatureCoupling(this.areas);
+    }
+
+    /**
+     * Reference resolution is a read-only-mode feature. Resolution happens on the read path, so in
+     * write mode Keycloak re-persists the whole spec on any change (an admin console save maps the
+     * full representation back) and a resolved {@code ${secret:...}}/{@code ${env:...}} value would
+     * be written into the custom resource in clear, overwriting the reference. Fail the boot rather
+     * than silently leak the referenced value back into the CR.
+     */
+    static void validateReferenceResolution(boolean readOnly, boolean resolveReferences) {
+        if (resolveReferences && !readOnly) {
+            throw new IllegalArgumentException(
+                    "k8store: 'resolve-references' requires read-only mode. Resolution happens on read, so in"
+                            + " write mode a saved entity would persist the resolved value back into the custom"
+                            + " resource in clear and lose the reference. Either keep"
+                            + " --spi-datastore--k8store--read-only=true (the default) or disable"
+                            + " --spi-datastore--k8store--resolve-references.");
+        }
     }
 
     /**
@@ -303,6 +352,15 @@ public final class K8sStoreConfig {
 
     public boolean isReadOnly() {
         return readOnly;
+    }
+
+    /**
+     * Whether reference placeholders ({@code ${env:...}}, {@code ${secret:...}}) in CR string
+     * values are resolved on read. When true the backend also watches Secrets in the write
+     * namespace.
+     */
+    public boolean isResolveReferences() {
+        return resolveReferences;
     }
 
     // The configured resources-version-seed, or null to use Keycloak's default tag.

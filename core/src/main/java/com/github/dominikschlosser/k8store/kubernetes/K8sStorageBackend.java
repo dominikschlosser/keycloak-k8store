@@ -16,7 +16,9 @@
 package com.github.dominikschlosser.k8store.kubernetes;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dominikschlosser.k8store.crd.AuthSessionSpec;
 import com.github.dominikschlosser.k8store.crd.AuthzPolicySpec;
@@ -60,6 +62,8 @@ import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakSingleUseObjec
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserSessionCr;
 import com.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserVerifiableCredentialCr;
+import com.github.dominikschlosser.k8store.kubernetes.references.PlaceholderResolver;
+import com.github.dominikschlosser.k8store.kubernetes.references.SecretMirror;
 import io.fabric8.kubernetes.api.model.HasMetadata;
 import io.fabric8.kubernetes.api.model.KubernetesResourceList;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
@@ -165,12 +169,28 @@ public final class K8sStorageBackend implements AutoCloseable {
     private final List<SharedIndexInformer<?>> informers = new ArrayList<>();
     private ScheduledExecutorService reconciler;
 
+    /**
+     * Reference resolution on the read path, or {@code null} when {@code resolve-references} is
+     * off. When set, every read-out copy has its {@code ${env:...}}/{@code ${secret:...}}
+     * placeholders resolved, and {@link #secretMirror} watches the Secrets they reference.
+     */
+    private final PlaceholderResolver resolver;
+
+    private final SecretMirror secretMirror;
+
     private K8sStorageBackend(KubernetesClient client, boolean closeClient, K8sStoreConfig config) {
         this.client = client;
         this.closeClient = closeClient;
         this.config = config;
         String ns = config.getNamespace() != null ? config.getNamespace() : client.getNamespace();
         this.writeNamespace = ns != null ? ns : "default";
+        if (config.isResolveReferences()) {
+            this.secretMirror = new SecretMirror(client, writeNamespace);
+            this.resolver = new PlaceholderResolver(System::getenv, secretMirror);
+        } else {
+            this.secretMirror = null;
+            this.resolver = null;
+        }
 
         // the realm kind's id (spec.realm, the realm name) doubles as its realm id, so it has
         // no separate realm setter - a realm CR without spec.realm falls back to metadata.name,
@@ -506,6 +526,11 @@ public final class K8sStorageBackend implements AutoCloseable {
         for (KindState<?, ?> state : kinds.values()) {
             informers.add(state.startInformer());
         }
+        // the Secret watch feeds ${secret:...} resolution; awaited alongside the kind informers
+        // below so references resolve from a fully synced cache from the first read
+        if (secretMirror != null) {
+            informers.add(secretMirror.start());
+        }
         long deadline = System.currentTimeMillis() + config.getSyncTimeoutSeconds() * 1000L;
         for (SharedIndexInformer<?> informer : informers) {
             while (!informer.hasSynced()) {
@@ -513,9 +538,10 @@ public final class K8sStorageBackend implements AutoCloseable {
                     close();
                     throw new IllegalStateException("k8store: informer for "
                             + informer.getApiTypeClass().getSimpleName()
-                            + " did not sync within " + config.getSyncTimeoutSeconds() + "s. Are the "
-                            + K8sCrd.GROUP + " CRDs installed and does the service account have list/watch"
-                            + " permissions?");
+                            + " did not sync within " + config.getSyncTimeoutSeconds()
+                            + "s. Does the service account have list/watch permissions on it (for "
+                            + K8sCrd.GROUP + " kinds, are the CRDs installed; for Secrets, is"
+                            + " resolve-references paired with secrets RBAC)?");
                 }
                 try {
                     Thread.sleep(50);
@@ -688,7 +714,7 @@ public final class K8sStorageBackend implements AutoCloseable {
         if (spec == null || state.isExpired(spec)) {
             return null;
         }
-        return copyOf(specClass, spec);
+        return copyOf(state, spec);
     }
 
     /**
@@ -724,12 +750,31 @@ public final class K8sStorageBackend implements AutoCloseable {
      * Defensive copy of a mirror entry. Handing out the live instance would let a request
      * thread mutate what every other session on this node reads - including mutations that the
      * API server (or read-only mode) later rejects, silently corrupting the mirror.
+     *
+     * <p>When reference resolution is on, the copy also has its {@code ${env:...}}/{@code
+     * ${secret:...}} placeholders resolved. Resolution happens only here on the read-out path, so
+     * the mirror keeps the raw placeholders and a write serializes them back verbatim - secrets
+     * are never stored in the config-CR mirror in clear.
+     *
+     * <p>Only config kinds are resolved. The always-writable runtime kinds (users, sessions,
+     * single-use objects, ...) are machine-written data that never carries references, and
+     * resolving them would risk writing a resolved value back on their next update - a leak
+     * read-only mode does not guard against, since those kinds stay writable in read-only mode.
      */
-    private static <S> S copyOf(Class<S> specClass, S spec) {
+    private <S> S copyOf(KindState<S, ?> state, S spec) {
         if (spec == null) {
             return null;
         }
-        return COPY_MAPPER.convertValue(spec, specClass);
+        if (resolver == null || state.alwaysWritable) {
+            return COPY_MAPPER.convertValue(spec, state.specClass);
+        }
+        try {
+            JsonNode tree = resolver.resolveTree(COPY_MAPPER.valueToTree(spec));
+            return COPY_MAPPER.treeToValue(tree, state.specClass);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException(
+                    "k8store: resolving references while reading " + state.specClass.getSimpleName() + " failed", e);
+        }
     }
 
     public <S> boolean exists(Class<S> specClass, String realmId, String id) {
@@ -738,20 +783,18 @@ public final class K8sStorageBackend implements AutoCloseable {
 
     public <S> List<S> readAll(Class<S> specClass) {
         KindState<S, ?> state = state(specClass);
-        return liveCopies(specClass, state, state.byRealm.values().stream().flatMap(m -> m.values().stream()));
+        return liveCopies(state, state.byRealm.values().stream().flatMap(m -> m.values().stream()));
     }
 
     public <S> List<S> readAllInRealm(Class<S> specClass, String realmId) {
         KindState<S, ?> state = state(specClass);
         Map<String, S> realm = state.byRealm.get(realmId);
-        return realm == null ? List.of() : liveCopies(specClass, state, realm.values().stream());
+        return realm == null ? List.of() : liveCopies(state, realm.values().stream());
     }
 
     /** Drops expired entities and hands out a defensive copy of each survivor. */
-    private static <S> List<S> liveCopies(Class<S> specClass, KindState<S, ?> state, Stream<S> specs) {
-        return specs.filter(s -> !state.isExpired(s))
-                .map(s -> copyOf(specClass, s))
-                .collect(Collectors.toList());
+    private <S> List<S> liveCopies(KindState<S, ?> state, Stream<S> specs) {
+        return specs.filter(s -> !state.isExpired(s)).map(s -> copyOf(state, s)).collect(Collectors.toList());
     }
 
     // ------------------------------------------------------------------ writes
