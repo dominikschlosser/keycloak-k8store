@@ -43,8 +43,14 @@ import org.keycloak.storage.MigrationManager;
  * tag here as well makes the writing replica correct in the same boot (no restart).
  *
  * <p>The <em>fixed</em> {@code resources-version-seed} deployment option is handled in
- * {@link K8sDatastoreProviderFactory#postInit}, not here: {@code migrate()} only runs on migration
+ * {@link K8sDeploymentStateProviderFactory}, not here: {@code migrate()} only runs on migration
  * boots, whereas the seed must be applied on every boot.
+ *
+ * <p>This works unchanged whether or not there is a relational database. With one the
+ * deployment-state provider hands out a JPA-backed model; without one (for example when the dynamic
+ * areas are served by the Cassandra extension) it hands out a database-free model whose stored
+ * version is always absent - so the version check below is a no-op - and whose resources tag is
+ * seed-derived. See {@link K8sDeploymentStateProviderFactory.DbLessMigrationModel}.
  */
 public class CrMigrationManager implements MigrationManager {
 
@@ -63,11 +69,16 @@ public class CrMigrationManager implements MigrationManager {
                 session.getProvider(DeploymentStateProvider.class).getMigrationModel();
         String stored = model.getStoredVersion();
         if (stored == null || new ModelVersion(stored).lessThan(new ModelVersion(Version.VERSION))) {
-            // Persists the MIGRATION_MODEL row and (re)generates the theme resources tag.
+            // With a relational database this persists the MIGRATION_MODEL row and (re)generates the
+            // theme resources tag; without one it is a no-op (the tag is seed-derived).
             model.setStoredVersion(Version.VERSION);
         }
-        // Publish the tag so the writing replica sees it too (no restart needed).
-        Version.RESOURCES_VERSION = model.getResourcesTag();
+        // Publish the tag so the writing replica sees it too (no restart needed). Guard against a
+        // null tag defensively; the JPA-backed and database-free models both return a non-null one.
+        String resourcesTag = model.getResourcesTag();
+        if (resourcesTag != null) {
+            Version.RESOURCES_VERSION = resourcesTag;
+        }
     }
 
     @Override
