@@ -15,43 +15,34 @@ Requires **Keycloak 26.7.0+** with the **`stateless`** feature.
 ### Components
 
 ```mermaid
-flowchart LR
-    admin["Admin console / API users<br/>OIDC clients"]
+flowchart TD
+    admin["Admin console / API<br/>OIDC clients"]
     gitops["GitOps / platform<br/>kubectl, CI"]
 
-    subgraph cluster["Kubernetes cluster"]
-        apiserver["API server + etcd<br/>CRDs and Keycloak CRs,<br/>namespaced"]
-        subgraph ns["namespace: keycloak"]
-            subgraph podA["Keycloak pod A"]
-                dsA["K8sDatastoreProvider<br/>routes per area"]
-                crpA["CR providers<br/>realm, client, role, ..."]
-                beA["K8sStorageBackend<br/>in-memory mirror, informers,<br/>tx write buffer,<br/>reconcile + expiry timers"]
-                dsA --> crpA
-                crpA -->|"reads: mirror lookup,<br/>no API round trip"| beA
-            end
-            subgraph podB["Keycloak pod B"]
-                stackB["same stack,<br/>its own complete mirror"]
-            end
-            pg[("PostgreSQL<br/>dynamic data: users,<br/>sessions, tokens")]
-        end
+    subgraph pod["Keycloak pod &nbsp;·&nbsp; × N identical replicas, each with its own mirror"]
+        direction TB
+        ds["K8sDatastoreProvider<br/>routes per area"]
+        crp["CR providers<br/>realm, client, role, …"]
+        be["K8sStorageBackend<br/>in-memory mirror + informers,<br/>tx write buffer, reconcile / expiry timers"]
+        ds --> crp
+        crp -->|"read: local mirror,<br/>no API call"| be
     end
 
-    admin -->|"HTTPS"| dsA
-    admin -->|"HTTPS"| stackB
-    gitops -->|"kubectl apply CRs"| apiserver
-    apiserver -.->|"WATCH stream<br/>one per CRD kind"| beA
-    apiserver -.->|"WATCH stream<br/>one per CRD kind"| stackB
-    beA -->|"periodic LIST reconcile"| apiserver
-    beA ==>|"server-side apply at tx prepare,<br/>write mode only"| apiserver
-    stackB ==>|"server-side apply,<br/>write mode only"| apiserver
-    dsA -->|"JPA, non-CR areas"| pg
-    stackB -->|"JPA"| pg
+    api["Kubernetes API server + etcd<br/>Keycloak CRs, namespaced"]
+    pg[("PostgreSQL<br/>users, sessions, tokens")]
+
+    admin -->|"HTTPS"| ds
+    gitops -->|"kubectl apply CRs"| api
+    api -.->|"watch, 1 per CRD kind"| be
+    be -->|"periodic LIST reconcile"| api
+    be ==>|"server-side apply at tx prepare,<br/>write mode only"| api
+    ds -->|"JPA, non-CR areas"| pg
 ```
 
 Dotted = watch streams (one `SharedIndexInformer` per CRD kind), thick = the
 transaction-buffered write path (write mode only), solid = requests, reconcile and JPA. Every
-pod holds its **own complete mirror** of all CRs in the namespace: reads are local map lookups,
-and pods exchange no config data - they share only the API server and database.
+replica keeps its **own complete mirror** of all CRs in the namespace, so reads are local map
+lookups; pods share only the API server and database, never config data directly.
 
 ### Out-of-band config change (the read-only GitOps path)
 
@@ -348,12 +339,12 @@ read-only flow (the test namespace and dev DB outlive server restarts).
 
 The cluster is provisioned through the **`kind` CLI** (a `ProcessBuilder` in `KindClusterSupplier`,
 or `scripts/kind-up.sh`), not a testcontainers library (`kindcontainer` / testcontainers-k3s). The
-deciding reason is the **multi-node** requirement: the remote tier pins two Keycloak replicas to
-separate worker nodes to exercise the cross-replica informer consistency the store relies on, which
-a single-node in-container API server cannot reproduce. kind builds that topology and has no JVM
-binding, so the CLI is the only way to drive real multi-node kind from Java; the embedded
-auto-create uses the same kind so both tiers share one cluster technology. (The library route would
-be Docker-only with automatic teardown, but those conveniences did not outweigh needing multi-node.)
+deciding reason is **multi-node**: the remote tier pins two Keycloak replicas to separate worker
+nodes to exercise the cross-replica informer consistency the store relies on, which a single-node
+in-container API server cannot reproduce. kind builds that topology and has no JVM binding, so the
+CLI is the only way to drive it from Java; the embedded auto-create uses the same kind, so both
+tiers share one cluster technology. The library route would be Docker-only with automatic teardown,
+but those conveniences did not outweigh multi-node.
 
 ## Repository layout
 
