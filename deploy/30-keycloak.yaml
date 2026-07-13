@@ -51,11 +51,10 @@ spec:
             # rejects feature-on + organization-area-off). To use organizations: enable the
             # area (e.g. KC_SPI_DATASTORE__K8STORE__AREAS=all) AND drop this flag.
             - --features-disabled=organization
+            # Selecting k8store opts in; its K8sConfigDefaultsSourceFactory then disables the SPI
+            # providers that would otherwise shadow the CR-backed stores (a re-augmenting start
+            # honors these defaults). An explicit --spi-* here overrides an individual default.
             - --spi-datastore--provider=k8store
-            # No cache-disable flags: selecting k8store above opts in, and its
-            # K8sConfigDefaultsSourceFactory then disables the SPI providers that would otherwise
-            # shadow the CR-backed stores (a re-augmenting start honors these defaults). Any
-            # explicit --spi-* here would still override an individual default.
             - --health-enabled=true
             - --metrics-enabled=true
             - --hostname-strict=false
