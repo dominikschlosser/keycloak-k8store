@@ -24,13 +24,13 @@ spec:
 ```
 
 CRs use Keycloak's own representation JSON as their spec. Changes applied with `kubectl`/GitOps
-are served by every Keycloak node within milliseconds - no restarts, no cache invalidation.
+are served by every Keycloak node within milliseconds. No restarts. No cache invalidation.
 
-The spec is served **verbatim**: a field you omit is not backfilled with the default the admin
-console would apply (an unset boolean reads as `false`, an unset string as `null`), so set the
-fields your entity actually needs - as the client above sets `protocol` and `standardFlowEnabled`.
-The easy way to a complete manifest is to create the entity once in [write mode](#quickstart-local)
-and export the CR Keycloak materializes (with every default filled in).
+The spec is served **verbatim**. A field you omit is not backfilled with the default the admin
+console would apply. An unset boolean reads as `false`. An unset string reads as `null`. Set the
+fields your entity actually needs, as the client above sets `protocol` and `standardFlowEnabled`.
+To get a complete manifest, create the entity once in [write mode](#quickstart-local) and export
+the CR Keycloak materializes. It has every default filled in.
 
 ## Architecture
 
@@ -97,13 +97,13 @@ Build options (`kc.sh build`, see `deploy/Dockerfile`):
 --spi-datastore--provider=k8store                # required — opts into k8store
 ```
 
-That's all. Selecting the k8store datastore opts in; from there k8store disables the SPI providers
-that would otherwise shadow the CR-backed stores — the built-in JPA realm provider and the realm /
-authorization / organization infinispan caches (the CR informer mirror is the cache, and the
-infinispan caches never observe out-of-band CR edits). It contributes those as config **defaults**
-from a `ConfigSourceFactory` (`K8sConfigDefaultsSourceFactory`), honored at both `kc.sh build` and a
-re-augmenting `start`, so you never set them by hand. Any explicit `--spi-*` still wins, and the
-self-configuration only activates when k8store is the selected datastore.
+That's all. Selecting the k8store datastore opts in. From there k8store disables the SPI providers
+that would otherwise shadow the CR-backed stores. Those are the built-in JPA realm provider and the
+realm, authorization, and organization infinispan caches. The CR informer mirror is the cache. The
+infinispan caches never observe out-of-band CR edits. k8store contributes those disables as config
+**defaults** from a `ConfigSourceFactory` (`K8sConfigDefaultsSourceFactory`), honored at both
+`kc.sh build` and a re-augmenting `start`. You never set them by hand. Any explicit `--spi-*` still
+wins. The self-configuration only activates when k8store is the selected datastore.
 
 Datastore options (`--spi-datastore--k8store--<option>`, or env
 `KC_SPI_DATASTORE__K8STORE__<OPTION>`):

@@ -42,25 +42,25 @@ public class K8StoreServerConfig implements KeycloakServerConfig {
     }
 
     /**
-     * The organizations feature is coupled to the {@code organization} area: with groups served
-     * from CRs, the built-in JPA organization store cannot work (it references group rows that
-     * do not exist), so the k8store boot validation rejects "feature on, area off" - server
-     * configs enable the feature together with the area ({@code organizations = true}) and keep
-     * it disabled otherwise.
+     * The organizations feature is coupled to the {@code organization} area. With groups served
+     * from CRs, the built-in JPA organization store cannot work. It references group rows that do
+     * not exist. So the k8store boot validation rejects "feature on, area off". Server configs
+     * enable the feature together with the area ({@code organizations = true}) and keep it disabled
+     * otherwise.
      */
     static KeycloakServerConfigBuilder commonOptions(KeycloakServerConfigBuilder config, boolean organizations) {
-        // The authorization feature stays enabled (upstream default): without the authorization
-        // area it is served by JPA, with the area by the CR store. Fine-grained admin
-        // permissions v2 stays disabled - preview upstream, and it writes policies at runtime
-        // (incompatible with the read-only production pattern anyway).
+        // The authorization feature stays enabled, the upstream default. Without the authorization
+        // area it is served by JPA. With the area it is served by the CR store. Fine-grained admin
+        // permissions v2 stays disabled. It is preview upstream and writes policies at runtime,
+        // which does not fit the read-only production pattern.
         if (organizations) {
             config.features(Profile.Feature.ORGANIZATION).featuresDisabled(Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2);
         } else {
             config.featuresDisabled(Profile.Feature.ADMIN_FINE_GRAINED_AUTHZ_V2, Profile.Feature.ORGANIZATION);
         }
-        // This config sets only the datastore selection and the stateless feature; k8store's
-        // K8sConfigDefaultsSourceFactory supplies the realm/jpa, realm-cache, authorization-cache and
-        // organization/infinispan disables. A green run therefore exercises that self-configuration
+        // This config sets only the datastore selection and the stateless feature. k8store's
+        // K8sConfigDefaultsSourceFactory supplies the realm/jpa, realm-cache, authorization-cache
+        // and organization/infinispan disables. A green run exercises that self-configuration
         // end-to-end.
         return config.features(Profile.Feature.STATELESS)
                 .cache(CacheType.LOCAL)

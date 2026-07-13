@@ -374,18 +374,18 @@ docs/          BENCHMARK.md - k8store-vs-vanilla load-test results (scripts/benc
 ```
 
 Once its datastore is selected, k8store contributes the provider disables that keep an infinispan
-cache (or the JPA realm provider) from shadowing a CR-backed store:
+cache or the JPA realm provider from shadowing a CR-backed store:
 `--spi-realm--jpa--enabled=false`, `--spi-realm-cache--default--enabled=false`,
 `--spi-authorization-cache--default--enabled=false`, `--spi-organization--infinispan--enabled=false`.
-`K8sConfigDefaultsSourceFactory` - a SmallRye `ConfigSourceFactory` discovered through the same
-ServiceLoader hook Keycloak uses for its own config sources - reads the already-resolved config
-through the factory's `ConfigSourceContext`, so it contributes each value only when unset (no ordinal
-race) and only when `--spi-datastore--provider=k8store` is the selected datastore (the opt-in;
-choosing another datastore contributes nothing). Honored at both `kc.sh build` and a re-augmenting
-`start`.
+`K8sConfigDefaultsSourceFactory` is a SmallRye `ConfigSourceFactory`. Keycloak discovers it through
+the same ServiceLoader hook it uses for its own config sources. It reads the already-resolved config
+through the factory's `ConfigSourceContext`. So it contributes each value only when unset, which
+avoids an ordinal race. It contributes only when `--spi-datastore--provider=k8store` is the selected
+datastore. That selection is the opt-in. Choosing another datastore contributes nothing. Both
+`kc.sh build` and a re-augmenting `start` honor it.
 
 RBAC: the Keycloak service account needs `get,list,watch` (plus write verbs in write mode) on all
-resources in the `k8store.dominikschlosser.github.io` API group - see `deploy/20-rbac.yaml`.
+resources in the `k8store.dominikschlosser.github.io` API group. See `deploy/20-rbac.yaml`.
 
 ## Known limitations
 

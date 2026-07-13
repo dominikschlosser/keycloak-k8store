@@ -19,33 +19,32 @@ import org.keycloak.testframework.server.KeycloakServerConfig;
 import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
 
 /**
- * A fully pre-provisioned, read-only deployment where <em>every</em> realm - including
- * {@code master} - is served from custom resources, and no admin user is pre-seeded in the
- * database. This exercises Keycloak's boot-time {@code KC_BOOTSTRAP_ADMIN}
- * ({@code org.keycloak.services.managers.ApplianceBootstrap}) against a master realm that already
- * exists as a CR: {@code isNewInstall()} is false (master must not be recreated) but
- * {@code isNoMasterUser()} is true, so the bootstrap admin user has to be created into the
- * writable user store without any write reaching the read-only master CR.
+ * A fully pre-provisioned, read-only deployment. Every realm including {@code master} is served
+ * from custom resources. No admin user is pre-seeded in the database. This exercises Keycloak's
+ * boot-time {@code KC_BOOTSTRAP_ADMIN} ({@code ApplianceBootstrap}) against a master realm that
+ * already exists as a CR. {@code isNewInstall()} is false, so master is not recreated.
+ * {@code isNoMasterUser()} is true, so the bootstrap admin user is created. The creation must reach
+ * only the writable user store, never the read-only master CR.
  *
- * <p>Two knobs make this scenario reachable inside a single JVM:
+ * <p>Two knobs make this scenario reachable inside a single JVM.
  *
  * <ul>
- *   <li>the default test namespace already holds a <em>complete</em> master realm CR set, written
- *       by the earlier write-mode boot (see the class ordering in {@code junit-platform.properties})
- *       - exactly like a GitOps-provisioned cluster;
- *   <li>a dedicated, otherwise-unused in-memory H2 database ({@code db-url-database}) so the user
- *       store starts empty. The shared {@code dev-mem} database keeps the write-mode bootstrap
- *       admin alive across restarts (that is why {@link ReadOnlyK8StoreServerConfig} never
- *       exercises the empty-admin path); pointing this server at its own database is what engineers
- *       the {@code isNoMasterUser()} condition.
+ *   <li>The default test namespace already holds a complete master realm CR set, written by the
+ *       earlier write-mode boot. See the class ordering in {@code junit-platform.properties}. This
+ *       matches a GitOps-provisioned cluster.
+ *   <li>A dedicated, otherwise-unused in-memory H2 database ({@code db-url-database}) keeps the user
+ *       store empty. The shared {@code dev-mem} database keeps the write-mode bootstrap admin alive
+ *       across restarts, which is why {@link ReadOnlyK8StoreServerConfig} never exercises the
+ *       empty-admin path. Pointing this server at its own database engineers the
+ *       {@code isNoMasterUser()} condition.
  * </ul>
  */
 public class ReadOnlyEmptyAdminServerConfig implements KeycloakServerConfig {
 
     /**
      * A distinct H2 in-memory database name. {@code dev-mem} builds its JDBC URL from the template
-     * {@code jdbc:h2:mem:%s} with {@code %s} taken from {@code db-url-database}, so overriding it
-     * yields a separate, empty database that never saw the write-mode bootstrap admin.
+     * {@code jdbc:h2:mem:%s}. The {@code %s} comes from {@code db-url-database}. Overriding it yields
+     * a separate empty database that never saw the write-mode bootstrap admin.
      */
     private static final String EMPTY_ADMIN_DATABASE = "k8store-empty-admin";
 

@@ -27,24 +27,25 @@ import java.util.Set;
 import org.eclipse.microprofile.config.spi.ConfigSource;
 
 /**
- * Once a deployment opts into the k8store datastore ({@code --spi-datastore--provider=k8store}), this
- * disables the SPI providers that would otherwise shadow the CR-backed stores - so those disables no
- * longer have to be listed by hand. Contributed values are defaults: anything set explicitly (CLI
- * args, {@code KC_*} env, {@code keycloak.conf}) wins.
+ * Disables the SPI providers that would otherwise shadow the CR-backed stores. Runs once a
+ * deployment selects the k8store datastore ({@code --spi-datastore--provider=k8store}). The values
+ * are defaults. Anything a deployment sets explicitly wins, whether from CLI args, {@code KC_*}
+ * env, or {@code keycloak.conf}.
  *
- * <p>Keycloak discovers this through the standard SmallRye {@link ConfigSourceFactory} ServiceLoader
- * hook (the same discovery that finds Keycloak's own config sources), at both {@code kc.sh build}
- * and a re-augmenting {@code start}. Using a factory rather than a plain {@code ConfigSource} lets us
- * read the already-resolved configuration through the {@link ConfigSourceContext}, which buys two
- * things:
+ * <p>Keycloak discovers this through the standard SmallRye {@link ConfigSourceFactory}
+ * ServiceLoader hook. That is the same discovery that finds Keycloak's own config sources. It runs
+ * at {@code kc.sh build} and at a re-augmenting {@code start}.
+ *
+ * <p>A factory can read the already-resolved configuration through {@link ConfigSourceContext}. A
+ * plain {@code ConfigSource} cannot. That buys two properties.
  *
  * <ul>
  *   <li><b>The datastore selection is the opt-in.</b> We contribute only when k8store is the
- *       explicitly selected datastore. Merely having the extension on the classpath, or choosing a
- *       different datastore, contributes nothing - so this never disables another store's caches.
- *   <li><b>No ordinal race.</b> Each key is contributed only when the context reports it unset, so
- *       correctness does not depend on out-ranking another source. {@link #PRIORITY} just has to sit
- *       below Keycloak's sources so the context can observe them.
+ *       selected datastore. Installing the extension or choosing another datastore contributes
+ *       nothing. This never disables another store's caches.
+ *   <li><b>No ordinal race.</b> We contribute a key only when the context reports it unset.
+ *       Correctness does not depend on out-ranking another source. {@link #PRIORITY} only has to
+ *       sit below Keycloak's sources so the context can observe them.
  * </ul>
  */
 @AutoService(ConfigSourceFactory.class)
@@ -54,10 +55,10 @@ public class K8sConfigDefaultsSourceFactory implements ConfigSourceFactory {
     private static final String K8STORE = "k8store";
 
     /**
-     * The SPI providers that would otherwise shadow the CR-backed stores: the built-in JPA realm
-     * provider (a stray model-event listener) and the realm / authorization / organization
-     * infinispan caches (which never observe out-of-band CR edits, and whose organization variant
-     * delegates to the empty JPA store). Each is defaulted to disabled only when unset.
+     * SPI providers that would otherwise shadow the CR-backed stores. The built-in JPA realm
+     * provider stays registered as a stray model-event listener. The realm, authorization, and
+     * organization infinispan caches never observe out-of-band CR edits, and the organization cache
+     * delegates to the empty JPA store. Each is defaulted to disabled only when unset.
      */
     private static final List<String> PROVIDER_DISABLES = List.of(
             "kc.spi-realm--jpa--enabled",
@@ -66,9 +67,9 @@ public class K8sConfigDefaultsSourceFactory implements ConfigSourceFactory {
             "kc.spi-organization--infinispan--enabled");
 
     /**
-     * Below every Keycloak config source (persisted build values = 200, {@code keycloak.conf} = 299,
-     * {@code KC_*} env = 500, CLI args = 600), so {@link #getConfigSources} observes whatever a
-     * deployment set and fills in only the gaps. Any value strictly below 200 is equivalent here.
+     * Sits below every Keycloak config source. Persisted build values are 200, {@code keycloak.conf}
+     * is 299, {@code KC_*} env is 500, CLI args are 600. So {@link #getConfigSources} observes
+     * whatever a deployment set and fills in only the gaps. Any value below 200 is equivalent here.
      */
     static final int PRIORITY = 100;
 

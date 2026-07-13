@@ -43,15 +43,15 @@ import org.keycloak.testframework.server.KeycloakUrls;
 
 /**
  * A read-only k8store where the master realm is served entirely from pre-provisioned custom
- * resources and the database holds no admin user. The scenario proves that Keycloak's boot-time
- * {@code KC_BOOTSTRAP_ADMIN} ({@code ApplianceBootstrap}) still creates the admin user even though
- * the master realm already exists as a CR ({@code isNewInstall() == false} but
- * {@code isNoMasterUser() == true}), and that the creation touches only the writable user store -
- * never the read-only master CR (which would raise a {@code ReadOnlyException} and abort boot).
+ * resources and the database holds no admin user. The test proves that Keycloak's boot-time
+ * {@code KC_BOOTSTRAP_ADMIN} ({@code ApplianceBootstrap}) still creates the admin user when the
+ * master realm already exists as a CR. {@code isNewInstall()} is false and {@code isNoMasterUser()}
+ * is true. The creation touches only the writable user store. It never writes the read-only master
+ * CR, which would raise a {@code ReadOnlyException} and abort boot.
  *
- * <p>Runs after the write-mode boot so the default namespace already holds a complete master CR
- * set; the {@link ReadOnlyEmptyAdminServerConfig} points this server at its own empty in-memory
- * database so the bootstrap-admin path actually fires (see that config for the mechanics).
+ * <p>Runs after the write-mode boot, so the default namespace already holds a complete master CR
+ * set. {@link ReadOnlyEmptyAdminServerConfig} points this server at its own empty in-memory
+ * database so the bootstrap-admin path fires. See that config for the mechanics.
  */
 @Order(3)
 @KeycloakIntegrationTest(config = ReadOnlyEmptyAdminServerConfig.class)
@@ -74,11 +74,10 @@ public class BootstrapAdminOnReadOnlyMasterTest {
     }
 
     /**
-     * The bootstrap admin client of the framework ({@code @InjectAdminClient(BOOTSTRAP)}) logs in
-     * through the {@code temp-admin} service account, whose service-account user lives in the
-     * database - which this server's fresh database does not have. We deliberately authenticate as
-     * the {@code KC_BOOTSTRAP_ADMIN} user (created by {@code ApplianceBootstrap}) instead, since
-     * that user is exactly what this test is about.
+     * The framework's {@code @InjectAdminClient(BOOTSTRAP)} logs in through the {@code temp-admin}
+     * service account. That service-account user lives in the database, which this server's fresh
+     * database does not have. So we authenticate as the {@code KC_BOOTSTRAP_ADMIN} user instead.
+     * {@code ApplianceBootstrap} creates that user. It is what this test is about.
      */
     private Keycloak bootstrapAdminUserClient() {
         return KeycloakBuilder.builder()
@@ -93,10 +92,10 @@ public class BootstrapAdminOnReadOnlyMasterTest {
 
     @Test
     public void bootstrapAdminIsCreatedAndCanAuthenticate() {
-        // Reaching this point already proves the server booted under read-only without a
-        // ReadOnlyException: creating the admin user against a pre-existing master CR wrote only
-        // dynamic (user-store) data. A successful admin REST call additionally proves the admin
-        // role grant landed, i.e. the user really has master-realm admin rights.
+        // Reaching this point proves the server booted under read-only without a ReadOnlyException.
+        // Creating the admin user against a pre-existing master CR wrote only dynamic user-store
+        // data. A successful admin REST call proves the admin role grant landed. The user has real
+        // master-realm admin rights.
         try (Keycloak admin = bootstrapAdminUserClient()) {
             RealmRepresentation master = admin.realm("master").toRepresentation();
             assertNotNull(master, "the bootstrap admin must be able to read the master realm");
@@ -111,8 +110,8 @@ public class BootstrapAdminOnReadOnlyMasterTest {
 
     @Test
     public void masterRealmIsServedFromCustomResource() {
-        // master exists as a CR (so ApplianceBootstrap saw isNewInstall() == false and did not
-        // recreate it), and the CR store is authoritative and read-only.
+        // master exists as a CR, so ApplianceBootstrap saw isNewInstall() false and did not recreate
+        // it. The CR store is authoritative and read-only.
         assertEquals("master", masterRealmCr().getSpec().getRealm());
 
         try (Keycloak admin = bootstrapAdminUserClient()) {
@@ -125,7 +124,7 @@ public class BootstrapAdminOnReadOnlyMasterTest {
     @Test
     public void configWritesRemainRejectedWhileUsersStayWritable() {
         try (Keycloak admin = bootstrapAdminUserClient()) {
-            // read-only is genuinely in force - a config write must be rejected...
+            // Read-only is in force. A config write must be rejected.
             RealmRepresentation newRealm = new RealmRepresentation();
             newRealm.setRealm("read-only-reject");
             newRealm.setEnabled(true);
@@ -133,7 +132,7 @@ public class BootstrapAdminOnReadOnlyMasterTest {
                     WebApplicationException.class, () -> admin.realms().create(newRealm));
             assertTrue(createFailure.getResponse().getStatus() >= 400);
 
-            // ...while the user store the bootstrap admin was written into stays writable.
+            // The user store that received the bootstrap admin stays writable.
             UserRepresentation user = new UserRepresentation();
             user.setUsername("bootstrap-test-user");
             user.setEnabled(true);
