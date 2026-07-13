@@ -45,7 +45,7 @@ jobs:
         run: mvn -B -ntp test -pl core
 
       - name: Publish to Maven Central
-        run: mvn -B -ntp deploy -Prelease -DskipTests
+        run: mvn -B -ntp deploy -Prelease -DskipTests -pl core,crd-tools
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
