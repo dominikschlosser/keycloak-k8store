@@ -1,0 +1,59 @@
+name: Release
+
+# Cutting a v* tag publishes core + crd-tools to Maven Central and creates a GitHub release.
+# Integration and e2e tests need a kind cluster, so they run in ci.yaml on push/PR. This workflow
+# runs the core unit tests as a sanity check, then publishes.
+#
+# Required repository secrets:
+#   CENTRAL_USERNAME / CENTRAL_PASSWORD  - Sonatype Central Portal user token
+#   GPG_PRIVATE_KEY / GPG_PASSPHRASE     - the signing key for Central
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_PASSWORD
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Set version from tag
+        run: mvn -B -ntp versions:set -DnewVersion="${GITHUB_REF_NAME#v}"
+
+      - name: Core unit tests
+        run: mvn -B -ntp test -pl core
+
+      - name: Publish to Maven Central
+        run: mvn -B -ntp deploy -Prelease -DskipTests
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            core/target/keycloak-k8store-*.jar
+            crd-tools/target/keycloak-k8store-crd-tools-*.jar

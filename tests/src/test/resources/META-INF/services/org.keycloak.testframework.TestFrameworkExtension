@@ -1,1 +1,1 @@
-com.github.dominikschlosser.k8store.tests.framework.K8storeTestFrameworkExtension
+io.github.dominikschlosser.k8store.tests.framework.K8storeTestFrameworkExtension

@@ -2,25 +2,37 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.github.dominikschlosser</groupId>
+  <groupId>io.github.dominikschlosser</groupId>
   <artifactId>keycloak-k8store-parent</artifactId>
   <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>keycloak-k8store</name>
   <description>Keycloak datastore extension storing configuration entities (realms, clients, scopes, roles, groups, identity providers) as Kubernetes Custom Resources</description>
+  <url>https://github.com/dominikschlosser/keycloak-k8store</url>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
       <url>https://www.apache.org/licenses/LICENSE-2.0</url>
     </license>
   </licenses>
+  <developers>
+    <developer>
+      <name>Dominik Schlosser</name>
+      <url>https://github.com/dominikschlosser</url>
+    </developer>
+  </developers>
 
   <modules>
     <module>core</module>
     <module>crd-tools</module>
     <module>tests</module>
   </modules>
+  <scm>
+    <connection>scm:git:git://github.com/dominikschlosser/keycloak-k8store.git</connection>
+    <developerConnection>scm:git:ssh://github.com:dominikschlosser/keycloak-k8store.git</developerConnection>
+    <url>https://github.com/dominikschlosser/keycloak-k8store</url>
+  </scm>
 
   <properties>
     <keycloak.version>26.7.0</keycloak.version>
@@ -119,6 +131,70 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>3.3.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>3.11.2</version>
+        <configuration>
+          <doclint>none</doclint>
+          <quiet>true</quiet>
+        </configuration>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <version>0.7.0</version>
+        <extensions>true</extensions>
+        <configuration>
+          <publishingServerId>central</publishingServerId>
+          <autoPublish>true</autoPublish>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.2.7</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <phase>verify</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
