@@ -23,6 +23,26 @@ else
   echo "Local registry ${REG_NAME} already running"
 fi
 
+# Optionally publish the keycloak Service's NodePorts (deploy/30-keycloak.yaml) on the host so
+# http://localhost:8080 reaches the DEPLOYED Keycloak with no port-forward. OPT-IN
+# (KIND_PUBLISH_KEYCLOAK_PORTS=1) because binding host 8080/9000 collides with the embedded
+# integration test server, which is hardwired to localhost:8080/9000 - publishing them by
+# default breaks `mvn install` and the CI integration job (Port already bound: 8080). e2e.sh
+# port-forwards these ports itself, so the e2e flow does not need the mapping either.
+CONTROL_PLANE="- role: control-plane"
+if [ "${KIND_PUBLISH_KEYCLOAK_PORTS:-}" = "1" ]; then
+  # NodePorts answer on every node, so binding them on the control-plane still routes to the
+  # worker pods.
+  CONTROL_PLANE="${CONTROL_PLANE}
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 8080
+    protocol: TCP
+  - containerPort: 30900
+    hostPort: 9000
+    protocol: TCP"
+fi
+
 # 2. kind cluster: 1 control-plane + 2 workers (the 2 Keycloak replicas are
 #    forced onto distinct worker nodes via required podAntiAffinity)
 if kind get clusters 2>/dev/null | grep -qx "${CLUSTER_NAME}"; then
@@ -32,17 +52,7 @@ else
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
-- role: control-plane
-  # Map host ports to the keycloak Service's NodePorts (deploy/30-keycloak.yaml) so
-  # http://localhost:8080 reaches Keycloak with no port-forward. NodePorts answer on
-  # every node, so binding them on the control-plane still routes to the worker pods.
-  extraPortMappings:
-  - containerPort: 30080
-    hostPort: 8080
-    protocol: TCP
-  - containerPort: 30900
-    hostPort: 9000
-    protocol: TCP
+${CONTROL_PLANE}
 - role: worker
 - role: worker
 containerdConfigPatches:
