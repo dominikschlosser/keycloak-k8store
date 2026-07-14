@@ -126,7 +126,8 @@ Datastore options (`--spi-datastore--k8store--<option>`, or env
 | `sync-timeout-seconds` | `120` | Max informer sync wait at boot |
 | `reconcile-interval-seconds` | `60` | Upper bound on staleness if a watch connection silently stops delivering events (`0` = off) |
 | `expiration-sweep-seconds` | `300` | Reaper for expired session/dynamic CRs |
-| `resolve-references` | `false` | Resolve `${env:...}` / `${secret:...}` references in CR values on read (see below) |
+| `resolve-references` | `false` | Resolve `valuesFrom` Secret/ConfigMap/literal references in CR values on read (see below) |
+| `validate-references` | `false` | Validate every `valuesFrom` reference at boot and fail startup on any problem (needs `resolve-references`) |
 
 ### Areas
 
@@ -149,21 +150,28 @@ you never have to list them by hand: `authorization` adds `client`; `organizatio
 limits apply), and CR writes are transaction-buffered but not atomic with the database. User
 CRs contain **credential hashes and broker tokens - lock down RBAC on `keycloakusers`**.
 
-### Secret and environment references
+### Secret, ConfigMap and literal references
 
 Some CR values are secrets - a client `secret`, the realm `smtpServer` password, an identity
 provider `clientSecret`, an LDAP `bindCredential`. With `resolve-references=true` these can live in
-a Kubernetes `Secret` (or an environment variable) and be referenced from the CR, so the manifest
-you commit to git only holds a reference. References are resolved on read; the CR itself is served
-verbatim, so the resolved value never lands back in the stored CR.
+a Kubernetes `Secret` or `ConfigMap` and be referenced from the CR, so the manifest you commit to
+git only holds a reference. References are resolved on read; the CR itself is served verbatim, so
+the resolved value never lands back in the stored CR.
 
-References are placeholders inside any string value, recognized only with an explicit prefix (so
-ordinary values and Keycloak's own `${...}` tokens are untouched):
+A config CR declares its references in a `valuesFrom` list, the same shape the Grafana operator
+uses. Each entry names a `targetPath` (the string it feeds) and a `valueFrom` source. The value is
+injected where a `${...}` placeholder sits in the string at that path. A `${...}` that no entry
+points at is left untouched, so Keycloak's own `${...}` tokens (localization keys, policy
+expressions) stay intact. A `valueFrom` is one of:
 
-- `${env:NAME}` - the pod environment variable `NAME`
-- `${env:NAME:-default}` - `NAME`, or `default` when it is unset or empty
-- `${secret:secret-name:key}` - key `key` of the `Secret` `secret-name` in the watched namespace
-- `$$` - a literal `$`
+- `secretKeyRef: {name, key}` - key `key` of the `Secret` `name`
+- `configMapKeyRef: {name, key}` - key `key` of the `ConfigMap` `name`
+- `value` - an inline literal
+
+The placeholder that a Secret/ConfigMap value replaces is the referenced `key`, so `${my-app}`
+pairs with `key: my-app`. A literal replaces the single `${...}` at its `targetPath`. `targetPath`
+uses dot notation with array indexing (`redirectUris[0]`, `identityProviders[0].config.clientSecret`);
+map keys that contain dots use brackets (`components[org.keycloak.storage.UserStorageProvider][0]`).
 
 ```yaml
 apiVersion: k8store.dominikschlosser.github.io/v1alpha1
@@ -173,13 +181,26 @@ metadata:
 spec:
   realm: master
   clientId: my-app
-  secret: ${secret:kc-client-secrets:my-app}   # from Secret kc-client-secrets, key my-app
+  secret: ${my-app}
+  valuesFrom:
+    - targetPath: secret
+      valueFrom:
+        secretKeyRef:
+          name: kc-client-secrets
+          key: my-app
 ```
 
-Referenced Secrets must live in the datastore's own namespace (a reference carries no namespace),
-and the service account needs `get,list,watch` on `secrets` (already in `deploy/20-rbac.yaml`,
-commented as such). A reference that cannot be resolved (missing Secret/key, unset variable with no
-default) is left in place verbatim and logged - it fails open, visibly.
+Runnable examples that a test exercises on every build live in [`examples/references`](examples/references).
+
+Referenced Secrets and ConfigMaps must live in the datastore's own namespace (a reference carries
+no namespace), and the service account needs `get,list,watch` on `secrets` and `configmaps` (already
+in `deploy/20-rbac.yaml`, commented as such). A reference that cannot be resolved (missing
+Secret/ConfigMap/key, a `targetPath` that does not point at a matching placeholder) is left in place
+verbatim and logged - it fails open, visibly.
+
+Set `validate-references=true` to check every reference once at boot instead, after the Secret and
+ConfigMap caches have synced. The boot then fails with a report of every offending CR rather than
+serving unresolved placeholders. It needs `resolve-references`.
 
 References are resolved only in the config kinds (realm, client, ...); the always-writable runtime
 kinds (users, sessions, ...) are Keycloak-owned data and are served verbatim.

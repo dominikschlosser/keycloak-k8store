@@ -46,7 +46,24 @@ import org.keycloak.representations.idm.authorization.ResourceServerRepresentati
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ClientSpec extends ClientRepresentation implements ProtocolMapperCarrier, ScopeMappingCarrier {
+public class ClientSpec extends ClientRepresentation
+        implements ProtocolMapperCarrier, ScopeMappingCarrier, ValueReferenceCarrier {
+
+    /**
+     * Secret, ConfigMap and literal references this resource may pull into its {@code ${...}}
+     * placeholders. Resolved on read only. See {@link ValueReferenceCarrier}.
+     */
+    private List<ValueReference> valuesFrom;
+
+    @Override
+    public List<ValueReference> getValuesFrom() {
+        return valuesFrom;
+    }
+
+    @Override
+    public void setValuesFrom(List<ValueReference> valuesFrom) {
+        this.valuesFrom = valuesFrom;
+    }
 
     /**
      * Name of the realm this client belongs to. Required in hand-authored CRs (alternatively

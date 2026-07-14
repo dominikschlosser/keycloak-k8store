@@ -1,0 +1,8 @@
+# A ConfigMap holding non-secret settings. The KeycloakClient pulls its `rootUrl` and part of a
+# redirect URI from here through valuesFrom.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reference-example-config
+data:
+  ROOT_URL: https://app.example.com

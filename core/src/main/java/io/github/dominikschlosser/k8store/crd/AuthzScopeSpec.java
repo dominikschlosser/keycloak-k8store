@@ -17,6 +17,7 @@ package io.github.dominikschlosser.k8store.crd;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 
 /**
  * Spec of a {@code KeycloakAuthzScope} custom resource: one authorization scope of a resource
@@ -26,7 +27,23 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AuthzScopeSpec {
+public class AuthzScopeSpec implements ValueReferenceCarrier {
+
+    /**
+     * Secret, ConfigMap and literal references this resource may pull into its {@code ${...}}
+     * placeholders. Resolved on read only. See {@link ValueReferenceCarrier}.
+     */
+    private List<ValueReference> valuesFrom;
+
+    @Override
+    public List<ValueReference> getValuesFrom() {
+        return valuesFrom;
+    }
+
+    @Override
+    public void setValuesFrom(List<ValueReference> valuesFrom) {
+        this.valuesFrom = valuesFrom;
+    }
 
     /** Generated UUID, the store id; defaults to {@code metadata.name}. */
     private String id;

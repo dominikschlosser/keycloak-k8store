@@ -23,6 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.fabric8.kubernetes.api.model.ConfigMap;
+import io.fabric8.kubernetes.api.model.ConfigMapBuilder;
 import io.fabric8.kubernetes.api.model.ObjectMetaBuilder;
 import io.fabric8.kubernetes.api.model.Secret;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
@@ -35,9 +37,12 @@ import io.github.dominikschlosser.k8store.clientscope.ClientScopeCrStore;
 import io.github.dominikschlosser.k8store.crd.ClientScopeSpec;
 import io.github.dominikschlosser.k8store.crd.ClientSpec;
 import io.github.dominikschlosser.k8store.crd.GroupSpec;
+import io.github.dominikschlosser.k8store.crd.KeySelector;
 import io.github.dominikschlosser.k8store.crd.RealmSpec;
 import io.github.dominikschlosser.k8store.crd.RoleSpec;
 import io.github.dominikschlosser.k8store.crd.UserSpec;
+import io.github.dominikschlosser.k8store.crd.ValueFrom;
+import io.github.dominikschlosser.k8store.crd.ValueReference;
 import io.github.dominikschlosser.k8store.group.GroupCrStore;
 import io.github.dominikschlosser.k8store.kubernetes.K8sStoreConfig.Area;
 import io.github.dominikschlosser.k8store.kubernetes.crd.KeycloakClientCr;
@@ -117,6 +122,11 @@ class K8sStorageBackendTest {
         return K8sStorageBackend.initWithClient(client, config);
     }
 
+    private K8sStorageBackend startValidating() {
+        K8sStoreConfig config = K8sStoreConfig.of(true, EnumSet.allOf(Area.class), "test", false, 30, true, true);
+        return K8sStorageBackend.initWithClient(client, config);
+    }
+
     private void createSecret(String name, String key, String value) {
         Secret secret = new SecretBuilder()
                 .withNewMetadata()
@@ -126,6 +136,48 @@ class K8sStorageBackendTest {
                 .addToData(key, Base64.getEncoder().encodeToString(value.getBytes(StandardCharsets.UTF_8)))
                 .build();
         client.resource(secret).create();
+    }
+
+    private void createConfigMap(String name, String key, String value) {
+        ConfigMap configMap = new ConfigMapBuilder()
+                .withNewMetadata()
+                .withName(name)
+                .withNamespace("test")
+                .endMetadata()
+                .addToData(key, value)
+                .build();
+        client.resource(configMap).create();
+    }
+
+    private static ValueReference secretRef(String targetPath, String name, String key) {
+        KeySelector selector = new KeySelector();
+        selector.setName(name);
+        selector.setKey(key);
+        ValueFrom valueFrom = new ValueFrom();
+        valueFrom.setSecretKeyRef(selector);
+        return valueReference(targetPath, valueFrom);
+    }
+
+    private static ValueReference configMapRef(String targetPath, String name, String key) {
+        KeySelector selector = new KeySelector();
+        selector.setName(name);
+        selector.setKey(key);
+        ValueFrom valueFrom = new ValueFrom();
+        valueFrom.setConfigMapKeyRef(selector);
+        return valueReference(targetPath, valueFrom);
+    }
+
+    private static ValueReference literalRef(String targetPath, String value) {
+        ValueFrom valueFrom = new ValueFrom();
+        valueFrom.setValue(value);
+        return valueReference(targetPath, valueFrom);
+    }
+
+    private static ValueReference valueReference(String targetPath, ValueFrom valueFrom) {
+        ValueReference reference = new ValueReference();
+        reference.setTargetPath(targetPath);
+        reference.setValueFrom(valueFrom);
+        return reference;
     }
 
     private KeycloakClientCr clientCr(String name, ClientSpec spec) {
@@ -533,15 +585,33 @@ class K8sStorageBackendTest {
     }
 
     @Test
-    void resolvesSecretAndEnvReferencesOnReadWithoutTouchingTheStoredCr() {
+    void validateReferencesRequiresResolveReferences() {
+        // there is nothing to validate when references are not resolved
+        IllegalArgumentException e = assertThrows(
+                IllegalArgumentException.class,
+                () -> K8sStoreConfig.of(true, EnumSet.allOf(Area.class), "test", false, 30, false, true));
+        assertTrue(e.getMessage().contains("validate-references"), e.getMessage());
+
+        // resolve-references + validate-references is the supported combination
+        assertTrue(K8sStoreConfig.of(true, EnumSet.allOf(Area.class), "test", false, 30, true, true)
+                .isValidateReferences());
+    }
+
+    @Test
+    void resolvesSecretAndConfigMapReferencesOnReadWithoutTouchingTheStoredCr() {
         createSecret("kc-client-secrets", "my-client", "s3cr3t");
+        createConfigMap("kc-client-settings", "APP_URL", "https://app.example");
 
         ClientSpec spec = new ClientSpec();
         spec.setClientId("my-client");
         spec.setRealm("master");
-        spec.setSecret("${secret:kc-client-secrets:my-client}");
-        // an env reference with a default resolves without a real environment variable set
-        spec.setDescription("${env:K8STORE_TEST_MISSING:-defaulted}");
+        spec.setSecret("${my-client}");
+        spec.setRootUrl("${APP_URL}");
+        spec.setDescription("build ${BUILD}");
+        spec.setValuesFrom(List.of(
+                secretRef("secret", "kc-client-secrets", "my-client"),
+                configMapRef("rootUrl", "kc-client-settings", "APP_URL"),
+                literalRef("description", "17")));
         client.resource(clientCr("master.my-client", spec)).create();
 
         startResolving(true);
@@ -549,7 +619,8 @@ class K8sStorageBackendTest {
         ClientSpec read = ClientCrStore.read("master", "my-client");
         assertNotNull(read);
         assertEquals("s3cr3t", read.getSecret(), "the secret reference must be resolved on read");
-        assertEquals("defaulted", read.getDescription(), "the env reference must fall back to its default");
+        assertEquals("https://app.example", read.getRootUrl(), "the configmap reference must be resolved on read");
+        assertEquals("build 17", read.getDescription(), "the literal reference must be injected at the placeholder");
 
         // the stored CR still holds the raw placeholder: the secret is never written into the
         // config CR in clear
@@ -557,7 +628,28 @@ class K8sStorageBackendTest {
                 .inNamespace("test")
                 .withName("master.my-client")
                 .get();
-        assertEquals("${secret:kc-client-secrets:my-client}", stored.getSpec().getSecret());
+        assertEquals("${my-client}", stored.getSpec().getSecret());
+    }
+
+    @Test
+    void leavesUndeclaredPlaceholderVerbatim() {
+        // a ${...} that no valuesFrom entry points at is a Keycloak token, not a reference
+        createSecret("kc-client-secrets", "my-client", "s3cr3t");
+
+        ClientSpec spec = new ClientSpec();
+        spec.setClientId("my-client");
+        spec.setRealm("master");
+        spec.setSecret("${my-client}");
+        spec.setDescription("${role_admin}");
+        spec.setValuesFrom(List.of(secretRef("secret", "kc-client-secrets", "my-client")));
+        client.resource(clientCr("master.my-client", spec)).create();
+
+        startResolving(true);
+
+        ClientSpec read = ClientCrStore.read("master", "my-client");
+        assertNotNull(read);
+        assertEquals("s3cr3t", read.getSecret());
+        assertEquals("${role_admin}", read.getDescription(), "an undeclared placeholder is left verbatim");
     }
 
     @Test
@@ -565,27 +657,26 @@ class K8sStorageBackendTest {
         ClientSpec spec = new ClientSpec();
         spec.setClientId("broken");
         spec.setRealm("master");
-        spec.setSecret("${secret:absent-secret:key}");
+        spec.setSecret("${key}");
+        spec.setValuesFrom(List.of(secretRef("secret", "absent-secret", "key")));
         client.resource(clientCr("master.broken", spec)).create();
 
         startResolving(true);
 
         ClientSpec read = ClientCrStore.read("master", "broken");
         assertNotNull(read, "an unresolvable reference must not hide the entity");
-        assertEquals("${secret:absent-secret:key}", read.getSecret(), "a missing secret is left verbatim");
+        assertEquals("${key}", read.getSecret(), "a missing secret is left verbatim");
     }
 
     @Test
     void doesNotResolveReferencesForAlwaysWritableRuntimeKinds() {
         // resolution is a config concern: runtime kinds (users, sessions, ...) stay writable in
         // read-only mode, so resolving them would risk persisting the resolved value back on their
-        // next write. They are served verbatim even with resolution on.
-        createSecret("kc-secrets", "token", "resolved-value");
-
+        // next write. They carry no valuesFrom and are served verbatim even with resolution on.
         UserSpec spec = new UserSpec();
         spec.setId("u1");
         spec.setRealm("master");
-        spec.setUsername("${secret:kc-secrets:token}");
+        spec.setUsername("${token}");
         KeycloakUserCr cr = new KeycloakUserCr();
         cr.setMetadata(new ObjectMetaBuilder()
                 .withName("master.u1")
@@ -599,8 +690,7 @@ class K8sStorageBackendTest {
 
         UserSpec read = UserCrStore.read("master", "u1");
         assertNotNull(read);
-        assertEquals(
-                "${secret:kc-secrets:token}", read.getUsername(), "always-writable runtime kinds must not be resolved");
+        assertEquals("${token}", read.getUsername(), "always-writable runtime kinds must not be resolved");
     }
 
     @Test
@@ -610,7 +700,8 @@ class K8sStorageBackendTest {
         ClientSpec spec = new ClientSpec();
         spec.setClientId("my-client");
         spec.setRealm("master");
-        spec.setSecret("${secret:kc-client-secrets:my-client}");
+        spec.setSecret("${my-client}");
+        spec.setValuesFrom(List.of(secretRef("secret", "kc-client-secrets", "my-client")));
         client.resource(clientCr("master.my-client", spec)).create();
 
         start(true);
@@ -618,9 +709,79 @@ class K8sStorageBackendTest {
         ClientSpec read = ClientCrStore.read("master", "my-client");
         assertNotNull(read);
         assertEquals(
-                "${secret:kc-client-secrets:my-client}",
-                read.getSecret(),
-                "with resolve-references off the placeholder is served verbatim");
+                "${my-client}", read.getSecret(), "with resolve-references off the placeholder is served verbatim");
+    }
+
+    @Test
+    void startupValidationPassesWhenEveryReferenceResolves() {
+        createSecret("kc-client-secrets", "my-client", "s3cr3t");
+        createConfigMap("kc-client-settings", "APP_URL", "https://app.example");
+
+        ClientSpec spec = new ClientSpec();
+        spec.setClientId("my-client");
+        spec.setRealm("master");
+        spec.setSecret("${my-client}");
+        spec.setRootUrl("${APP_URL}");
+        spec.setValuesFrom(List.of(
+                secretRef("secret", "kc-client-secrets", "my-client"),
+                configMapRef("rootUrl", "kc-client-settings", "APP_URL")));
+        client.resource(clientCr("master.my-client", spec)).create();
+
+        // boot succeeds and still resolves on read
+        startValidating();
+        ClientSpec read = ClientCrStore.read("master", "my-client");
+        assertNotNull(read);
+        assertEquals("s3cr3t", read.getSecret());
+        assertEquals("https://app.example", read.getRootUrl());
+    }
+
+    @Test
+    void startupValidationFailsBootOnAMissingSecret() {
+        ClientSpec spec = new ClientSpec();
+        spec.setClientId("broken");
+        spec.setRealm("master");
+        spec.setSecret("${key}");
+        spec.setValuesFrom(List.of(secretRef("secret", "absent-secret", "key")));
+        client.resource(clientCr("master.broken", spec)).create();
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, this::startValidating);
+        assertTrue(e.getMessage().contains("validate-references"), e.getMessage());
+        assertTrue(e.getMessage().contains("absent-secret"), e.getMessage());
+    }
+
+    @Test
+    void startupValidationFailsBootWhenTargetPathLacksThePlaceholder() {
+        createSecret("kc-client-secrets", "my-client", "s3cr3t");
+
+        ClientSpec spec = new ClientSpec();
+        spec.setClientId("mismatch");
+        spec.setRealm("master");
+        spec.setSecret("not-a-placeholder");
+        spec.setValuesFrom(List.of(secretRef("secret", "kc-client-secrets", "my-client")));
+        client.resource(clientCr("master.mismatch", spec)).create();
+
+        IllegalStateException e = assertThrows(IllegalStateException.class, this::startValidating);
+        assertTrue(e.getMessage().contains("does not contain the placeholder"), e.getMessage());
+    }
+
+    @Test
+    void startupValidationIgnoresAlwaysWritableRuntimeKinds() {
+        // runtime kinds carry no valuesFrom. A stray placeholder in a user CR must not fail the boot
+        UserSpec spec = new UserSpec();
+        spec.setId("u1");
+        spec.setRealm("master");
+        spec.setUsername("${token}");
+        KeycloakUserCr cr = new KeycloakUserCr();
+        cr.setMetadata(new ObjectMetaBuilder()
+                .withName("master.u1")
+                .withNamespace("test")
+                .addToLabels(K8sStorageBackend.REALM_LABEL, "master")
+                .build());
+        cr.setSpec(spec);
+        client.resource(cr).create();
+
+        startValidating();
+        assertNotNull(UserCrStore.read("master", "u1"));
     }
 
     // ------------------------------------------------------------- transaction buffering

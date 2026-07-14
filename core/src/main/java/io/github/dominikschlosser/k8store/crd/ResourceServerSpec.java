@@ -17,6 +17,7 @@ package io.github.dominikschlosser.k8store.crd;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.List;
 import org.keycloak.representations.idm.authorization.DecisionStrategy;
 import org.keycloak.representations.idm.authorization.PolicyEnforcementMode;
 
@@ -30,7 +31,23 @@ import org.keycloak.representations.idm.authorization.PolicyEnforcementMode;
  */
 @JsonInclude(value = JsonInclude.Include.NON_NULL, content = JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ResourceServerSpec {
+public class ResourceServerSpec implements ValueReferenceCarrier {
+
+    /**
+     * Secret, ConfigMap and literal references this resource may pull into its {@code ${...}}
+     * placeholders. Resolved on read only. See {@link ValueReferenceCarrier}.
+     */
+    private List<ValueReference> valuesFrom;
+
+    @Override
+    public List<ValueReference> getValuesFrom() {
+        return valuesFrom;
+    }
+
+    @Override
+    public void setValuesFrom(List<ValueReference> valuesFrom) {
+        this.valuesFrom = valuesFrom;
+    }
 
     /** clientId of the owning client, the store id; defaults to {@code metadata.name}. */
     private String clientId;

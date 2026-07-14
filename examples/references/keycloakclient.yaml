@@ -1,0 +1,46 @@
+# A client whose secret and URLs are references. Requires
+# --spi-datastore--k8store--resolve-references=true. Each valuesFrom entry names a targetPath and a
+# source (Secret key, ConfigMap key or an inline literal). The value lands where the ${...}
+# placeholder sits in the string at that path. A ${...} that no entry points at is left untouched,
+# so Keycloak's own tokens stay intact.
+apiVersion: k8store.dominikschlosser.github.io/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: master.reference-example
+  labels:
+    k8store.dominikschlosser.github.io/realm: master
+spec:
+  realm: master
+  clientId: reference-example
+  enabled: true
+  protocol: openid-connect
+  publicClient: false
+  clientAuthenticatorType: client-secret
+  standardFlowEnabled: true
+  # ${client-secret} pairs with secretKeyRef.key below
+  secret: ${client-secret}
+  # ${ROOT_URL} pairs with configMapKeyRef.key below, here and inside the redirect URI
+  rootUrl: ${ROOT_URL}
+  redirectUris:
+    - ${ROOT_URL}/callback
+  # the literal replaces whatever ${...} placeholder sits at its targetPath
+  description: managed by k8store, revision ${REVISION}
+  valuesFrom:
+    - targetPath: secret
+      valueFrom:
+        secretKeyRef:
+          name: reference-example-secret
+          key: client-secret
+    - targetPath: rootUrl
+      valueFrom:
+        configMapKeyRef:
+          name: reference-example-config
+          key: ROOT_URL
+    - targetPath: redirectUris[0]
+      valueFrom:
+        configMapKeyRef:
+          name: reference-example-config
+          key: ROOT_URL
+    - targetPath: description
+      valueFrom:
+        value: "42"

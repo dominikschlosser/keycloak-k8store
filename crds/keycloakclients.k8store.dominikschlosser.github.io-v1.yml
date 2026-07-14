@@ -142,6 +142,32 @@ spec:
                 type: "boolean"
               useTemplateScope:
                 type: "boolean"
+              valuesFrom:
+                items:
+                  properties:
+                    targetPath:
+                      type: "string"
+                    valueFrom:
+                      properties:
+                        configMapKeyRef:
+                          properties:
+                            key:
+                              type: "string"
+                            name:
+                              type: "string"
+                          type: "object"
+                        secretKeyRef:
+                          properties:
+                            key:
+                              type: "string"
+                            name:
+                              type: "string"
+                          type: "object"
+                        value:
+                          type: "string"
+                      type: "object"
+                  type: "object"
+                type: "array"
               webOrigins:
                 items:
                   type: "string"

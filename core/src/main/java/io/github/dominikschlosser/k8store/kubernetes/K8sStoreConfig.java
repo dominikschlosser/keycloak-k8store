@@ -59,15 +59,24 @@ import org.keycloak.common.Profile;
  *   <li>{@code expiration-sweep-seconds} (default {@code 300}) - interval of the background
  *       reaper deleting expired CRs of the dynamic kinds; only runs when a dynamic area is
  *       enabled. {@code 0} disables it (reads filter expired entities regardless).
- *   <li>{@code resolve-references} (default {@code false}) - resolve reference placeholders in CR
- *       string values on read: {@code ${env:NAME}} / {@code ${env:NAME:-default}} from the pod
- *       environment and {@code ${secret:name:key}} from a Kubernetes Secret in the watched
- *       namespace. Off by default so existing CRs are served verbatim; when on, the backend also
- *       watches Secrets (needs {@code get,list,watch} on {@code secrets}). <em>Requires
- *       {@code read-only=true}</em> (validated at boot): resolution is on the read path, so in
- *       write mode a saved entity would persist the resolved value back into the CR and lose the
- *       reference. See
- *       {@link io.github.dominikschlosser.k8store.kubernetes.references.PlaceholderResolver}.
+ *   <li>{@code resolve-references} (default {@code false}) - resolve the {@code valuesFrom}
+ *       references of config CRs on read. Each entry names a {@code targetPath} and a
+ *       {@code valueFrom} source (a Kubernetes {@code secretKeyRef}, {@code configMapKeyRef} or an
+ *       inline literal), and its value is injected where a {@code ${...}} placeholder sits in the
+ *       string at that path. Off by default so existing CRs are served verbatim. When on, the
+ *       backend also watches Secrets and ConfigMaps (needs {@code get,list,watch} on
+ *       {@code secrets} and {@code configmaps}). <em>Requires {@code read-only=true}</em>
+ *       (validated at boot): resolution is on the read path, so in write mode a saved entity would
+ *       persist the resolved value back into the CR and lose the reference. See
+ *       {@link io.github.dominikschlosser.k8store.kubernetes.references.ValueReferenceResolver}.
+ *   <li>{@code validate-references} (default {@code false}) - validate every config CR's
+ *       {@code valuesFrom} references at boot, once the informer caches (including Secrets and
+ *       ConfigMaps) have synced, and fail the boot if any is invalid: a malformed entry, a
+ *       {@code targetPath} that does not point at a matching placeholder string, or a referenced
+ *       Secret/ConfigMap key that is absent. Requires {@code resolve-references}. Off by default,
+ *       where references resolve lazily on read and fail open (the placeholder is served verbatim
+ *       and logged). Turn it on to catch misconfiguration up front rather than serving unresolved
+ *       placeholders.
  *   <li>{@code resources-version-seed} - fixes the theme <em>resources tag</em> used to cache-bust
  *       {@code /resources/{tag}/} URLs. With a relational database and this unset (default), the tag
  *       is the random per-database value Keycloak stores in {@code MIGRATION_MODEL}, which differs
@@ -253,6 +262,7 @@ public final class K8sStoreConfig {
     private final int expirationSweepSeconds;
     private final String resourcesVersionSeed;
     private final boolean resolveReferences;
+    private final boolean validateReferences;
 
     private K8sStoreConfig(
             boolean readOnly,
@@ -260,7 +270,8 @@ public final class K8sStoreConfig {
             String namespace,
             boolean allNamespaces,
             int syncTimeoutSeconds,
-            boolean resolveReferences) {
+            boolean resolveReferences,
+            boolean validateReferences) {
         this.readOnly = readOnly;
         this.areas = EnumSet.copyOf(areas);
         this.namespace = namespace;
@@ -271,6 +282,7 @@ public final class K8sStoreConfig {
         this.expirationSweepSeconds = 300;
         this.resourcesVersionSeed = null;
         this.resolveReferences = resolveReferences;
+        this.validateReferences = validateReferences;
     }
 
     /** Programmatic configuration for tests, used with {@code K8sStorageBackend.initWithClient}. */
@@ -287,9 +299,28 @@ public final class K8sStoreConfig {
             boolean allNamespaces,
             int syncTimeoutSeconds,
             boolean resolveReferences) {
+        return of(readOnly, areas, namespace, allNamespaces, syncTimeoutSeconds, resolveReferences, false);
+    }
+
+    /** Programmatic configuration for tests, with control over reference resolution and validation. */
+    public static K8sStoreConfig of(
+            boolean readOnly,
+            Set<Area> areas,
+            String namespace,
+            boolean allNamespaces,
+            int syncTimeoutSeconds,
+            boolean resolveReferences,
+            boolean validateReferences) {
         validateReferenceResolution(readOnly, resolveReferences);
+        validateReferenceValidation(resolveReferences, validateReferences);
         K8sStoreConfig config = new K8sStoreConfig(
-                readOnly, withDependencies(areas), namespace, allNamespaces, syncTimeoutSeconds, resolveReferences);
+                readOnly,
+                withDependencies(areas),
+                namespace,
+                allNamespaces,
+                syncTimeoutSeconds,
+                resolveReferences,
+                validateReferences);
         instance = config;
         return config;
     }
@@ -305,16 +336,18 @@ public final class K8sStoreConfig {
         this.expirationSweepSeconds = scope.getInt("expiration-sweep-seconds", 300);
         this.resourcesVersionSeed = scope.get("resources-version-seed");
         this.resolveReferences = scope.getBoolean("resolve-references", false);
+        this.validateReferences = scope.getBoolean("validate-references", false);
         validateReferenceResolution(this.readOnly, this.resolveReferences);
+        validateReferenceValidation(this.resolveReferences, this.validateReferences);
         validateOrganizationFeatureCoupling(this.areas);
     }
 
     /**
      * Reference resolution is a read-only-mode feature. Resolution happens on the read path, so in
      * write mode Keycloak re-persists the whole spec on any change (an admin console save maps the
-     * full representation back) and a resolved {@code ${secret:...}}/{@code ${env:...}} value would
-     * be written into the custom resource in clear, overwriting the reference. Fail the boot rather
-     * than silently leak the referenced value back into the CR.
+     * full representation back) and a resolved {@code valuesFrom} value would be written into the
+     * custom resource in clear, overwriting the reference. Fail the boot rather than silently leak
+     * the referenced value back into the CR.
      */
     static void validateReferenceResolution(boolean readOnly, boolean resolveReferences) {
         if (resolveReferences && !readOnly) {
@@ -324,6 +357,21 @@ public final class K8sStoreConfig {
                             + " resource in clear and lose the reference. Either keep"
                             + " --spi-datastore--k8store--read-only=true (the default) or disable"
                             + " --spi-datastore--k8store--resolve-references.");
+        }
+    }
+
+    /**
+     * Startup reference validation only means something when references are resolved. Reject the
+     * combination rather than silently ignore {@code validate-references} without
+     * {@code resolve-references}.
+     */
+    static void validateReferenceValidation(boolean resolveReferences, boolean validateReferences) {
+        if (validateReferences && !resolveReferences) {
+            throw new IllegalArgumentException(
+                    "k8store: 'validate-references' requires 'resolve-references'. There is nothing to"
+                            + " validate when references are not resolved. Either enable"
+                            + " --spi-datastore--k8store--resolve-references or disable"
+                            + " --spi-datastore--k8store--validate-references.");
         }
     }
 
@@ -383,6 +431,12 @@ public final class K8sStoreConfig {
      */
     public boolean isResolveReferences() {
         return resolveReferences;
+    }
+
+    // When true, every config CR's valuesFrom references are validated at boot and the boot fails
+    // on any problem, instead of resolving lazily on read and failing open. Needs resolveReferences.
+    public boolean isValidateReferences() {
+        return validateReferences;
     }
 
     // The configured resources-version-seed, or null to use Keycloak's default tag.

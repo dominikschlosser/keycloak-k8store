@@ -73,7 +73,23 @@ import org.keycloak.representations.idm.UserRepresentation;
 @JsonIgnoreProperties(
         value = {"clientProfiles", "clientPolicies"},
         ignoreUnknown = true)
-public class RealmSpec extends RealmRepresentation {
+public class RealmSpec extends RealmRepresentation implements ValueReferenceCarrier {
+
+    /**
+     * Secret, ConfigMap and literal references this resource may pull into its {@code ${...}}
+     * placeholders. Resolved on read only. See {@link ValueReferenceCarrier}.
+     */
+    private List<ValueReference> valuesFrom;
+
+    @Override
+    public List<ValueReference> getValuesFrom() {
+        return valuesFrom;
+    }
+
+    @Override
+    public void setValuesFrom(List<ValueReference> valuesFrom) {
+        this.valuesFrom = valuesFrom;
+    }
 
     /**
      * Id of this realm's admin client in the {@code master} realm ({@code <realm>-realm}).

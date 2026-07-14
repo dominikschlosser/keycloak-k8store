@@ -26,15 +26,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Informer-backed mirror of the Kubernetes Secrets in one namespace, feeding
- * {@link PlaceholderResolver}'s {@code ${secret:name:key}} lookups without an API-server round trip
- * on the read hot path. Secret rotation propagates through the watch like every other kind mirrored
- * by this datastore.
+ * {@link ValueReferenceResolver}'s {@code secretKeyRef} lookups without an API-server round trip on
+ * the read hot path. Secret rotation propagates through the watch like every other kind mirrored by
+ * this datastore.
  *
- * <p>A single namespace is watched - the configured write namespace - even when the CRDs are
- * watched cluster-wide: a {@code ${secret:...}} reference carries no namespace, so referenced
- * Secrets must live alongside the datastore in its namespace.
+ * <p>Only the configured write namespace is watched, even when the CRDs are watched cluster-wide. A
+ * {@code secretKeyRef} carries no namespace, so referenced Secrets must live alongside the
+ * datastore in its namespace.
  */
-public final class SecretMirror implements PlaceholderResolver.SecretSource, AutoCloseable {
+public final class SecretMirror implements ValueReferenceResolver.KeyValueSource, AutoCloseable {
 
     private final KubernetesClient client;
     private final String namespace;
@@ -95,8 +95,8 @@ public final class SecretMirror implements PlaceholderResolver.SecretSource, Aut
     }
 
     @Override
-    public String value(String secretName, String key) {
-        Map<String, String> data = byName.get(secretName);
+    public String value(String name, String key) {
+        Map<String, String> data = byName.get(name);
         return data == null ? null : data.get(key);
     }
 

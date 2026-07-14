@@ -76,8 +76,9 @@ import io.github.dominikschlosser.k8store.kubernetes.crd.KeycloakSingleUseObject
 import io.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserCr;
 import io.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserSessionCr;
 import io.github.dominikschlosser.k8store.kubernetes.crd.KeycloakUserVerifiableCredentialCr;
-import io.github.dominikschlosser.k8store.kubernetes.references.PlaceholderResolver;
+import io.github.dominikschlosser.k8store.kubernetes.references.ConfigMapMirror;
 import io.github.dominikschlosser.k8store.kubernetes.references.SecretMirror;
+import io.github.dominikschlosser.k8store.kubernetes.references.ValueReferenceResolver;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -171,12 +172,14 @@ public final class K8sStorageBackend implements AutoCloseable {
 
     /**
      * Reference resolution on the read path, or {@code null} when {@code resolve-references} is
-     * off. When set, every read-out copy has its {@code ${env:...}}/{@code ${secret:...}}
-     * placeholders resolved, and {@link #secretMirror} watches the Secrets they reference.
+     * off. When set, every read-out copy has its {@code valuesFrom} references resolved, and
+     * {@link #secretMirror}/{@link #configMapMirror} watch the Secrets and ConfigMaps they name.
      */
-    private final PlaceholderResolver resolver;
+    private final ValueReferenceResolver resolver;
 
     private final SecretMirror secretMirror;
+
+    private final ConfigMapMirror configMapMirror;
 
     private K8sStorageBackend(KubernetesClient client, boolean closeClient, K8sStoreConfig config) {
         this.client = client;
@@ -186,9 +189,11 @@ public final class K8sStorageBackend implements AutoCloseable {
         this.writeNamespace = ns != null ? ns : "default";
         if (config.isResolveReferences()) {
             this.secretMirror = new SecretMirror(client, writeNamespace);
-            this.resolver = new PlaceholderResolver(System::getenv, secretMirror);
+            this.configMapMirror = new ConfigMapMirror(client, writeNamespace);
+            this.resolver = new ValueReferenceResolver(secretMirror, configMapMirror);
         } else {
             this.secretMirror = null;
+            this.configMapMirror = null;
             this.resolver = null;
         }
 
@@ -526,10 +531,11 @@ public final class K8sStorageBackend implements AutoCloseable {
         for (KindState<?, ?> state : kinds.values()) {
             informers.add(state.startInformer());
         }
-        // the Secret watch feeds ${secret:...} resolution; awaited alongside the kind informers
-        // below so references resolve from a fully synced cache from the first read
+        // the Secret and ConfigMap watches feed valuesFrom resolution. They are awaited alongside
+        // the kind informers below so references resolve from a fully synced cache on the first read
         if (secretMirror != null) {
             informers.add(secretMirror.start());
+            informers.add(configMapMirror.start());
         }
         long deadline = System.currentTimeMillis() + config.getSyncTimeoutSeconds() * 1000L;
         for (SharedIndexInformer<?> informer : informers) {
@@ -540,8 +546,8 @@ public final class K8sStorageBackend implements AutoCloseable {
                             + informer.getApiTypeClass().getSimpleName()
                             + " did not sync within " + config.getSyncTimeoutSeconds()
                             + "s. Does the service account have list/watch permissions on it (for "
-                            + K8sCrd.GROUP + " kinds, are the CRDs installed; for Secrets, is"
-                            + " resolve-references paired with secrets RBAC)?");
+                            + K8sCrd.GROUP + " kinds, are the CRDs installed; for Secrets and"
+                            + " ConfigMaps, is resolve-references paired with their RBAC)?");
                 }
                 try {
                     Thread.sleep(50);
@@ -552,6 +558,9 @@ public final class K8sStorageBackend implements AutoCloseable {
             }
         }
         warnAboutVersionDrift();
+        if (resolver != null && config.isValidateReferences()) {
+            validateReferencesOrFail();
+        }
         boolean anyExpiring = kinds.values().stream().anyMatch(state -> state.expiresAtFn != null);
         if (config.getReconcileIntervalSeconds() > 0 || (anyExpiring && config.getExpirationSweepSeconds() > 0)) {
             reconciler = Executors.newSingleThreadScheduledExecutor(runnable -> {
@@ -587,6 +596,44 @@ public final class K8sStorageBackend implements AutoCloseable {
                                 .substring(0, state.crClass.getSimpleName().length() - 2))
                         .sorted()
                         .collect(Collectors.joining(", ")));
+    }
+
+    /**
+     * Validates the {@code valuesFrom} references of every config CR against the synced Secret and
+     * ConfigMap mirrors, and fails the boot with an aggregated report when any is invalid. Runs once
+     * at startup when {@code validate-references} is on, so misconfiguration surfaces up front
+     * instead of being served as an unresolved placeholder. Only config kinds are checked (the
+     * always-writable runtime kinds carry no references).
+     */
+    private void validateReferencesOrFail() {
+        List<String> problems = new ArrayList<>();
+        for (KindState<?, ?> state : kinds.values()) {
+            if (!state.alwaysWritable) {
+                collectReferenceProblems(state, problems);
+            }
+        }
+        if (!problems.isEmpty()) {
+            String report = problems.stream().collect(Collectors.joining("\n  - ", "  - ", ""));
+            close();
+            throw new IllegalStateException("k8store: validate-references found " + problems.size()
+                    + " invalid valuesFrom reference(s) at boot:\n" + report
+                    + "\nFix the referenced Secrets/ConfigMaps or the custom resources, or disable"
+                    + " --spi-datastore--k8store--validate-references.");
+        }
+    }
+
+    private <S> void collectReferenceProblems(KindState<S, ?> state, List<String> problems) {
+        for (Map<String, S> realm : state.byRealm.values()) {
+            for (S spec : realm.values()) {
+                if (state.isExpired(spec)) {
+                    continue;
+                }
+                for (String problem : resolver.validate(COPY_MAPPER.valueToTree(spec))) {
+                    problems.add(state.crClass.getSimpleName() + " " + state.realmFn.apply(spec) + "/"
+                            + state.idFn.apply(spec) + ": " + problem);
+                }
+            }
+        }
     }
 
     private void sweepExpiredGuarded() {
@@ -751,10 +798,10 @@ public final class K8sStorageBackend implements AutoCloseable {
      * thread mutate what every other session on this node reads - including mutations that the
      * API server (or read-only mode) later rejects, silently corrupting the mirror.
      *
-     * <p>When reference resolution is on, the copy also has its {@code ${env:...}}/{@code
-     * ${secret:...}} placeholders resolved. Resolution happens only here on the read-out path, so
-     * the mirror keeps the raw placeholders and a write serializes them back verbatim - secrets
-     * are never stored in the config-CR mirror in clear.
+     * <p>When reference resolution is on, the copy also has its {@code valuesFrom} references
+     * resolved. Resolution happens only here on the read-out path, so the mirror keeps the raw
+     * placeholders and a write serializes them back verbatim. Secrets are never stored in the
+     * config-CR mirror in clear.
      *
      * <p>Only config kinds are resolved. The always-writable runtime kinds (users, sessions,
      * single-use objects, ...) are machine-written data that never carries references, and

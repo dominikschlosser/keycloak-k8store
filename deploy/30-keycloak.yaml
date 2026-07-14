@@ -82,11 +82,16 @@ spec:
             # ephemeral or you run blue/green with separate databases. Any stable string works.
             # - name: KC_SPI_DATASTORE__K8STORE__RESOURCES_VERSION_SEED
             #   value: "my-deployment"
-            # Resolve ${env:...} and ${secret:name:key} references in CR values on read, so secrets
-            # (client secrets, SMTP/LDAP passwords, IdP client secrets) live in Kubernetes Secrets
-            # instead of in the committed CR manifests. Needs get/list/watch on secrets (see
-            # deploy/20-rbac.yaml). Referenced Secrets must be in this namespace.
+            # Resolve valuesFrom references in CR values on read, so secrets (client secrets,
+            # SMTP/LDAP passwords, IdP client secrets) live in Kubernetes Secrets or ConfigMaps
+            # instead of in the committed CR manifests. Needs get/list/watch on secrets and
+            # configmaps (see deploy/20-rbac.yaml). Referenced objects must be in this namespace.
             # - name: KC_SPI_DATASTORE__K8STORE__RESOLVE_REFERENCES
+            #   value: "true"
+            # Validate every valuesFrom reference at boot (needs resolve-references) and fail
+            # startup on any problem, instead of resolving lazily and serving unresolved
+            # placeholders. Reports every offending CR at once.
+            # - name: KC_SPI_DATASTORE__K8STORE__VALIDATE_REFERENCES
             #   value: "true"
           ports:
             - name: http
