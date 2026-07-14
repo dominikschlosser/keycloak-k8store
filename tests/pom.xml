@@ -16,11 +16,20 @@
     <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
+  <!-- These import BOMs live in the tests module (not the parent) so the published core/crd-tools
+       POMs do not inherit them. The tests module is not published. -->
   <dependencyManagement>
     <dependencies>
-      <!-- kept in the tests module (not the parent) so the published core/crd-tools POMs do not
-           inherit this import BOM. It is only needed by the integration tests, which are not
-           published. -->
+      <!-- Must come before the Keycloak BOM: import BOMs resolve in declaration order, and the
+           Keycloak BOM pins an older fabric8. A split between the okhttp client and the client-api
+           throws NoSuchFieldError at runtime, so align every fabric8 artifact here first. -->
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-client-bom</artifactId>
+        <version>${fabric8.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
       <dependency>
         <groupId>org.keycloak.testframework</groupId>
         <artifactId>keycloak-test-framework-bom</artifactId>
