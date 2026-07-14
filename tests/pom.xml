@@ -16,6 +16,21 @@
     <maven.deploy.skip>true</maven.deploy.skip>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <!-- kept in the tests module (not the parent) so the published core/crd-tools POMs do not
+           inherit this import BOM. It is only needed by the integration tests, which are not
+           published. -->
+      <dependency>
+        <groupId>org.keycloak.testframework</groupId>
+        <artifactId>keycloak-test-framework-bom</artifactId>
+        <version>${keycloak.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>io.github.dominikschlosser</groupId>

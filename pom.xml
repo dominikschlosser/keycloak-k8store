@@ -39,34 +39,54 @@
     <fabric8.version>7.8.0</fabric8.version>
     <auto-service.version>1.1.1</auto-service.version>
     <junit.version>5.13.4</junit.version>
+    <!-- aligned with the jackson that fabric8 kubernetes-client ships -->
+    <jackson.version>2.21.4</jackson.version>
 
     <maven.compiler.release>21</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.proc>full</maven.compiler.proc>
   </properties>
 
+  <!-- Explicit versions (no imported BOMs) so the published POMs resolve every dependency version
+       through this parent, which is published alongside core and crd-tools. -->
   <dependencyManagement>
     <dependencies>
       <dependency>
         <groupId>io.fabric8</groupId>
-        <artifactId>kubernetes-client-bom</artifactId>
+        <artifactId>kubernetes-client</artifactId>
         <version>${fabric8.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
       </dependency>
       <dependency>
-        <groupId>org.keycloak.testframework</groupId>
-        <artifactId>keycloak-test-framework-bom</artifactId>
-        <version>${keycloak.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-httpclient-okhttp</artifactId>
+        <version>${fabric8.version}</version>
       </dependency>
       <dependency>
-        <groupId>org.junit</groupId>
-        <artifactId>junit-bom</artifactId>
+        <groupId>io.fabric8</groupId>
+        <artifactId>generator-annotations</artifactId>
+        <version>${fabric8.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>crd-generator-api-v2</artifactId>
+        <version>${fabric8.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.fabric8</groupId>
+        <artifactId>kubernetes-server-mock</artifactId>
+        <version>${fabric8.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.fasterxml.jackson.dataformat</groupId>
+        <artifactId>jackson-dataformat-yaml</artifactId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit.jupiter</groupId>
+        <artifactId>junit-jupiter</artifactId>
         <version>${junit.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>
