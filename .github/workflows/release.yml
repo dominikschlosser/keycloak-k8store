@@ -44,8 +44,10 @@ jobs:
       - name: Core unit tests
         run: mvn -B -ntp test -pl core
 
+      # The parent (.) must be published too: the core/crd-tools POMs inherit their metadata and
+      # dependency versions from it, and Maven Central validates each POM against the parent.
       - name: Publish to Maven Central
-        run: mvn -B -ntp deploy -Prelease -DskipTests -pl core,crd-tools
+        run: mvn -B -ntp deploy -Prelease -DskipTests -pl .,core,crd-tools
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
