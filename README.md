@@ -93,9 +93,18 @@ using Keycloak's official keycloak-benchmark tool; results in [docs/BENCHMARK.md
 ## Deploying elsewhere
 
 Build `core/target/providers/` (`mvn -pl core -DskipTests package`) and copy all its jars into
-Keycloak's `providers/` directory (see `deploy/Dockerfile`), apply `crds/`, and give the
+Keycloak's `providers/` directory (see `deploy/Dockerfile`), apply the CRDs, and give the
 Keycloak service account `get,list,watch` (plus write verbs in write mode) on the
 `k8store.dominikschlosser.github.io` API group (see `deploy/20-rbac.yaml`).
+
+The provider jar is published to Maven Central as `io.github.dominikschlosser:keycloak-k8store`
+(the CRD CLI is `keycloak-k8store-crd-tools`). The CRDs come from one of three places:
+
+- This repo: `kubectl apply -f crds/`.
+- A GitHub release: download `keycloak-k8store-crds.yaml`, a single bundle of all kinds, then
+  `kubectl apply -f keycloak-k8store-crds.yaml`.
+- The jar itself: the same manifests ship inside `keycloak-k8store-<version>.jar` under
+  `META-INF/fabric8/`. Extract them with `jar xf keycloak-k8store-<version>.jar META-INF/fabric8`.
 
 ## Configuration
 

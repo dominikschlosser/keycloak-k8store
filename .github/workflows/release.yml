@@ -52,6 +52,11 @@ jobs:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
 
+      # Bundle the committed CRDs into one multi-document manifest so consumers can install them
+      # with a single kubectl apply, without cloning the repo or extracting them from the jar.
+      - name: Bundle CRDs
+        run: awk 'FNR==1 && NR!=1 {print "---"} {print}' crds/*.yml > keycloak-k8store-crds.yaml
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -59,3 +64,4 @@ jobs:
           files: |
             core/target/keycloak-k8store-*.jar
             crd-tools/target/keycloak-k8store-crd-tools-*.jar
+            keycloak-k8store-crds.yaml
